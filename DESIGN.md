@@ -259,6 +259,8 @@ Pada lebar maksimal 600 piksel, tabel pesanan, produk, batch/perjalanan, dan pel
 
 ## Dua usaha dengan switch
 
+Label Jastip/Open PO yang berulang di atas judul halaman dihapus. Switch usaha, navigasi dan judul kontekstual sudah menunjukkan mode aktif; judul langsung menjadi titik perhatian.
+
 Keputusan pengguna: Tippo memiliki dua mode, Jastip dan Open PO, tanpa ringkasan gabungan. Switch berlabel tetap terlihat di atas isi halaman, navigasi mengikuti mode, dan pilihan terakhir disimpan di browser. Jastip memakai teal, Open PO memakai jingga hangat; warna status pesanan konsisten di kedua mode. Permukaan/tabel/font dan pengaturan terang/gelap tetap sama. ENERGY 2 / RHYTHM 2 / MOTION 1 untuk ruang kerja. Aksen PO terang #94501f dengan putih pada tombol, PO gelap #e8b484 dengan ink #14251e. Sidebar PO memakai cokelat gelap agar konteks terlihat tanpa mewarnai seluruh halaman. HPP pada grafik PO memakai warna netral dan garis putus-putus untuk dibedakan dari penjualan jingga. Scope mode berlaku pada ringkasan, grafik, pembayaran/refund, tagihan, pesanan, batch/perjalanan dan HPP. Akun, langganan, profil, data cadangan dan daftar kontak pelanggan tetap bersama.
 
 ## Status batch satu arah
