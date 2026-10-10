@@ -1,0 +1,31 @@
+/* Account feedback and public documents share the operational paper canvas. */
+.workspace-wait { min-height:100dvh; padding:clamp(1.25rem,4vw,2.5rem); background:var(--canvas); }
+.workspace-wait-card { max-width:35rem; margin:12vh auto; text-align:center; }
+.workspace-wait-card > svg { color:var(--primary); margin:0 auto 1.5rem; }
+.workspace-wait-card h1 { font-size:clamp(1.5rem,4vw,2rem); line-height:1.35; }
+.workspace-wait-card p { color:var(--tone-text-53675f); font-size:1rem; line-height:1.8; margin-top:1.25rem; }
+.workspace-wait-card > div { display:flex; gap:.75rem; justify-content:center; margin-top:1.5rem; flex-wrap:wrap; }
+.workspace-wait-card > .text-action { margin-top:1.25rem; min-height:44px; }
+.demo-toolbar { background:var(--tone-surface-e8ede4); color:var(--tone-text-233d35); min-height:64px; display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.5rem 1.5rem .5rem calc(228px + 1.5rem); font-size:.875rem; border-bottom:1px solid var(--tone-line-c9d7cf); }
+.demo-toolbar a { color:var(--primary); font-weight:600; text-decoration:underline; text-underline-offset:3px; display:inline-flex; align-items:center; min-height:44px; flex-shrink:0; }
+.cloud-error { background:var(--tone-surface-fff2de); color:var(--tone-text-8a4b16); font-size:.875rem; line-height:1.7; padding:1rem 1.5rem 1rem calc(228px + 1.5rem); }
+.cloud-error button { color:var(--tone-text-8a4b16); background:none; border:0; text-decoration:underline; font-weight:600; min-height:44px; padding:.5rem; }
+.cloud-saving { position:fixed; inset:0; z-index:90; background:var(--tone-surface-f7f4edee); display:flex; align-items:center; justify-content:center; gap:.75rem; color:var(--primary); font-size:1rem; }
+.policy-page { max-width:48rem; margin:auto; padding:clamp(1.5rem,4vw,3rem) clamp(1.25rem,4vw,2rem) 4rem; }
+.policy-page h1 { margin-top:3rem; font-size:clamp(1.75rem,5vw,2.25rem); line-height:1.35; }
+.policy-page h2 { margin:2rem 0 .75rem; font-size:1.125rem; }
+.policy-page p,.policy-page li { font-size:1rem; color:var(--tone-text-53675f); line-height:1.9; margin:.75rem 0; }
+.policy-page ul { padding-left:1.25rem; }
+.policy-page > a:last-child { margin-top:1.5rem; }
+.spin { animation:tippo-spin 1s linear infinite; }
+@keyframes tippo-spin { to { transform:rotate(360deg); } }
+@media (max-width:1180px) { .demo-toolbar, .cloud-error { padding-left:calc(205px + 1.5rem); } }
+@media (max-width:760px) {
+  .demo-toolbar { padding:.5rem 1rem; gap:.5rem; font-size:.8125rem; }
+  .demo-toolbar > span { max-width:21rem; min-width:0; overflow-wrap:anywhere; }
+  .demo-toolbar a { white-space:normal; text-align:center; flex-basis:7rem; flex-shrink:1; min-width:44px; }
+  .cloud-error { padding:.75rem 1rem; }
+}
+@media (prefers-reduced-motion:reduce) { .spin { animation:none; } }
+
+@media (min-width: 761px) { .demo-toolbar:has(+ .sidebar-collapsed), .cloud-error:has(+ .sidebar-collapsed) { padding-left: calc(76px + 1.5rem); } }

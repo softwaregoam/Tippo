@@ -1,0 +1,177 @@
+:root {
+  --tone-surface-173f38: #173f38;
+  --tone-text-f7f4ed: #f7f4ed;
+  --tone-line-173f38: #173f38;
+  --tone-text-d9b68e: #d9b68e;
+  --tone-text-b7ccc0: #b7ccc0;
+  --tone-text-7d897f: #7d897f;
+  --tone-surface-245c4e: #245c4e;
+  --tone-text-fff: #fff;
+  --tone-text-d4e0d8: #d4e0d8;
+  --tone-text-173f38: #173f38;
+  --tone-surface-f7f4ed: #f7f4ed;
+  --tone-surface-eef1ee: #eef1ee;
+  --tone-surface-ddeee5: #ddeee5;
+  --tone-surface-fbfaf6: #fbfaf6;
+  --tone-surface-eaf0e8: #eaf0e8;
+  --tone-surface-fffefa: #fffefa;
+  --tone-line-173f3818: #173f3818;
+  --tone-surface-edf5f1: #edf5f1;
+  --tone-surface-f7e4cb: #f7e4cb;
+  --tone-text-0b5e56: #0b5e56;
+  --tone-surface-e0eade: #e0eade;
+  --tone-surface-f2ddbf: #f2ddbf;
+  --tone-surface-f5faf7: #f5faf7;
+  --tone-surface-dde4de: #dde4de;
+  --tone-surface-f1eee5: #f1eee5;
+  --tone-surface-f6f6ee: #f6f6ee;
+  --tone-surface-fff2de: #fff2de;
+  --tone-surface-18312880: #18312880;
+  --tone-line-17352824: #17352824;
+  --tone-surface-fff2ed: #fff2ed;
+  --tone-surface-e1e9dc: #e1e9dc;
+  --tone-surface-edeae0: #edeae0;
+  --tone-surface-fffaf0: #fffaf0;
+  --tone-surface-f6f1e7: #f6f1e7;
+  --tone-surface-eeede7: #eeede7;
+  --tone-surface-c9ddd0: #c9ddd0;
+  --tone-surface-e9eae7: #e9eae7;
+  --tone-text-626762: #626762;
+  --tone-line-7d817d: #7d817d;
+  --tone-text-94501f: #94501f;
+  --tone-text-fff2de: #fff2de;
+  --tone-line-718278: #718278;
+  --tone-text-233d35: #233d35;
+  --tone-surface-eae7dd: #eae7dd;
+  --tone-surface-fff: #fff;
+  --tone-text-245c4e: #245c4e;
+  --tone-line-94501f: #94501f;
+  --tone-text-53675f: #53675f;
+  --tone-line-dedcd3: #dedcd3;
+  --tone-text-d8e8df: #d8e8df;
+  --tone-surface-11322c: #11322c;
+  --tone-surface-fffdf8: #fffdf8;
+  --tone-line-e8e5dc: #e8e5dc;
+  --tone-surface-edf2e9: #edf2e9;
+  --tone-surface-e8ede4: #e8ede4;
+  --tone-surface-f4e8d8: #f4e8d8;
+  --tone-line-537267: #537267;
+  --tone-surface-eef1e9: #eef1e9;
+  --tone-surface-f3e8d7: #f3e8d7;
+  --tone-line-76857b: #76857b;
+  --tone-surface-eceee6: #eceee6;
+  --tone-line-245c4e: #245c4e;
+  --tone-text-963c28: #963c28;
+  --tone-surface-fff4ef: #fff4ef;
+  --tone-text-235746: #235746;
+  --tone-surface-edf5ee: #edf5ee;
+  --tone-line-c8d0c5: #c8d0c5;
+  --tone-text-d5e0d7: #d5e0d7;
+  --tone-line-789285: #789285;
+  --tone-text-f1c8a6: #f1c8a6;
+  --tone-line-c9d7cf: #c9d7cf;
+  --tone-text-8a4b16: #8a4b16;
+  --tone-surface-f7f4edee: #f7f4edee;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #e3ede5; --muted: #b1c1b7; --primary: #9ad1b5; --warning: #e8b484; --danger: #f1a297; --border: #465c4e; --control-border: #87998f; --canvas: #121b17;
+  --tone-surface-173f38: #173f38;
+  --tone-text-f7f4ed: #eef4ee;
+  --tone-line-173f38: #87998f;
+  --tone-text-d9b68e: #b7c7bc;
+  --tone-text-b7ccc0: #b7c7bc;
+  --tone-text-7d897f: #b7c7bc;
+  --tone-surface-245c4e: #245c4e;
+  --tone-text-fff: #eef4ee;
+  --tone-text-d4e0d8: #eef4ee;
+  --tone-text-173f38: #e3ede5;
+  --tone-surface-f7f4ed: #121b17;
+  --tone-surface-eef1ee: #28392f;
+  --tone-surface-ddeee5: #28392f;
+  --tone-surface-fbfaf6: #1b2822;
+  --tone-surface-eaf0e8: #28392f;
+  --tone-surface-fffefa: #1b2822;
+  --tone-line-173f3818: #87998f;
+  --tone-surface-edf5f1: #28392f;
+  --tone-surface-f7e4cb: #3e3022;
+  --tone-text-0b5e56: #9ad1b5;
+  --tone-surface-e0eade: #28392f;
+  --tone-surface-f2ddbf: #28392f;
+  --tone-surface-f5faf7: #1b2822;
+  --tone-surface-dde4de: #28392f;
+  --tone-surface-f1eee5: #28392f;
+  --tone-surface-f6f6ee: #28392f;
+  --tone-surface-fff2de: #3e3022;
+  --tone-surface-18312880: #18312880;
+  --tone-line-17352824: #87998f;
+  --tone-surface-fff2ed: #28392f;
+  --tone-surface-e1e9dc: #28392f;
+  --tone-surface-edeae0: #28392f;
+  --tone-surface-fffaf0: #3e3022;
+  --tone-surface-f6f1e7: #28392f;
+  --tone-surface-eeede7: #28392f;
+  --tone-surface-c9ddd0: #28392f;
+  --tone-surface-e9eae7: #2b342f;
+  --tone-text-626762: #b7c7bc;
+  --tone-line-7d817d: #87998f;
+  --tone-text-94501f: #e8b484;
+  --tone-text-fff2de: #eef4ee;
+  --tone-line-718278: #87998f;
+  --tone-text-233d35: #e3ede5;
+  --tone-surface-eae7dd: #28392f;
+  --tone-surface-fff: #1b2822;
+  --tone-text-245c4e: #9ad1b5;
+  --tone-line-94501f: #87998f;
+  --tone-text-53675f: #b7c7bc;
+  --tone-line-dedcd3: #465c4e;
+  --tone-text-d8e8df: #eef4ee;
+  --tone-surface-11322c: #11322c;
+  --tone-surface-fffdf8: #1b2822;
+  --tone-line-e8e5dc: #465c4e;
+  --tone-surface-edf2e9: #28392f;
+  --tone-surface-e8ede4: #28392f;
+  --tone-surface-f4e8d8: #3e3022;
+  --tone-line-537267: #87998f;
+  --tone-surface-eef1e9: #28392f;
+  --tone-surface-f3e8d7: #3e3022;
+  --tone-line-76857b: #87998f;
+  --tone-surface-eceee6: #28392f;
+  --tone-line-245c4e: #87998f;
+  --tone-text-963c28: #f1a297;
+  --tone-surface-fff4ef: #28392f;
+  --tone-text-235746: #9ad1b5;
+  --tone-surface-edf5ee: #28392f;
+  --tone-line-c8d0c5: #465c4e;
+  --tone-text-d5e0d7: #eef4ee;
+  --tone-line-789285: #87998f;
+  --tone-text-f1c8a6: #eef4ee;
+  --tone-line-c9d7cf: #465c4e;
+  --tone-text-8a4b16: #e8b484;
+  --tone-surface-f7f4edee: #121b17;
+}
+
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid var(--control-border); border-radius: 10px; background: transparent; color: var(--ink); }
+.theme-toggle:hover { background: var(--tone-surface-eaf0e8); }
+:root[data-theme="dark"] .btn-primary,
+:root[data-theme="dark"] .landing-button.primary,
+:root[data-theme="dark"] .auth-submit { background: #9ad1b5; color: #14251e; border-color: #9ad1b5; }
+:root[data-theme="dark"] .btn-primary:hover,
+:root[data-theme="dark"] .landing-button.primary:hover,
+:root[data-theme="dark"] .auth-submit:hover { background: #b7e4cb; }
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .nav-item.active:hover { background: #9ad1b5; color: #14251e; }
+:root[data-theme="dark"] input:disabled,
+:root[data-theme="dark"] input[readonly],
+:root[data-theme="dark"] textarea:disabled,
+:root[data-theme="dark"] textarea[readonly],
+:root[data-theme="dark"] .select-trigger:disabled,
+:root[data-theme="dark"] .select-option[data-disabled],
+:root[data-theme="dark"] .po-product-prices { color: #b1b7b2; background: #2b342f; border-color: #89958b; }
+
+:root { --paper: #ffffff; --on-action: #ffffff; }
+:root[data-theme="dark"] { --paper: #1b2822; --on-action: #14251e; }
+:root[data-theme="dark"] .btn-primary { color: #14251e !important; background: #9ad1b5 !important; }
+:root[data-theme="dark"] .toast { background: #28392f; color: #e3ede5; border: 1px solid #87998f; }
+:root[data-theme="dark"] .toast > svg,
+:root[data-theme="dark"] .toast button { color: #e3ede5; }
