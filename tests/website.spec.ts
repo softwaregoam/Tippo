@@ -398,3 +398,20 @@ test("new customers prepend and editing an older customer preserves order",async
 test("orders sort by creation time rather than editable transaction date",async({page})=>{
  const data=structuredClone(fixture);data.orders=[{id:"sort-old",batchId:"trip",customerId:"aly",date:"2026-10-10",createdAt:"2026-10-01T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"sort-item-old",productId:null,product:"Pesanan Lama",variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]},{id:"sort-new",batchId:"trip",customerId:"aly",date:"2026-10-01",createdAt:"2026-10-10T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"sort-item-new",productId:null,product:"Pesanan Baru",variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]}];await authenticate(page,{workspace:data});await page.goto("/app");await expect(page.locator(".recent-card tbody tr").first()).toContainText("Pesanan Baru");await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Jastip",exact:true}).click();await page.getByRole("tab",{name:/^Pesanan/}).click();await expect(page.locator(".orders-table tbody tr").first()).toContainText("Pesanan Baru");
 });
+
+for(const width of [320,1440])for(const theme of ["light","dark"])test(`unpaid dashboard ${width} ${theme} shows monthly balances without actions`,async({page})=>{
+ await page.setViewportSize({width,height:1000});await page.addInitScript(t=>localStorage.setItem("tippo.theme.v1",t),theme);
+ const data=structuredClone(fixture),date=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"});
+ for(let i=0;i<9;i++){
+  const id=`bill-${i}`;data.customers.push({id,name:i===5?"Pelanggan tagihan 5 dengan nama sangat panjang untuk layar ponsel":"Pelanggan tagihan "+i,phone:""});
+  data.orders.push({id,batchId:"trip",customerId:id,date:i===8?"2025-01-01":date,createdAt:`2026-10-10T00:00:0${i}Z`,status:i===7?"cancelled":"new",paid:i===7?0:i===6?25000:5000,serviceFee:2000,shippingCharge:3000,notes:"",items:[{id:`item-${i}`,product:"Produk tagihan",productId:null,variant:"",color:"",size:"",quantity:2,unitPrice:10000,unitCost:5000}]});
+ }
+ await authenticate(page,{workspace:data});await page.goto("/app");const card=page.getByRole("region",{name:"Tagihan belum lunas"});
+ await expect(card).toContainText("6 pesanan");await expect(card.locator("li")).toHaveCount(5);await expect(card.locator("li").first()).toContainText("Pelanggan tagihan 5");await expect(card.locator("li").first()).toContainText("Rp 20.000");await expect(card.locator(".unpaid-total")).toContainText("Rp 120.000");await expect(card).toContainText("Menampilkan 5 dari 6 tagihan terbaru.");await expect(card).not.toContainText("Pelanggan tagihan 6");await expect(card).not.toContainText("Pelanggan tagihan 7");await expect(card).not.toContainText("Pelanggan tagihan 8");await expect(card.getByRole("button")).toHaveCount(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+ await page.locator(".dashboard-middle").screenshot({path:`docs/preview-dashboard-bills-${width}-${theme}.png`});
+});
+for(const paid of [false,true])test(`unpaid dashboard distinguishes ${paid?"settled orders":"no orders"}`,async({page})=>{
+ const data=structuredClone(fixture);
+ if(paid)data.orders.push({id:"paid-order",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"done",paid:25000,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"paid-item",product:"Produk lunas",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});
+ await authenticate(page,{workspace:data});await page.goto("/app");const card=page.getByRole("region",{name:"Tagihan belum lunas"});await expect(card).toContainText(paid?"Semua tagihan bulan ini sudah lunas.":"Belum ada tagihan bulan ini.");await expect(card.locator("li")).toHaveCount(0);
+});

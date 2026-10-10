@@ -23,7 +23,7 @@ import { HppPanel } from "@/components/hpp-panel";
 import { SubscriptionPanel } from "@/components/subscription-panel";
 import { useAppData, saveAppData, normalizeAppData } from "@/lib/store";
 import { seedData } from "@/lib/seed";
-import { formatCurrency, getMonthlySeries, getMonthSummary } from "@/lib/finance";
+import { formatCurrency, getMonthlySeries, getMonthSummary, outstanding } from "@/lib/finance";
 import { canCreateOrders, canCreateProduct, canRestoreOrders, effectivePlan, jakartaMonth, monthlyOrderUsage, recordOrderUsage, useSubscription } from "@/lib/subscription";
 import type { AppData, Batch, Customer, Order, Product } from "@/lib/types";
 import type { AccountWorkspace } from "./cloud-workspace";
@@ -163,6 +163,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const currentYear = Number(month.slice(0, 4));
   const availableYears = Array.from(new Set([2026, new Date().getFullYear(), ...data.orders.map((o) => Number(o.date.slice(0, 4)))] )).sort();
   const monthOrders = data.orders.filter((o) => o.date.startsWith(month)).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const unpaidOrders = monthOrders.filter((order) => outstanding(order) > 0);
   const activeBatches = data.batches.filter((b) => b.status === "open");
   const visibleCustomers = data.customers.filter((customer) => customer.name.toLowerCase().includes(search.toLowerCase()));
   const hppBatch = data.batches.find((b) => b.id === selectedHpp) ?? data.batches[0];
@@ -285,7 +286,20 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                 </div>
                 <div className="dashboard-middle">
                   <section className="card chart-card"><div className="card-header"><div><h2>Penjualan dibanding HPP</h2><p>{isPro ? "Perbandingan enam bulan, berdasarkan tanggal pesanan." : "Perbandingan pada bulan berjalan."}</p></div><div className="chart-year">{currentYear}</div></div><div className="chart-summary"><div><span>{isPro ? "Total penjualan tahun ini" : `Penjualan ${monthLabel(month)}`}</span><strong>{formatCurrency(isPro ? getMonthlySeries(data, currentYear).reduce((sum, point) => sum + point.revenue, 0) : summary.revenue)}</strong></div><div className="chart-legend"><span><i className="legend-dot teal" />Penjualan</span><span><i className="legend-dot gold" />HPP diketahui</span></div></div><MonthlyChart data={data} month={month} currentOnly={!isPro} />{!isPro && <button className="summary-upgrade" onClick={() => go("subscription")}><Crown size={14} />Ringkasan bulan sebelumnya tersedia di Pro</button>}<div className="chart-caption"><span>Berdasarkan tanggal pesanan</span><span>HPP yang belum terisi tidak dihitung</span></div></section>
-                  <section className="card payments-card"><div className="card-header"><div><h2>Aliran pembayaran</h2><p>Untuk pesanan {monthLabel(month)}</p></div></div><div className="payment-overview"><PaymentDonut received={summary.received} total={summary.revenue} /><div className="payment-breakdown"><div><span><i className="legend-dot teal" />Sudah diterima</span><strong>{formatCurrency(summary.received)}</strong></div><div><span><i className="legend-dot pale" />Belum dibayar</span><strong>{formatCurrency(summary.outstanding)}</strong></div>{data.orders.some(o=>o.date.startsWith(`${month}-`) && refundedTotal(o)>0) && <div><span>Refund pesanan bulan ini</span><strong>{formatCurrency(data.orders.filter(o=>o.date.startsWith(`${month}-`)).reduce((sum,o)=>sum+refundedTotal(o),0))}</strong></div>}</div></div></section>
+                  <div className="dashboard-payments">
+                    <section className="card payments-card"><div className="card-header"><div><h2>Aliran pembayaran</h2><p>Untuk pesanan {monthLabel(month)}</p></div></div><div className="payment-overview"><PaymentDonut received={summary.received} total={summary.revenue} /><div className="payment-breakdown"><div><span><i className="legend-dot teal" />Sudah diterima</span><strong>{formatCurrency(summary.received)}</strong></div><div><span><i className="legend-dot pale" />Belum dibayar</span><strong>{formatCurrency(summary.outstanding)}</strong></div>{data.orders.some(o=>o.date.startsWith(`${month}-`) && refundedTotal(o)>0) && <div><span>Refund pesanan bulan ini</span><strong>{formatCurrency(data.orders.filter(o=>o.date.startsWith(`${month}-`)).reduce((sum,o)=>sum+refundedTotal(o),0))}</strong></div>}</div></div></section>
+                    <section className="card unpaid-card" aria-labelledby="unpaid-title">
+                      <div className="card-header"><div><h2 id="unpaid-title">Tagihan belum lunas</h2><p>{monthLabel(month)} · {unpaidOrders.length} pesanan</p></div></div>
+                      {unpaidOrders.length > 0 ? <>
+                        <ul className="unpaid-list">{unpaidOrders.slice(0, 5).map(order => <li key={order.id}>
+                          <div><h3>{data.customers.find(customer => customer.id === order.customerId)?.name || "Pelanggan belum diisi"}</h3><p>{data.batches.find(batch => batch.id === order.batchId)?.name || "Batch belum diisi"} · {dateLabel(order.date)}</p></div>
+                          <strong>{formatCurrency(outstanding(order))}</strong>
+                        </li>)}</ul>
+                        <div className="unpaid-total"><span>Total sisa tagihan</span><strong>{formatCurrency(summary.outstanding)}</strong></div>
+                        {unpaidOrders.length > 5 && <p className="unpaid-limit">Menampilkan 5 dari {unpaidOrders.length} tagihan terbaru.</p>}
+                      </> : <div className="unpaid-empty">{summary.ordersCount > 0 && <Check size={20} aria-hidden="true" />}<p>{summary.ordersCount > 0 ? "Semua tagihan bulan ini sudah lunas." : "Belum ada tagihan bulan ini."}</p></div>}
+                    </section>
+                  </div>
                 </div>
                 <section className="batch-preview"><div className="section-heading"><div><h2>Lagi buka titipan <span className="count-pill">{activeBatches.length}</span></h2><p>Jangan sampai ada pesanan yang terlewat.</p></div></div><div className="batch-preview-grid">{activeBatches.length ? activeBatches.map((batch, index) => <BatchCard key={batch.id} batch={batch} data={data} index={index} onOpen={() => { setSelectedHpp(batch.id); go("hpp"); }} />) : <div className="empty-state compact"><Layers3 size={28} /><p>Belum ada batch aktif. Mulai perjalanan pertamamu.</p><Button className="btn btn-secondary" onClick={() => setChoice("batch")}>Buat batch</Button></div>}<button className="new-batch-card" onClick={() => setChoice("batch")}><span><Plus size={22} /></span><strong>Perjalanan baru?</strong><p>Buka jastip atau PO berikutnya</p></button></div></section>
                 <section className="card recent-card"><div className="card-header"><div><h2>Pesanan terbaru</h2><p>Yang baru masuk, langsung tercatat.</p></div></div><OrdersTable data={data} orders={monthOrders.slice(0, 5)} onEdit={editOrder} onStatus={updateStatus} onRefund={refundOrder} compact readOnly /></section>

@@ -115,6 +115,24 @@ svg { flex-shrink: 0; }
 .stat-note { margin-top: 10px; display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--muted); line-height: 1.7; }
 .stat-note.warning { color: var(--warning); }
 .dashboard-middle { display: grid; grid-template-columns: minmax(0,1.9fr) minmax(0,1fr); gap: 20px; margin-top: 24px; }
+.dashboard-middle>.chart-card { align-self: start; }
+.dashboard-payments { display: grid; gap: 16px; align-self: start; min-width: 0; }
+.unpaid-list { list-style: none; margin: 0; padding: 0 24px; }
+.unpaid-list li { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 14px 0; border-top: 1px solid var(--border); }
+.unpaid-list li>div { min-width: 0; }
+.unpaid-list h3 { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.unpaid-list p { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.unpaid-list strong { flex-shrink: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.unpaid-total { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 0 24px; padding: 16px 0 20px; border-top: 1px solid var(--border); font-size: 14px; }
+.unpaid-total span,.unpaid-limit { color: var(--muted); }
+.unpaid-total strong { font-variant-numeric: tabular-nums; }
+.unpaid-limit { margin: -4px 24px 20px; font-size: 12px; }
+.unpaid-empty { display: flex; align-items: flex-start; gap: 10px; margin: 0 24px 24px; padding: 16px; background: var(--tone-surface-edf5f1); border-radius: 8px; font-size: 14px; line-height: 1.6; }
+.unpaid-empty svg { flex-shrink: 0; margin-top: 1px; color: var(--primary); }
+@media(max-width:600px) {
+  .unpaid-list { padding-inline: 18px; }
+  .unpaid-total,.unpaid-limit,.unpaid-empty { margin-inline: 18px; }
+}
 .card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 24px 16px; }
 .card-header p,.section-heading p { color: var(--muted); font-size: 14px; margin-top: 7px; line-height: 1.7; }
 .card-header>svg { color: var(--muted); }
