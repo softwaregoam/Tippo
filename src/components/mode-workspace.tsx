@@ -59,7 +59,7 @@ export function ModeWorkspace({ type, data, onNewBatch, onEditBatch, onEditOrder
   const filteredOrders = orders.filter((o) => {
     const name = data.customers.find((c) => c.id === o.customerId)?.name ?? "";
     return `${orderLabel(o)} ${name}`.toLowerCase().includes(search.toLowerCase()) && (status === "all" || (status === "unpaid" ? outstanding(o) > 0 : visibleOrderStatus(o.status) === status)) && (batchFilter === "all" || o.batchId === batchFilter);
-  }).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  }).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const products = data.products.filter((p) => `${p.name} ${p.variant} ${p.sku} ${p.category ?? ""}`.toLowerCase().includes(search.toLowerCase()) && (categoryFilter === "all" || p.category === categoryFilter) && (productStatus === "all" || p.active === (productStatus === "active")));
   const tabs = po ? [{ id: "products", label: "Produk", count: data.products.filter((p) => p.active).length }, { id: "orders", label: "Pesanan", count: activeOrders.length }, { id: "batches", label: "Batch PO", count: batches.length }] : [{ id: "batches", label: "Perjalanan", count: batches.length }, { id: "orders", label: "Pesanan", count: activeOrders.length }];
 

@@ -641,3 +641,7 @@ Ikon trash/aktifkan pada kolom aksi produk dihapus. Kolom aksi menyisakan edit; 
 Agen utama meninjau ulang 50 item Delivery Gate: PASS. Screenshot detail produk dan daftar pelanggan tema gelap ditinjau langsung. Build/lint lulus. Enam workflow unik terkait lulus: dua pemeriksaan desktop (ringkasan hanya baca dan status produk dengan konfirmasi), serta empat alur ponsel 320/390 dalam tema terang/gelap. Alur ponsel mencakup detail seluruh jenis data, edit produk, invoice pesanan, tutup/Escape, alamat pelanggan, dan ringkasan tanpa aksi; tidak ada overflow halaman. Bukti `preview-mobile-product-detail.png`, `preview-mobile-customer-list.png`.
 
 Workspace mengikuti commit main repository softwaregoam/Tippo yang dipindahkan pengguna, tanpa force push. File .gitignore dan .env.example dipulihkan dari sumber lama agar konfigurasi lokal tidak ikut dikirim. Pengujian memakai respons Supabase terkontrol, tanpa data produksi.
+
+## Urutan data baru, 10 Oktober 2026
+
+Agen utama meninjau ulang 50 item Delivery Gate: PASS. Perubahan urutan menggunakan data nyata; tampilan dan kontrol sama. Build/lint lulus. Tiga workflow terkait lulus: simpan akun, pelanggan baru di depan serta edit lama tidak berpindah, dan pesanan terbaru berdasarkan createdAt meskipun tanggal transaksi lebih lama (ringkasan/Jastip). Perubahan berlaku untuk desktop dan daftar ponsel yang memakai sumber data sama.

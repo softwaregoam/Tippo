@@ -348,3 +348,7 @@ Bagian Pesanan terbaru pada ringkasan hanya menampilkan data. Tombol Semua pesan
 ## Daftar ringkas ponsel, 10 Oktober 2026
 
 Pada lebar maksimal 600 piksel, tabel pesanan, produk, batch/perjalanan, dan pelanggan diganti daftar baris ringkas. Setiap baris menampilkan nama, konteks singkat, nominal/jumlah pesanan, dan status bila ada. Ketuk untuk membuka dialog detail. Produk menyediakan edit dan status; batch/perjalanan menyediakan edit/status; pelanggan menyediakan alamat/kontak dan edit; pesanan menyediakan status/edit/invoice/refund. Ringkasan pesanan tetap hanya baca. Desktop mempertahankan tabel. Dialog dapat ditutup melalui tombol atau Escape, mengembalikan fokus ke baris, dan tindakan edit/invoice/refund menutup detail sebelum membuka form berikutnya.
+
+## Data terbaru di atas
+
+Data baru ditambahkan di depan daftar pelanggan, produk, batch/perjalanan, dan pesanan. Import baru muncul sebelum data yang sudah ada, mempertahankan urutan baris dalam kelompok impor. Pesanan ditampilkan berdasarkan createdAt menurun, bukan tanggal transaksi yang bisa diedit. Edit mempertahankan posisi dan createdAt. Data master lama tanpa timestamp tidak disusun ulang secara spekulatif.

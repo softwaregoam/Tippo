@@ -156,7 +156,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
       if (!quota.allowed) { notify(quota.message); return; }
     }
     const savedOrder = { ...order, refunds: existing?.refunds ?? order.refunds, createdAt: existing?.createdAt ?? new Date().toISOString() };
-    const next = { ...data, customers: customer ? [...data.customers, customer] : data.customers, orders: existing ? data.orders.map((o) => o.id === order.id ? savedOrder : o) : [...data.orders, savedOrder] };
+    const next = { ...data, customers: customer ? [customer, ...data.customers] : data.customers, orders: existing ? data.orders.map((o) => o.id === order.id ? savedOrder : o) : [savedOrder, ...data.orders] };
     if (await persist(next, !orderModal?.order ? "Pesanan baru berhasil dicatat" : "Pesanan berhasil diperbarui")) setOrderModal(null);
   }
   function updateStatus(order: Order, status: Order["status"]) {
@@ -166,11 +166,11 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const summary = getMonthSummary(data, month);
   const currentYear = Number(month.slice(0, 4));
   const availableYears = Array.from(new Set([2026, new Date().getFullYear(), ...data.orders.map((o) => Number(o.date.slice(0, 4)))] )).sort();
-  const monthOrders = data.orders.filter((o) => o.date.startsWith(month)).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  const monthOrders = data.orders.filter((o) => o.date.startsWith(month)).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const filteredOrders = data.orders.filter((o) => {
     const customer = data.customers.find((c) => c.id === o.customerId);
     return `${orderLabel(o)} ${customer?.name ?? ""}`.toLowerCase().includes(search.toLowerCase()) && (statusFilter === "all" || (statusFilter === "unpaid" ? outstanding(o) > 0 : visibleOrderStatus(o.status) === statusFilter)) && (batchFilter === "all" || o.batchId === batchFilter);
-  }).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  }).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const activeBatches = data.batches.filter((b) => b.status === "open");
   const visibleCustomers = data.customers.filter((customer) => customer.name.toLowerCase().includes(search.toLowerCase()));
   const hppBatch = data.batches.find((b) => b.id === selectedHpp) ?? data.batches[0];
@@ -213,14 +213,14 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     if (product.sku && data.products.some((p) => p.id !== product.id && p.sku.toLowerCase() === product.sku.toLowerCase())) {
       notify("SKU sudah digunakan produk lain. Gunakan SKU yang unik."); return false;
     }
-    return persist({ ...data, products: data.products.some((p) => p.id === product.id) ? data.products.map((p) => p.id === product.id ? product : p) : [...data.products, product] }, "Master produk tersimpan. Harga pesanan lama tetap sama.");
+    return persist({ ...data, products: data.products.some((p) => p.id === product.id) ? data.products.map((p) => p.id === product.id ? product : p) : [product, ...data.products] }, "Master produk tersimpan. Harga pesanan lama tetap sama.");
   }
   async function importProducts(products: Product[]) {
     if (effectivePlan(subscription) !== "pro") throw new Error("Import template Excel hanya tersedia untuk paket Pro.");
     const quota = canCreateProduct(data, subscription);
     if (!quota.allowed) throw new Error(quota.message);
     if (products.length > quota.remaining) throw new Error("Paket Gratis maksimal 5 produk, termasuk arsip. Kurangi baris atau upgrade Pro.");
-    return persist({ ...data, products: [...data.products, ...products] }, `${products.length} produk berhasil diimpor dari Excel`);
+    return persist({ ...data, products: [...products, ...data.products] }, `${products.length} produk berhasil diimpor dari Excel`);
   }
   async function importOrders(orders: Order[], customers: Customer[]) {
     if (effectivePlan(subscription) !== "pro") throw new Error("Import template Excel hanya tersedia untuk paket Pro.");
@@ -228,7 +228,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     const quota = canCreateOrders(data, subscription, orders.length, new Date(), type);
     if (!quota.allowed) throw new Error(quota.message);
     const createdAt = new Date().toISOString();
-    return persist({ ...data, orders: [...data.orders, ...orders.map((order) => ({ ...order, createdAt }))], customers: [...data.customers, ...customers] }, `${orders.length} pesanan berhasil diimpor dari Excel`);
+    return persist({ ...data, orders: [...orders.map((order) => ({ ...order, createdAt })), ...data.orders], customers: [...customers, ...data.customers] }, `${orders.length} pesanan berhasil diimpor dari Excel`);
   }
   function replaceData(next: AppData, message: string) {
     const quota = canRestoreOrders(data, next, subscription);
@@ -327,10 +327,10 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
       </div>
       {choice && <SimpleModal title={choice === "order" ? "Pilih jenis pesanan" : "Pilih jenis batch"} subtitle="Setiap jenis punya ruang dan alur sendiri." onClose={() => setChoice(null)}><div className="modal-body mode-choice"><Button className="mode-choice-card" onClick={() => { setChoice(null); if (choice === "order") startOrder("jastip"); else setBatchModal({ type: "jastip" }); }}><ShoppingBag size={25} /><span><strong>{choice === "order" ? "Pesanan jastip" : "Batch jastip baru"}</strong><small>Barang bebas, fee titipan, dan perjalanan belanja.</small></span><ArrowRight size={17} /></Button><Button className="mode-choice-card choice-po" onClick={() => { setChoice(null); if (choice === "order") startOrder("po"); else setBatchModal({ type: "po" }); }}><Package size={25} /><span><strong>{choice === "order" ? "Pesanan PO" : "Batch PO baru"}</strong><small>Pilih dari master produk. Harga terisi otomatis.</small></span><ArrowRight size={17} /></Button></div></SimpleModal>}
       {orderModal && (orderModal.type === "po" ? <PoOrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} onSave={saveOrder} onClose={() => setOrderModal(null)} /> : <OrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} defaultBatchId={orderModal.batchId} onSave={saveOrder} onClose={() => setOrderModal(null)} />)}
-      {batchModal && <BatchForm type={batchModal.type} batch={batchModal.batch} onSave={async (batch) => { if (await persist({ ...data, batches: data.batches.some((b) => b.id === batch.id) ? data.batches.map((b) => b.id === batch.id ? batch : b) : [...data.batches, batch] }, "Batch berhasil disimpan")) setBatchModal(null); }} onClose={() => setBatchModal(null)} />}
+      {batchModal && <BatchForm type={batchModal.type} batch={batchModal.batch} onSave={async (batch) => { if (await persist({ ...data, batches: data.batches.some((b) => b.id === batch.id) ? data.batches.map((b) => b.id === batch.id ? batch : b) : [batch, ...data.batches] }, "Batch berhasil disimpan")) setBatchModal(null); }} onClose={() => setBatchModal(null)} />}
       {customerModal && <CustomerForm customer={customerModal === "new" ? undefined : customerModal} onClose={() => setCustomerModal(null)} onSave={async (customer) => {
         const exists = data.customers.some((entry) => entry.id === customer.id);
-        const saved = await persist({ ...data, customers: exists ? data.customers.map((entry) => entry.id === customer.id ? customer : entry) : [...data.customers, customer] }, exists ? "Pelanggan berhasil diperbarui" : "Pelanggan berhasil ditambahkan");
+        const saved = await persist({ ...data, customers: exists ? data.customers.map((entry) => entry.id === customer.id ? customer : entry) : [customer, ...data.customers] }, exists ? "Pelanggan berhasil diperbarui" : "Pelanggan berhasil ditambahkan");
         if (saved) { setCustomerModal(null); setSearch(""); }
         return saved;
       }} />}
