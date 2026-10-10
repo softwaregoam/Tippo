@@ -461,3 +461,47 @@ test("Pro historical month and annual chart stay scoped when switching business"
 test("Pro keeps the chosen historical month visible when the other business has no data that year",async({page})=>{
  const data=twoBusinessWorkspace(),source=data.orders[0];data.orders.push({...source,id:"old-jastip-only",date:"2024-01-10",createdAt:"2024-01-10T00:00:00Z",refunds:[],paid:0,items:source.items.map(item=>({...item,id:"old-jastip-only-item"}))});await authenticate(page,{workspace:data,pro:true});await page.goto("/app");await chooseOption(page.getByLabel("Pilih bulan ringkasan"),"2024-01");await page.getByRole("group",{name:"Pilih usaha"}).getByRole("button",{name:"Open PO",exact:true}).click();await expect(page.getByLabel("Pilih bulan ringkasan")).toHaveAttribute("data-value","2024-01");await expect(page.getByLabel("Pilih bulan ringkasan")).toContainText("Januari 2024");await expect(page.locator(".unpaid-card")).toContainText("Belum ada tagihan bulan ini.");await expect(page.locator(".stats-grid .stat-value").first()).toContainText("Rp 0");
 });
+
+for (const [business,width] of [["Open PO",1440],["Jastip",1440],["Open PO",390]] as const) {
+ test(`batch status advances irreversibly with confirmation ${business} ${width}`, async ({page}) => {
+  await page.setViewportSize({width,height:900});
+  const data=twoBusinessWorkspace(), requests=await authenticate(page,{workspace:data});
+  await page.goto("/app");await openBusiness(page,business);
+  if(width<600)await page.evaluate(()=>{localStorage.setItem("tippo.theme.v1","dark");document.documentElement.dataset.theme="dark";});
+  if(business==="Open PO")await openSection(page,"Batch PO");
+  const batch=data.batches.find(b=>b.type===(business==="Open PO"?"po":"jastip"))!;
+  const openStatus=async()=>{
+   if(width<600)await page.getByRole("button",{name:`Detail ${batch.name}`,exact:true}).click();
+   await page.getByRole("button",{name:`Ubah status ${batch.name}`,exact:true}).click();
+  };
+  await openStatus();const dialog=page.getByRole("dialog",{name:business==="Open PO"?"Ubah status batch PO":"Ubah status perjalanan",exact:true});
+  await expect(dialog.getByRole("button",{name:"Batal",exact:true})).toBeFocused();
+  await page.mouse.click(2,2);await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("tidak bisa dibuka kembali");await expect(dialog.locator(".batch-status-flow")).toHaveText("DibukaDitutup");
+  await dialog.getByRole("button",{name:"Batal",exact:true}).click();expect(requests).toHaveLength(0);
+  await openStatus();await dialog.getByRole("button",{name:"Simpan perubahan",exact:true}).click();await expect(dialog).toHaveCount(0);
+  expect(requests[0].p_data.batches.find(b=>b.id===batch.id)!.status).toBe("closed");expect(requests[0].p_data.orders).toEqual(data.orders);
+  await openStatus();await expect(dialog.locator(".batch-status-flow")).toHaveText("DitutupSelesai");await expect(dialog).toContainText("tidak bisa diubah lagi");
+  await page.screenshot({path:`docs/preview-batch-status-${business==="Open PO"?"po":"jastip"}-${width}.png`});
+  await dialog.getByRole("button",{name:"Simpan perubahan",exact:true}).click();await expect(dialog).toHaveCount(0);
+  expect(requests[1].p_data.batches.find(b=>b.id===batch.id)!.status).toBe("completed");
+  if(width<600)await page.getByRole("button",{name:`Detail ${batch.name}`,exact:true}).click();
+  await expect(page.getByRole("button",{name:`Ubah status ${batch.name}`,exact:true})).toHaveCount(0);
+  await expect(page.getByText("Status terkunci",{exact:true}).filter({visible:true})).toBeVisible();
+  if(width<600)await page.getByRole("button",{name:"Tutup detail",exact:true}).click();
+  await page.reload();await expect(page.getByRole("heading",{name:`Ringkasan ${business}.`,exact:true})).toBeVisible();
+  await openSection(page,business==="Open PO"?"Batch PO":"Perjalanan");
+  await expect(page.getByRole("button",{name:`Ubah status ${batch.name}`,exact:true})).toHaveCount(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+ });
+}
+
+test("batch status confirmation stays open when cloud saving fails",async({page})=>{
+ const requests=await authenticate(page,{failSave:true});await page.goto("/app");await openBusiness(page,"Jastip");
+ await page.getByRole("button",{name:"Ubah status Jastip Seoul",exact:true}).click();
+ const dialog=page.getByRole("dialog",{name:"Ubah status perjalanan",exact:true});
+ await dialog.getByRole("button",{name:"Simpan perubahan",exact:true}).click();
+ await expect(dialog.getByRole("alert")).toHaveText("Status belum tersimpan. Coba lagi.");
+ expect(requests).toHaveLength(1);await dialog.getByRole("button",{name:"Batal",exact:true}).click();
+ await expect(page.getByRole("table",{name:"Daftar perjalanan Jastip"}).getByText("Dibuka",{exact:true})).toBeVisible();
+});

@@ -366,3 +366,7 @@ Revisi ini menggantikan rancangan ringkasan gabungan sebelumnya. Pengguna memili
 Pelanggan, Profil Bisnis, Pengaturan Data dan Langganan merupakan menu akun bersama. Daftar kontak pelanggan tetap satu; jumlah pesanan pelanggan mengikuti mode aktif. Cadangan data tetap memuat kedua usaha. Data lama tidak dipindahkan atau dihapus; penyimpanan HPP/pesanan tetap menyertakan workspace penuh agar transaksi usaha lain terjaga.
 
 Halaman Produk, Pesanan, Batch PO dan Perjalanan tidak menampilkan deretan metrik umum (produk/perjalanan aktif, pesanan berjalan, penjualan, tagihan). Metrik usaha tetap berada pada Ringkasan tiap mode; halaman operasional langsung menampilkan filter/data dan kontrol penambahan. Informasi kontekstual yang sudah tersedia, seperti kuota produk Gratis atau jumlah hasil pesanan, tetap dipertahankan.
+
+## Revisi: status batch dan perjalanan
+
+Status Dibuka → Ditutup → Selesai bergerak satu arah melalui tombol Ubah status dan dialog konfirmasi. Ditutup tidak bisa kembali Dibuka; Selesai tidak bisa diubah lagi. Status menjadi label pada tabel. Dialog menjelaskan dampak sebelum simpan, tidak menutup ketika backdrop diklik, dan mempertahankan status lama jika penyimpanan gagal. Batch ditutup/selesai tidak menerima pesanan baru. Status pesanan tidak berubah otomatis. Edit informasi batch tetap tersedia.

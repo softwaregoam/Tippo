@@ -1,5 +1,6 @@
 "use client";
 
+import { canChangeBatchStatus } from "@/lib/batch-status";
 import { isAppData } from "@/lib/validation";
 import { applyRefund, refundedTotal } from "@/lib/refund";
 import { BusinessProfilePanel } from "@/components/business-profile";
@@ -142,6 +143,14 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   }
   async function persist(next: AppData, message: string) {
     setSaveError("");
+    const invalidBatch = next.batches.find(batch => {
+      const current = data.batches.find(entry => entry.id === batch.id);
+      return current && !canChangeBatchStatus(current.status, batch.status);
+    });
+    if (invalidBatch) {
+      const error = "Status batch hanya dapat berubah dari Dibuka ke Ditutup, lalu Selesai. Perubahan tidak bisa dibatalkan.";
+      setSaveError(error); notify(error); return false;
+    }
     try {
       if (cloud) { const saved = await cloud.commit(next); if (saved) notify(message); return saved; }
       const previousUsageSaved = recordOrderUsage(data.orders.filter((order) => !sampleOrderIds.has(order.id)), data.batches);

@@ -731,4 +731,61 @@ Tambahan Pro: pemilih bulan tetap menampilkan tahun terpilih ketika mode lain be
 
 ## Fokus halaman operasional
 
+## Dialog status batch satu arah
+
+Agen utama meninjau screenshot desktop PO/Jastip 1440 terang dan PO 390 gelap. Production build dan lint berhasil, satu tes aturan transisi serta empat tes browser lulus. Browser menguji batal tanpa simpan, fokus Batal, backdrop, Dibuka → Ditutup → Selesai, status terkunci setelah reload, transaksi tetap sama, dan kegagalan RPC. RPC menggunakan fixture, tanpa penulisan data produksi. Pengujian fokus awal sempat gagal; diperbaiki dengan fokus eksplisit setelah dialog dibuka, lalu keempat tes lulus. Pemeriksaan aplikasi juga berlaku pada persist; constraint server tidak ditambahkan. Suite browser lama tidak dijalankan seluruhnya.
+
+| Item | Hasil dan bukti pada revisi ini |
+| --- | --- |
+| R-02 | PASS: copy baru tanpa em dash. |
+| R-03 | PASS: 390px tanpa overflow; screenshot ditinjau. |
+| R-17 | PASS: tanpa statistik baru. |
+| R-18 | PASS: tanpa testimoni. |
+| R-23 | PASS: revisi status diminta pengguna; tidak ada aset baru. |
+| R-24 | PASS: tidak menambahkan tautan navigasi. |
+| R-25 | PASS: token ink/surface serta status semantik yang sudah ada dipakai kembali. |
+| R-26 | PASS: ubah, batal, simpan, tutup dan edit memiliki handler. |
+| R-27 | PASS: busy, disabled, error dan status final ditangani. |
+| R-28 | PASS: tidak ada FAQ baru. |
+| R-32 | PASS: fokus Batal eksplisit, dialog native dengan Escape dan focus trap. |
+| R-33 | FAIL prosedural: penulisan awal memakai skrip; diff diperiksa manual, perubahan berikutnya memakai apply_patch. Tidak mengklaim gate penuh lulus. |
+| R-34 | PASS: desktop terang/ponsel gelap ditinjau; token tema dipakai kembali. |
+| R-35 | PASS: build/lint dan empat workflow browser berhasil setelah perbaikan fokus. |
+| R-36 | PASS: tidak ada klaim keamanan atau kinerja baru. |
+| R-37 | PASS: arah label, aksi dan konfirmasi dijelaskan sebelum perubahan. |
+| R-38 | PASS: data di UI berasal dari workspace, fixture hanya untuk tes. |
+| R-01 | PASS: tanpa gradien/glow baru. |
+| R-04 | PASS: X menutup, pencil edit, panah menunjukkan transisi. |
+| R-06 | PASS: font aplikasi dipakai kembali. |
+| R-07 | PASS: tanpa pola latar baru. |
+| R-08 | PASS: panah hanya penghubung status asal/tujuan. |
+| R-09 | PASS: badge menampilkan status nyata. |
+| R-10 | PASS: permukaan dialog padat. |
+| R-12 | PASS: memakai dialog native yang sudah ada. |
+| R-13 | PASS: tanpa efek glow. |
+| R-14 | PASS: bukan kumpulan kartu fitur. |
+| R-19 | PASS: tanpa animasi baru. |
+| R-22 | PASS: tanpa ilustrasi. |
+| Dials | PASS: ENERGY 2 / RHYTHM 2 / MOTION 1 tetap. |
+| Konsistensi dials | PASS: aksen pada aksi, isi operasional ringkas. |
+| Titik perhatian | PASS: status asal/tujuan dan tombol simpan. |
+| Ruang kosong | PASS: gap 20px memisahkan nama, transisi dan dampak. |
+| Aksen | PASS: tombol mengikuti mode usaha. |
+| Motif identitas | PASS: batch PO dan perjalanan disebut sesuai usaha. |
+| Design Read | PASS: arah perubahan diumumkan di commentary awal. |
+| C-1 | PASS: dialog dipilih untuk konfirmasi tindakan permanen. |
+| C-2 | PASS: kontrol diuji termasuk kegagalan simpan. |
+| C-3 | PASS: isi dialog hanya nama, transisi, dampak dan aksi. |
+| C-4 | PASS: desktop/mobile, simpan/batal/gagal/reload diuji. |
+| C-5 | PASS: tanpa klaim pelanggan/statistik buatan. |
+| R-05 | PASS: tabel operasional tetap, tidak ada template pemasaran. |
+| R-11 | PASS: radius dialog/tombol/status mengikuti komponen aplikasi. |
+| R-15 | PASS: Ubah status, Batal, Simpan perubahan menyatakan tindakan. |
+| R-16 | PASS: tanpa buzzword baru. |
+| R-20 | PASS: jenis usaha menentukan judul dan warna aksi. |
+| R-21 | PASS: tema pilihan pengguna tetap. |
+| R-29 | PASS: palet mode plus warna status semantik. |
+| R-30 | PASS: mengikuti kebutuhan pengguna, tidak menyalin produk lain. |
+| R-31 | PASS: alasan konfirmasi/penguncian/fokus/spacing dicatat di DESIGN.md. |
+
 Arah pengguna: deretan metrik umum tidak perlu diulang di seluruh menu. Blok mode-mini-stats, perhitungan summaryOrders, prop summaryMonth dan 13 aturan CSS dihapus; filter, tabel, kontrol, kuota serta kondisi kosong tetap. Ringkasan tiap mode tidak diubah. Agen utama meninjau ulang 50 item Delivery Gate yang telah dicatat: PASS untuk perubahan penghapusan ini, tanpa aset/warna/CTA/perhitungan transaksi baru. Bukti R-03/R-34/C-4: tampilan desktop 1440 terang dan ponsel 390 gelap tanpa overflow, Produk/Batch PO/Perjalanan/Pesanan dibuka; screenshot kedua halaman Produk ditinjau langsung. R-35: lint/production build berhasil, tiga workflow browser lulus (dua pemeriksaan sementara visual/navigasi dan satu tes pengelolaan tabel yang sudah ada). R-31/C-1/C-3/ruang kosong: halaman langsung fokus pada pencarian, data dan aksi sesuai konteks; metrik usaha di Ringkasan. Tidak dibuat tes permanen baru untuk penghapusan blok UI ini. Pemeriksaan menggunakan fixture Supabase tanpa data produksi.

@@ -819,3 +819,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .mobile-row-subtitle { color:var(--muted); overflow-wrap:anywhere; }
  .mobile-row-meta { display:flex; justify-content:space-between; align-items:center; color:var(--primary); gap:8px; }
 }
+
+.batch-status-body { display: grid; gap: 20px; }
+.batch-status-flow { display: flex; align-items: center; gap: 12px; }
+.batch-status-locked { font-size: 12px; }
