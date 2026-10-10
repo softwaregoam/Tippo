@@ -645,3 +645,7 @@ Workspace mengikuti commit main repository softwaregoam/Tippo yang dipindahkan p
 ## Urutan data baru, 10 Oktober 2026
 
 Agen utama meninjau ulang 50 item Delivery Gate: PASS. Perubahan urutan menggunakan data nyata; tampilan dan kontrol sama. Build/lint lulus. Tiga workflow terkait lulus: simpan akun, pelanggan baru di depan serta edit lama tidak berpindah, dan pesanan terbaru berdasarkan createdAt meskipun tanggal transaksi lebih lama (ringkasan/Jastip). Perubahan berlaku untuk desktop dan daftar ponsel yang memakai sumber data sama.
+
+## Penghapusan halaman gabungan pesanan
+
+Halaman Semua Pesanan dan tombol Lihat Tagihan di Ringkasan dihapus beserta state filter yang tidak digunakan. Tabel Ringkasan tetap readonly; aksi pesanan tetap di Jastip/Open PO. Validasi: lint dan production build berhasil; Playwright `dashboard recent orders are read only while Jastip retains actions` lulus (1 tes).

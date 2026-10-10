@@ -1,5 +1,4 @@
 "use client";
-import { visibleOrderStatus } from "@/lib/order-status";
 
 import { isAppData } from "@/lib/validation";
 import { applyRefund, refundedTotal } from "@/lib/refund";
@@ -24,13 +23,13 @@ import { HppPanel } from "@/components/hpp-panel";
 import { SubscriptionPanel } from "@/components/subscription-panel";
 import { useAppData, saveAppData, normalizeAppData } from "@/lib/store";
 import { seedData } from "@/lib/seed";
-import { formatCurrency, getMonthlySeries, getMonthSummary, orderLabel, outstanding } from "@/lib/finance";
+import { formatCurrency, getMonthlySeries, getMonthSummary } from "@/lib/finance";
 import { canCreateOrders, canCreateProduct, canRestoreOrders, effectivePlan, jakartaMonth, monthlyOrderUsage, recordOrderUsage, useSubscription } from "@/lib/subscription";
 import type { AppData, Batch, Customer, Order, Product } from "@/lib/types";
 import type { AccountWorkspace } from "./cloud-workspace";
 import Link from "next/link";
 
-type Page = "dashboard" | "orders" | "jastip" | "po" | "hpp" | "customers" | "settings" | "profile" | "subscription";
+type Page = "dashboard" | "jastip" | "po" | "hpp" | "customers" | "settings" | "profile" | "subscription";
 const navigation = [
   { id: "dashboard" as Page, label: "Ringkasan", icon: LayoutDashboard },
   { id: "jastip" as Page, label: "Jastip", icon: ShoppingBag },
@@ -40,10 +39,9 @@ const navigation = [
   { id: "settings" as Page, label: "Pengaturan data", icon: Settings2 },
 ];
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-const titles: Record<Page, string> = { dashboard: "Ringkasan usaha", orders: "Semua pesanan", jastip: "Jastip", po: "Open PO", hpp: "HPP & Margin", customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan" };
+const titles: Record<Page, string> = { dashboard: "Ringkasan usaha", jastip: "Jastip", po: "Open PO", hpp: "HPP & Margin", customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan" };
 const subtitles: Record<Page, string> = {
   dashboard: "Pilih alur pesanan, lalu cek penjualan, HPP, dan sisa tagihan.",
-  orders: "Dari chat jadi catatan. Semua titipan ada di sini.",
   jastip: "Ruang khusus untuk perjalanan dan barang titipanmu.",
   po: "Katalog produk sendiri, pesanan yang lebih ringkas.",
   hpp: "Kenali biaya sebenarnya, tentukan harga dengan percaya diri.",
@@ -73,8 +71,6 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const [selectedMonth, setMonth] = useState(() => jakartaMonth());
   const month = isPro ? selectedMonth : currentMonth;
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [batchFilter, setBatchFilter] = useState("all");
   const [orderModal, setOrderModal] = useState<{ type: Batch["type"]; order?: Order; batchId?: string; productId?: string } | null>(null);
   const [batchModal, setBatchModal] = useState<{ type: Batch["type"]; batch?: Batch } | null>(null);
   const [choice, setChoice] = useState<"order" | "batch" | null>(null);
@@ -167,10 +163,6 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const currentYear = Number(month.slice(0, 4));
   const availableYears = Array.from(new Set([2026, new Date().getFullYear(), ...data.orders.map((o) => Number(o.date.slice(0, 4)))] )).sort();
   const monthOrders = data.orders.filter((o) => o.date.startsWith(month)).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  const filteredOrders = data.orders.filter((o) => {
-    const customer = data.customers.find((c) => c.id === o.customerId);
-    return `${orderLabel(o)} ${customer?.name ?? ""}`.toLowerCase().includes(search.toLowerCase()) && (statusFilter === "all" || (statusFilter === "unpaid" ? outstanding(o) > 0 : visibleOrderStatus(o.status) === statusFilter)) && (batchFilter === "all" || o.batchId === batchFilter);
-  }).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const activeBatches = data.batches.filter((b) => b.status === "open");
   const visibleCustomers = data.customers.filter((customer) => customer.name.toLowerCase().includes(search.toLowerCase()));
   const hppBatch = data.batches.find((b) => b.id === selectedHpp) ?? data.batches[0];
@@ -293,14 +285,13 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                 </div>
                 <div className="dashboard-middle">
                   <section className="card chart-card"><div className="card-header"><div><h2>Penjualan dibanding HPP</h2><p>{isPro ? "Perbandingan enam bulan, berdasarkan tanggal pesanan." : "Perbandingan pada bulan berjalan."}</p></div><div className="chart-year">{currentYear}</div></div><div className="chart-summary"><div><span>{isPro ? "Total penjualan tahun ini" : `Penjualan ${monthLabel(month)}`}</span><strong>{formatCurrency(isPro ? getMonthlySeries(data, currentYear).reduce((sum, point) => sum + point.revenue, 0) : summary.revenue)}</strong></div><div className="chart-legend"><span><i className="legend-dot teal" />Penjualan</span><span><i className="legend-dot gold" />HPP diketahui</span></div></div><MonthlyChart data={data} month={month} currentOnly={!isPro} />{!isPro && <button className="summary-upgrade" onClick={() => go("subscription")}><Crown size={14} />Ringkasan bulan sebelumnya tersedia di Pro</button>}<div className="chart-caption"><span>Berdasarkan tanggal pesanan</span><span>HPP yang belum terisi tidak dihitung</span></div></section>
-                  <section className="card payments-card"><div className="card-header"><div><h2>Aliran pembayaran</h2><p>Untuk pesanan {monthLabel(month)}</p></div></div><PaymentDonut received={summary.received} total={summary.revenue} /><div className="payment-breakdown"><div><span><i className="legend-dot teal" />Sudah diterima</span><strong>{formatCurrency(summary.received)}</strong></div><div><span><i className="legend-dot pale" />Belum dibayar</span><strong>{formatCurrency(summary.outstanding)}</strong></div>{data.orders.some(o=>o.date.startsWith(`${month}-`) && refundedTotal(o)>0) && <div><span>Refund pesanan bulan ini</span><strong>{formatCurrency(data.orders.filter(o=>o.date.startsWith(`${month}-`)).reduce((sum,o)=>sum+refundedTotal(o),0))}</strong></div>}</div><button className="text-action full-width" onClick={() => { go("orders"); setStatusFilter("unpaid"); }}>Lihat tagihan <ArrowRight size={15} /></button></section>
+                  <section className="card payments-card"><div className="card-header"><div><h2>Aliran pembayaran</h2><p>Untuk pesanan {monthLabel(month)}</p></div></div><PaymentDonut received={summary.received} total={summary.revenue} /><div className="payment-breakdown"><div><span><i className="legend-dot teal" />Sudah diterima</span><strong>{formatCurrency(summary.received)}</strong></div><div><span><i className="legend-dot pale" />Belum dibayar</span><strong>{formatCurrency(summary.outstanding)}</strong></div>{data.orders.some(o=>o.date.startsWith(`${month}-`) && refundedTotal(o)>0) && <div><span>Refund pesanan bulan ini</span><strong>{formatCurrency(data.orders.filter(o=>o.date.startsWith(`${month}-`)).reduce((sum,o)=>sum+refundedTotal(o),0))}</strong></div>}</div></section>
                 </div>
                 <section className="batch-preview"><div className="section-heading"><div><h2>Lagi buka titipan <span className="count-pill">{activeBatches.length}</span></h2><p>Jangan sampai ada pesanan yang terlewat.</p></div></div><div className="batch-preview-grid">{activeBatches.length ? activeBatches.map((batch, index) => <BatchCard key={batch.id} batch={batch} data={data} index={index} onOpen={() => { setSelectedHpp(batch.id); go("hpp"); }} />) : <div className="empty-state compact"><Layers3 size={28} /><p>Belum ada batch aktif. Mulai perjalanan pertamamu.</p><Button className="btn btn-secondary" onClick={() => setChoice("batch")}>Buat batch</Button></div>}<button className="new-batch-card" onClick={() => setChoice("batch")}><span><Plus size={22} /></span><strong>Perjalanan baru?</strong><p>Buka jastip atau PO berikutnya</p></button></div></section>
                 <section className="card recent-card"><div className="card-header"><div><h2>Pesanan terbaru</h2><p>Yang baru masuk, langsung tercatat.</p></div></div><OrdersTable data={data} orders={monthOrders.slice(0, 5)} onEdit={editOrder} onStatus={updateStatus} onRefund={refundOrder} compact readOnly /></section>
                 <div className="page-footnote"><span>{hasDemoData ? "Ringkasan ini memuat data contoh." : "Ringkasan dihitung dari pesanan yang kamu simpan."}</span><button onClick={() => go("settings")}>Kelola dan ekspor data</button></div>
               </>}
 
-              {page === "orders" && <section className="card"><div className="list-toolbar"><div className="search-field"><Search size={18} /><input aria-label="Cari pesanan" placeholder="Cari pelanggan atau barang..." value={search} onChange={(e) => setSearch(e.target.value)} /></div><div className="toolbar-filters"><Select className="input filter-input" aria-label="Filter status pesanan" value={statusFilter} onValueChange={(value) => setStatusFilter(value)}><SelectOption value="all">Semua status</SelectOption><SelectOption value="unpaid">Belum lunas</SelectOption><SelectOption value="new">Tercatat</SelectOption><SelectOption value="shipped">Dikirim</SelectOption><SelectOption value="done">Selesai</SelectOption><SelectOption value="cancelled">Dibatalkan</SelectOption></Select><Select className="input filter-input" aria-label="Filter batch" value={batchFilter} onValueChange={(value) => setBatchFilter(value)}><SelectOption value="all">Semua batch</SelectOption>{data.batches.map((b) => <SelectOption key={b.id} value={b.id}>{b.name}</SelectOption>)}</Select></div></div><OrdersTable data={data} orders={filteredOrders} onEdit={editOrder} onStatus={updateStatus} onRefund={refundOrder} /><div className="table-footer">{filteredOrders.length} pesanan ditampilkan<span>Nominal dalam rupiah · DP bukan omzet</span></div></section>}
 
               {(page === "jastip" || page === "po") && <ModeWorkspace key={page + poWorkspaceVersion} type={page === "po" ? "po" : "jastip"} data={data}
                 onNewBatch={() => setBatchModal({ type: page === "po" ? "po" : "jastip" })}
