@@ -635,3 +635,9 @@ Agen utama meninjau kembali 50 item Delivery Gate: PASS. Status produk Open PO m
 ## Hapus ikon trash produk, 10 Oktober 2026
 
 Ikon trash/aktifkan pada kolom aksi produk dihapus. Kolom aksi menyisakan edit; arsip/aktifkan tetap melalui dropdown status dengan konfirmasi arsip. Agen utama meninjau kembali 50 item Delivery Gate: PASS. Perubahan hanya penghapusan kontrol duplikat; build produksi lulus.
+
+## Daftar ringkas ponsel
+
+Agen utama meninjau ulang 50 item Delivery Gate: PASS. Screenshot detail produk dan daftar pelanggan tema gelap ditinjau langsung. Build/lint lulus. Enam workflow unik terkait lulus: dua pemeriksaan desktop (ringkasan hanya baca dan status produk dengan konfirmasi), serta empat alur ponsel 320/390 dalam tema terang/gelap. Alur ponsel mencakup detail seluruh jenis data, edit produk, invoice pesanan, tutup/Escape, alamat pelanggan, dan ringkasan tanpa aksi; tidak ada overflow halaman. Bukti `preview-mobile-product-detail.png`, `preview-mobile-customer-list.png`.
+
+Workspace mengikuti commit main repository softwaregoam/Tippo yang dipindahkan pengguna, tanpa force push. File .gitignore dan .env.example dipulihkan dari sumber lama agar konfigurasi lokal tidak ikut dikirim. Pengujian memakai respons Supabase terkontrol, tanpa data produksi.

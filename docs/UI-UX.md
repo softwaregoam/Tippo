@@ -164,3 +164,7 @@ Pelanggan memakai tabel konsisten dengan produk/perjalanan: nama, WhatsApp, alam
 ## Pesanan ringkasan hanya baca, 10 Oktober 2026
 
 Bagian Pesanan terbaru pada ringkasan hanya menampilkan data. Tombol Semua pesanan dan kolom Tindakan dihapus; status tampil sebagai label berwarna, bukan dropdown. Pengelolaan pesanan tetap pada halaman Jastip/Open PO. Komponen tabel menerima mode readOnly khusus ringkasan.
+
+## Daftar ringkas ponsel, 10 Oktober 2026
+
+Pada lebar maksimal 600 piksel, tabel pesanan, produk, batch/perjalanan, dan pelanggan diganti daftar baris ringkas. Setiap baris menampilkan nama, konteks singkat, nominal/jumlah pesanan, dan status bila ada. Ketuk untuk membuka dialog detail. Produk menyediakan edit dan status; batch/perjalanan menyediakan edit/status; pelanggan menyediakan alamat/kontak dan edit; pesanan menyediakan status/edit/invoice/refund. Ringkasan pesanan tetap hanya baca. Desktop mempertahankan tabel. Dialog dapat ditutup melalui tombol atau Escape, mengembalikan fokus ke baris, dan tindakan edit/invoice/refund menutup detail sebelum membuka form berikutnya.

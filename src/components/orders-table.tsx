@@ -9,6 +9,7 @@ import { RefundDialog, type RefundHandler } from "@/components/refund-dialog";
 import { refundedTotal } from "@/lib/refund";
 import { InvoiceDialog } from "@/components/invoice-dialog";
 import { formatCurrency, itemLabel, orderHpp, orderLabel, orderRevenue, outstanding } from "@/lib/finance";
+import {MobileDataList} from "@/components/mobile-data-list";
 import type { AppData, Order } from "@/lib/types";
 
 type OrdersTableProps = {
@@ -50,7 +51,7 @@ export function OrdersTable({ data, orders, onEdit, onStatus, onRefund, compact 
   }
 
   return (
-    <><div className="table-wrap">
+    <><MobileDataList entries={orders.map(order=>({id:order.id,title:data.customers.find(c=>c.id===order.customerId)?.name||"Pelanggan",subtitle:orderLabel(order),meta:`${formatCurrency(orderRevenue(order))} · ${outstanding(order)>0?`Sisa ${formatCurrency(outstanding(order))}`:"Lunas"}`,status:statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label,details:<><dl className="mobile-detail-fields"><dt>Batch</dt><dd>{data.batches.find(b=>b.id===order.batchId)?.name}</dd><dt>Barang</dt><dd>{order.items.map(i=><p key={i.id}>{itemLabel(i)} × {i.quantity}</p>)}</dd><dt>Total tagihan</dt><dd>{formatCurrency(orderRevenue(order))}</dd><dt>Sudah dibayar</dt><dd>{formatCurrency(order.paid)}</dd><dt>Sisa tagihan</dt><dd>{formatCurrency(outstanding(order))}</dd><dt>HPP</dt><dd>{orderHpp(order,data.orders,data.batches)===null?"Belum lengkap":formatCurrency(orderHpp(order,data.orders,data.batches)!)}</dd></dl>{!readOnly&&<><Select className="input" aria-label={`Status pesanan ${orderLabel(order)}`} value={visibleOrderStatus(order.status)} onValueChange={v=>onStatus(order,v as Order["status"])}>{statuses.map(s=><SelectOption key={s.value} value={s.value}>{s.label}</SelectOption>)}</Select><div className="management-actions"><button data-close-detail className="btn btn-primary" onClick={()=>onEdit(order)}>Edit</button><button data-close-detail className="btn btn-secondary" onClick={()=>setInvoiceOrderId(order.id)}>Invoice</button><button data-close-detail className="btn btn-secondary" disabled={order.paid===0&&!order.refunds?.length} onClick={()=>setRefundId(order.id)}>Refund</button></div></>}</>}))}/><div className="table-wrap desktop-data-table">
       <table className={`orders-table ${readOnly ? "orders-readonly" : ""}`}>
         <caption className="sr-only">Daftar pesanan jastip dan open PO</caption>
         <thead>
