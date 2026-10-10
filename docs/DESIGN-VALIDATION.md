@@ -649,3 +649,9 @@ Agen utama meninjau ulang 50 item Delivery Gate: PASS. Perubahan urutan mengguna
 ## Penghapusan halaman gabungan pesanan
 
 Halaman Semua Pesanan dan tombol Lihat Tagihan di Ringkasan dihapus beserta state filter yang tidak digunakan. Tabel Ringkasan tetap readonly; aksi pesanan tetap di Jastip/Open PO. Validasi: lint dan production build berhasil; Playwright `dashboard recent orders are read only while Jastip retains actions` lulus (1 tes).
+
+## Kartu Aliran pembayaran ringkas, 10 Oktober 2026
+
+Design Read: gunakan identitas hangat Tippo dengan ENERGY 2 / RHYTHM 2 / MOTION 1. Grafik persentase dan nominal berdampingan supaya kartu mengikuti isi, bukan tinggi grafik penjualan. Nominal dikelompokkan bersama label; garis pemisah membedakan uang diterima dan sisa tagihan. Tidak ada kontrol baru atau perubahan perhitungan.
+
+Agen utama meninjau ulang 50 item Delivery Gate yang tercatat di bagian Delivery Gate: PASS untuk perubahan ini. Bukti tambahan R-03/R-34/C-4: delapan pemeriksaan browser pada 320, 390, 768, 1440 piksel dalam tema terang/gelap lulus, tidak ada overflow halaman, tinggi kartu di bawah 300 piksel, nominal Rp 50.000 dan persentase 100% sesuai fixture Supabase terkontrol. Tidak ada data produksi yang diubah. R-35: lint dan production build lulus. R-31/C-1/ruang kosong: align-self start menghilangkan peregangan kartu, container query mempertahankan dua kolom di kartu sempit. Tidak ada aset, klaim, CTA, warna, animasi, navigasi atau logika transaksi baru; gate terkait memakai bukti yang sudah tercatat. Screenshot preview-payments-390-light.png dan preview-payments-1440-dark.png ditinjau langsung. Pemeriksaan browser memakai skrip sementara, bukan tambahan tes permanen untuk perubahan tata letak ini.

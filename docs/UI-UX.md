@@ -172,3 +172,5 @@ Pada lebar maksimal 600 piksel, tabel pesanan, produk, batch/perjalanan, dan pel
 ## Data terbaru di atas
 
 Data baru ditambahkan di depan daftar pelanggan, produk, batch/perjalanan, dan pesanan. Import baru muncul sebelum data yang sudah ada, mempertahankan urutan baris dalam kelompok impor. Pesanan ditampilkan berdasarkan createdAt menurun, bukan tanggal transaksi yang bisa diedit. Edit mempertahankan posisi dan createdAt. Data master lama tanpa timestamp tidak disusun ulang secara spekulatif.
+
+Aliran pembayaran pada Ringkasan memakai kartu dengan tinggi mengikuti isi: donut di kiri, label dan nominal di kanan, pemisah untuk setiap nominal. Lebar grafik menyesuaikan lebar kartu; angka tetap terbaca pada ponsel dan tema gelap.
