@@ -12,7 +12,7 @@ import { ProductsTable,BatchesTable } from "@/components/po-management-tables";
 import { ProductRemovalDialog } from "@/components/product-removal-dialog";
 import { ProductExcelImportDialog } from "@/components/product-excel-import";
 import { ExcelImportDialog } from "@/components/excel-import";
-import { formatCurrency, orderLabel, orderRevenue, outstanding } from "@/lib/finance";
+import { orderLabel, outstanding } from "@/lib/finance";
 import type { AppData, Batch, Order, Product } from "@/lib/types";
 
 type Props = {
@@ -31,13 +31,12 @@ type Props = {
   onImportProducts: (products: Product[]) => boolean | Promise<boolean>;
   onProductStatus: (product: Product) => boolean | Promise<boolean>;
   onImport: (orders: Order[], customers: AppData["customers"]) => boolean | Promise<boolean>;
-  summaryMonth?: string;
   importAllowed: boolean;
   productLimit?: number;
   onUpgrade: () => void;
 };
 
-export function ModeWorkspace({ tab, type, data, onNewBatch, onEditBatch, onEditOrder, onStatus, onBatchStatus, onSaveProduct, onImportProducts, onRefund, onProductStatus, onImport, summaryMonth, importAllowed, productLimit, onUpgrade }: Props) {
+export function ModeWorkspace({ tab, type, data, onNewBatch, onEditBatch, onEditOrder, onStatus, onBatchStatus, onSaveProduct, onImportProducts, onRefund, onProductStatus, onImport, importAllowed, productLimit, onUpgrade }: Props) {
   const po = type === "po";
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -52,8 +51,6 @@ export function ModeWorkspace({ tab, type, data, onNewBatch, onEditBatch, onEdit
   const batches = data.batches.filter((b) => b.type === type);
   const batchIds = new Set(batches.map((b) => b.id));
   const orders = data.orders.filter((o) => batchIds.has(o.batchId));
-  const activeOrders = orders.filter((o) => o.status !== "cancelled");
-  const summaryOrders = summaryMonth ? activeOrders.filter((order) => order.date.startsWith(`${summaryMonth}-`)) : activeOrders;
   const productQuotaReached = productLimit !== undefined && data.products.length >= productLimit;
   function newProduct() { if (productQuotaReached) onUpgrade(); else setEditingProduct("new"); }
   const filteredOrders = orders.filter((o) => {
@@ -63,7 +60,6 @@ export function ModeWorkspace({ tab, type, data, onNewBatch, onEditBatch, onEdit
   const products = data.products.filter((p) => `${p.name} ${p.variant} ${p.sku} ${p.category ?? ""}`.toLowerCase().includes(search.toLowerCase()) && (categoryFilter === "all" || p.category === categoryFilter) && (productStatus === "all" || p.active === (productStatus === "active")));
 
   return <div className={`mode-workspace ${po ? "mode-po" : "mode-jastip"}`}>
-    <div className="mode-mini-stats"><div><span>{po ? "Produk aktif" : "Perjalanan aktif"}</span><strong>{po ? data.products.filter((p) => p.active).length : batches.filter((b) => b.status === "open").length}</strong></div><div><span>Pesanan berjalan</span><strong>{activeOrders.filter((o) => o.status !== "done").length}</strong></div><div><span>{summaryMonth ? "Penjualan bulan ini" : "Penjualan tercatat"}</span><strong>{formatCurrency(summaryOrders.reduce((sum, o) => sum + orderRevenue(o), 0))}</strong></div><div><span>{summaryMonth ? "Tagihan bulan ini" : "Sisa tagihan"}</span><strong>{formatCurrency(summaryOrders.reduce((sum, o) => sum + outstanding(o), 0))}</strong></div></div>
     <div>
       {tab === "products" && <>
         <section className="catalog-controls" aria-label="Pencarian dan filter katalog"><div className="catalog-toolbar"><div><h2>Master produk PO</h2><p>Harga dan varian siap pakai untuk setiap pesanan.{!importAllowed && " Import template Excel tersedia di Pro."}</p></div><div className="catalog-actions"><Button className="btn btn-secondary" onClick={()=>importAllowed ? setProductImportOpen(true) : onUpgrade()}><Upload size={16}/>Import produk Excel{!importAllowed && <span aria-hidden="true" className="status-tag">Pro</span>}</Button><Button className="btn btn-primary" onClick={newProduct}><Plus size={16} />Produk baru</Button></div></div>

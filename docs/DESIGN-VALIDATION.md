@@ -728,3 +728,7 @@ Screenshot akhir desktop PO terang, tablet PO gelap, Jastip desktop gelap dan po
 | R-31 | PASS: satu alasan tiap keputusan utama tercatat: switch untuk fokus, warna untuk konteks, scope untuk metrik usaha. |
 
 Tambahan Pro: pemilih bulan tetap menampilkan tahun terpilih ketika mode lain belum memiliki transaksi pada tahun itu; hasilnya Ringkasan kosong yang jelas, bukan pilihan bulan kosong.
+
+## Fokus halaman operasional
+
+Arah pengguna: deretan metrik umum tidak perlu diulang di seluruh menu. Blok mode-mini-stats, perhitungan summaryOrders, prop summaryMonth dan 13 aturan CSS dihapus; filter, tabel, kontrol, kuota serta kondisi kosong tetap. Ringkasan tiap mode tidak diubah. Agen utama meninjau ulang 50 item Delivery Gate yang telah dicatat: PASS untuk perubahan penghapusan ini, tanpa aset/warna/CTA/perhitungan transaksi baru. Bukti R-03/R-34/C-4: tampilan desktop 1440 terang dan ponsel 390 gelap tanpa overflow, Produk/Batch PO/Perjalanan/Pesanan dibuka; screenshot kedua halaman Produk ditinjau langsung. R-35: lint/production build berhasil, tiga workflow browser lulus (dua pemeriksaan sementara visual/navigasi dan satu tes pengelolaan tabel yang sudah ada). R-31/C-1/C-3/ruang kosong: halaman langsung fokus pada pencarian, data dan aksi sesuai konteks; metrik usaha di Ringkasan. Tidak dibuat tes permanen baru untuk penghapusan blok UI ini. Pemeriksaan menggunakan fixture Supabase tanpa data produksi.

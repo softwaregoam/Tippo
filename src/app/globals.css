@@ -363,12 +363,6 @@ svg { flex-shrink: 0; }
 .mode-intro p { font-size: 14px; color: var(--muted); line-height: 1.8; }
 .mode-intro .eyebrow { font-size: 11px; color: var(--primary); }
 .mode-po .mode-intro .eyebrow { color: var(--warning); }
-.mode-mini-stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 20px; padding: 30px 4px; }
-.mode-mini-stats>div { border-right: 1px solid var(--border); padding: 0 20px; min-width: 0; }
-.mode-mini-stats>div:first-child { padding-left: 0; }
-.mode-mini-stats>div:last-child { border: 0; }
-.mode-mini-stats span { display: block; font-size: 14px; color: var(--muted); }
-.mode-mini-stats strong { display: block; font-size: 24px; font-weight: 700; margin-top: 8px; letter-spacing: -.4px; overflow-wrap: anywhere; }
 .mode-tabs { display: flex; gap: 28px; border-bottom: 1px solid var(--border); margin-bottom: 28px; flex-wrap: wrap; }
 .mode-tabs button { display: flex; align-items: center; gap: 9px; min-height: 48px; border: none; border-bottom: 3px solid transparent; background: none; padding: 8px 3px 12px; font-size: 14px; color: var(--muted); }
 .mode-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
@@ -499,9 +493,6 @@ details.form-section[open]>summary::after { transform: rotate(225deg); margin-bo
   .batch-preview-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .new-batch-card { grid-column: 1/-1; }
   .batches-grid,.product-grid,.customers-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .mode-mini-stats { gap: 16px; }
-  .mode-mini-stats>div { padding-inline: 12px; }
-  .mode-mini-stats strong { font-size: 22px; }
   .toast { left: calc(50% + 102px); }
 }
 @media(max-width:960px) {
@@ -581,10 +572,6 @@ details.form-section[open]>summary::after { transform: rotate(225deg); margin-bo
   .welcome-modes strong { font-size: 16px; }
   .mode-intro { padding: 20px; gap: 16px; align-items: flex-start; }
   .mode-intro h2 { font-size: 20px; line-height: 1.5; margin-top: 5px; }
-  .mode-mini-stats { grid-template-columns: repeat(2,minmax(0,1fr)); row-gap: 24px; padding: 24px 0; }
-  .mode-mini-stats>div { padding-inline: 16px; }
-  .mode-mini-stats>div:nth-child(odd) { padding-left: 0; }
-  .mode-mini-stats>div:nth-child(even) { border: 0; }
   .mode-tabs { gap: 20px; }
   .catalog-toolbar { gap: 14px; align-items: flex-start; flex-wrap: wrap; }
   .catalog-toolbar .btn { flex-shrink: 0; }

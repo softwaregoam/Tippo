@@ -180,3 +180,5 @@ Kolom kanan Ringkasan menumpuk Aliran pembayaran dan Tagihan belum lunas. Daftar
 ## Switch Jastip dan Open PO
 
 Switch Jastip | Open PO menggantikan dua menu usaha dan kartu ajakan memilih alur. Dua tombol dengan aria-pressed berada di atas judul halaman; dapat dipilih dengan keyboard, memenuhi lebar ponsel, serta memberi aksen teal untuk Jastip/jingga hangat untuk PO. Nama usaha juga tampil pada judul Ringkasan dan label menu, sehingga konteks tidak bergantung pada warna. Sidebar langsung berisi halaman operasional sesuai usaha; tab Produk/Pesanan/Batch yang duplikatif dihapus. Form mengikuti mode, HPP hanya menawarkan batch mode tersebut. Menu bersama tetap terlihat. Tema gelap menggunakan jingga terang yang kontras, sementara warna status pesanan konsisten.
+
+Deretan metrik mini di atas halaman operasional dihapus. Produk, Pesanan, Batch PO dan Perjalanan langsung memulai area kerja dari filter/tabel atau keadaan kosong, tanpa mengulang penjualan/tagihan dari Ringkasan.
