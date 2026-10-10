@@ -472,7 +472,9 @@ for (const [business,width] of [["Open PO",1440],["Jastip",1440],["Open PO",390]
   const batch=data.batches.find(b=>b.type===(business==="Open PO"?"po":"jastip"))!;
   const openStatus=async()=>{
    if(width<600)await page.getByRole("button",{name:`Detail ${batch.name}`,exact:true}).click();
-   await page.getByRole("button",{name:`Ubah status ${batch.name}`,exact:true}).click();
+   const label=requests.length===0?"Tutup batch":"Selesaikan batch";
+   const action=page.getByRole("button",{name:`${label} ${batch.name}`,exact:true});
+   await expect(action).toHaveAttribute("title",label);await action.click();
   };
   await openStatus();const dialog=page.getByRole("dialog",{name:business==="Open PO"?"Ubah status batch PO":"Ubah status perjalanan",exact:true});
   await expect(dialog.getByRole("button",{name:"Batal",exact:true})).toBeFocused();
@@ -486,19 +488,20 @@ for (const [business,width] of [["Open PO",1440],["Jastip",1440],["Open PO",390]
   await dialog.getByRole("button",{name:"Simpan perubahan",exact:true}).click();await expect(dialog).toHaveCount(0);
   expect(requests[1].p_data.batches.find(b=>b.id===batch.id)!.status).toBe("completed");
   if(width<600)await page.getByRole("button",{name:`Detail ${batch.name}`,exact:true}).click();
-  await expect(page.getByRole("button",{name:`Ubah status ${batch.name}`,exact:true})).toHaveCount(0);
-  await expect(page.getByText("Status terkunci",{exact:true}).filter({visible:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:new RegExp(`^(Tutup batch|Selesaikan batch) ${batch.name}$`)})).toHaveCount(0);
+  await expect(page.getByRole("img",{name:`Status terkunci ${batch.name}`,exact:true}).filter({visible:true})).toBeVisible();
+  await page.screenshot({path:`docs/preview-batch-locked-${business==="Open PO"?"po":"jastip"}-${width}.png`});
   if(width<600)await page.getByRole("button",{name:"Tutup detail",exact:true}).click();
   await page.reload();await expect(page.getByRole("heading",{name:`Ringkasan ${business}.`,exact:true})).toBeVisible();
   await openSection(page,business==="Open PO"?"Batch PO":"Perjalanan");
-  await expect(page.getByRole("button",{name:`Ubah status ${batch.name}`,exact:true})).toHaveCount(0);
+  await expect(page.getByRole("button",{name:new RegExp(`^(Tutup batch|Selesaikan batch) ${batch.name}$`)})).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
  });
 }
 
 test("batch status confirmation stays open when cloud saving fails",async({page})=>{
  const requests=await authenticate(page,{failSave:true});await page.goto("/app");await openBusiness(page,"Jastip");
- await page.getByRole("button",{name:"Ubah status Jastip Seoul",exact:true}).click();
+ await page.getByRole("button",{name:"Tutup batch Jastip Seoul",exact:true}).click();
  const dialog=page.getByRole("dialog",{name:"Ubah status perjalanan",exact:true});
  await dialog.getByRole("button",{name:"Simpan perubahan",exact:true}).click();
  await expect(dialog.getByRole("alert")).toHaveText("Status belum tersimpan. Coba lagi.");

@@ -731,6 +731,10 @@ Tambahan Pro: pemilih bulan tetap menampilkan tahun terpilih ketika mode lain be
 
 ## Fokus halaman operasional
 
+## Revisi ikon aksi status batch
+
+Scope revisi ini: tombol teks menjadi CircleArrowRight (Tutup batch), CircleCheck (Selesaikan batch), dan LockKeyhole abu-abu tanpa aksi untuk Selesai. Tooltip title dan aria-label menyatakan tindakan serta nama batch; target klik 44×44 piksel tetap. Alur konfirmasi tidak berubah. Production build dan lint lulus; empat workflow status batch lulus untuk PO/Jastip desktop dan PO ponsel gelap, termasuk title, fokus, backdrop, batal, gagal simpan dan penguncian setelah reload. Screenshot tabel terkunci desktop terang serta detail ponsel gelap ditinjau agen utama. R-03/R-26/R-32/R-34/R-35 PASS untuk pemeriksaan ini. R-04/R-31 PASS: ikon menunjukkan tindakan tahap berikutnya, alasannya tercatat di DESIGN.md. R-33 PASS untuk revisi ikon ini: perubahan sumber/CSS dilakukan dengan apply_patch; catatan kegagalan prosedural revisi sebelumnya tetap dipertahankan. Tidak ada penulisan data produksi atau verifikasi deployment Vercel.
+
 ## Dialog status batch satu arah
 
 Agen utama meninjau screenshot desktop PO/Jastip 1440 terang dan PO 390 gelap. Production build dan lint berhasil, satu tes aturan transisi serta empat tes browser lulus. Browser menguji batal tanpa simpan, fokus Batal, backdrop, Dibuka → Ditutup → Selesai, status terkunci setelah reload, transaksi tetap sama, dan kegagalan RPC. RPC menggunakan fixture, tanpa penulisan data produksi. Pengujian fokus awal sempat gagal; diperbaiki dengan fokus eksplisit setelah dialog dibuka, lalu keempat tes lulus. Pemeriksaan aplikasi juga berlaku pada persist; constraint server tidak ditambahkan. Suite browser lama tidak dijalankan seluruhnya.

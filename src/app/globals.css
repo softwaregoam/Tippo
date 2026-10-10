@@ -822,4 +822,5 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 
 .batch-status-body { display: grid; gap: 20px; }
 .batch-status-flow { display: flex; align-items: center; gap: 12px; }
-.batch-status-locked { font-size: 12px; }
+.batch-status-locked { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; color: #858582; flex-shrink: 0; }
+:root[data-theme="dark"] .batch-status-locked { color: #a3aaa5; }

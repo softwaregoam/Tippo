@@ -3,7 +3,7 @@ import {useState} from "react";
 import {BatchStatusDialog} from "@/components/batch-status-dialog";
 import {batchStatusLabels} from "@/lib/batch-status";
 import {MobileDataList} from "@/components/mobile-data-list";
-import {Pencil} from "lucide-react";
+import {CircleArrowRight,CircleCheck,LockKeyhole,Pencil} from "lucide-react";
 import {Select,SelectOption} from "@/components/ui/select";
 import {formatCurrency} from "@/lib/finance";
 import type {Product,Batch,Order} from "@/lib/types";
@@ -19,8 +19,8 @@ export function BatchesTable({ title, batches, orders, onEdit, onStatus }: {
  const count = (batch: Batch) => orders.filter(order => order.batchId === batch.id && order.status !== "cancelled").length;
  const badge = (batch: Batch) => <span className={`status-tag status-${batch.status === "open" ? "done" : batch.status === "closed" ? "cancelled" : "shipped"}`}>{batchStatusLabels[batch.status]}</span>;
  const statusAction = (batch: Batch) => batch.status === "completed"
-   ? <span className="muted batch-status-locked">Status terkunci</span>
-   : <button className="btn btn-secondary" data-close-detail aria-label={`Ubah status ${batch.name}`} onClick={() => setChanging(batch)}>Ubah status</button>;
+   ? <span className="batch-status-locked" role="img" aria-label={`Status terkunci ${batch.name}`} title="Status terkunci"><LockKeyhole size={18} aria-hidden="true" /></span>
+   : <button className="icon-button" data-close-detail aria-label={`${batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} ${batch.name}`} title={batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} onClick={() => setChanging(batch)}>{batch.status === "open" ? <CircleArrowRight size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}</button>;
  return <>
    <MobileDataList entries={batches.map(batch => ({
      id: batch.id, title: batch.name, subtitle: batch.origin || "Lokasi belum diisi",
