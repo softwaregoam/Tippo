@@ -364,7 +364,7 @@ function MonthlyChart({ data, month, currentOnly = false }: { data: AppData; mon
 
 function PaymentDonut({ received, total }: { received: number; total: number }) {
   const percent = total > 0 ? Math.round(received / total * 100) : 0;
-  return <div className="donut-wrap"><svg viewBox="0 0 180 180" role="img" aria-label={`${percent}% tagihan telah dibayar`}><circle cx="90" cy="90" r="76" fill="none" stroke="var(--border)" strokeWidth="15" /><circle cx="90" cy="90" r="76" fill="none" stroke="var(--primary)" strokeWidth="15" strokeLinecap="round" strokeDasharray={`${percent / 100 * 477.52} 477.52`} transform="rotate(-90 90 90)" /></svg><div className="donut-label"><strong>{percent}<small>%</small></strong><span>Sudah dibayar</span></div></div>;
+  return <div className="donut-wrap"><div className="donut-chart"><svg viewBox="0 0 180 180" role="img" aria-label={`${percent}% tagihan telah dibayar`}><circle cx="90" cy="90" r="76" fill="none" stroke="var(--border)" strokeWidth="15" /><circle cx="90" cy="90" r="76" fill="none" stroke="var(--primary)" strokeWidth="15" strokeLinecap="round" strokeDasharray={`${percent / 100 * 477.52} 477.52`} transform="rotate(-90 90 90)" /></svg><div className="donut-label"><strong>{percent}<small>%</small></strong></div></div><span className="donut-caption">Sudah dibayar</span></div>;
 }
 
 function BatchCard({ batch, data, index, onOpen }: { batch: Batch; data: AppData; index: number; onOpen: () => void }) {

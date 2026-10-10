@@ -146,12 +146,13 @@ svg { flex-shrink: 0; }
 .payments-card { align-self: start; container-type: inline-size; }
 .payments-card .card-header { padding-bottom: 16px; }
 .payment-overview { display: grid; grid-template-columns: 128px minmax(0,1fr); align-items: center; gap: 20px; padding: 0 24px 24px; }
-.donut-wrap { position: relative; width: 128px; height: 128px; margin: 0; }
-.donut-wrap>svg { width: 100%; height: 100%; }
+.donut-wrap { width: 128px; margin: 0; text-align: center; }
+.donut-chart { position: relative; aspect-ratio: 1; }
+.donut-chart>svg { display: block; width: 100%; height: 100%; }
+.donut-caption { display: block; margin-top: 8px; font-size: 13px; line-height: 1.4; color: var(--muted); }
 .donut-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
 .donut-label strong { font-size: 32px; line-height: 1.1; font-weight: 700; letter-spacing: -1px; }
 .donut-label small { font-size: 19px; margin-left: 2px; font-weight: 500; }
-.donut-label span { font-size: 13px; line-height: 1.3; color: var(--muted); }
 .payment-breakdown { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .payment-breakdown>div { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .payment-breakdown>div+div { padding-top: 14px; border-top: 1px solid var(--border); }
@@ -159,9 +160,8 @@ svg { flex-shrink: 0; }
 .payment-breakdown strong { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 @container (max-width: 340px) {
   .payment-overview { grid-template-columns: 104px minmax(0,1fr); gap: 16px; padding-inline: 18px; }
-  .donut-wrap { width: 104px; height: 104px; }
+  .donut-wrap { width: 104px; }
   .donut-label strong { font-size: 26px; }
-  .donut-label span { font-size: 11px; }
   .payment-breakdown strong { font-size: 16px; }
 }
 .text-action { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; border: 0; padding: 8px 0; background: transparent; color: var(--primary); font-size: 14px; font-weight: 600; text-decoration: none; }
