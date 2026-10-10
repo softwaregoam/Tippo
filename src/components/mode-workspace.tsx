@@ -16,6 +16,7 @@ import { formatCurrency, orderLabel, orderRevenue, outstanding } from "@/lib/fin
 import type { AppData, Batch, Order, Product } from "@/lib/types";
 
 type Props = {
+  tab: "products" | "orders" | "batches";
   type: Batch["type"];
   data: AppData;
   onNewBatch: () => void;
@@ -36,9 +37,8 @@ type Props = {
   onUpgrade: () => void;
 };
 
-export function ModeWorkspace({ type, data, onNewBatch, onEditBatch, onEditOrder, onStatus, onBatchStatus, onSaveProduct, onImportProducts, onRefund, onProductStatus, onImport, summaryMonth, importAllowed, productLimit, onUpgrade }: Props) {
+export function ModeWorkspace({ tab, type, data, onNewBatch, onEditBatch, onEditOrder, onStatus, onBatchStatus, onSaveProduct, onImportProducts, onRefund, onProductStatus, onImport, summaryMonth, importAllowed, productLimit, onUpgrade }: Props) {
   const po = type === "po";
-  const [tab, setTab] = useState(po ? "products" : "batches");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [batchFilter, setBatchFilter] = useState("all");
@@ -61,18 +61,10 @@ export function ModeWorkspace({ type, data, onNewBatch, onEditBatch, onEditOrder
     return `${orderLabel(o)} ${name}`.toLowerCase().includes(search.toLowerCase()) && (status === "all" || (status === "unpaid" ? outstanding(o) > 0 : visibleOrderStatus(o.status) === status)) && (batchFilter === "all" || o.batchId === batchFilter);
   }).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const products = data.products.filter((p) => `${p.name} ${p.variant} ${p.sku} ${p.category ?? ""}`.toLowerCase().includes(search.toLowerCase()) && (categoryFilter === "all" || p.category === categoryFilter) && (productStatus === "all" || p.active === (productStatus === "active")));
-  const tabs = po ? [{ id: "products", label: "Produk", count: data.products.filter((p) => p.active).length }, { id: "orders", label: "Pesanan", count: activeOrders.length }, { id: "batches", label: "Batch PO", count: batches.length }] : [{ id: "batches", label: "Perjalanan", count: batches.length }, { id: "orders", label: "Pesanan", count: activeOrders.length }];
 
   return <div className={`mode-workspace ${po ? "mode-po" : "mode-jastip"}`}>
     <div className="mode-mini-stats"><div><span>{po ? "Produk aktif" : "Perjalanan aktif"}</span><strong>{po ? data.products.filter((p) => p.active).length : batches.filter((b) => b.status === "open").length}</strong></div><div><span>Pesanan berjalan</span><strong>{activeOrders.filter((o) => o.status !== "done").length}</strong></div><div><span>{summaryMonth ? "Penjualan bulan ini" : "Penjualan tercatat"}</span><strong>{formatCurrency(summaryOrders.reduce((sum, o) => sum + orderRevenue(o), 0))}</strong></div><div><span>{summaryMonth ? "Tagihan bulan ini" : "Sisa tagihan"}</span><strong>{formatCurrency(summaryOrders.reduce((sum, o) => sum + outstanding(o), 0))}</strong></div></div>
-    <div className="mode-tabs" role="tablist" aria-label={po ? "Tampilan Open PO" : "Tampilan Jastip"}>{tabs.map((item) => <button key={item.id} role="tab" tabIndex={tab === item.id ? 0 : -1} aria-selected={tab === item.id} aria-controls={`panel-${type}-${item.id}`} id={`tab-${type}-${item.id}`} className={tab === item.id ? "active" : ""} onKeyDown={(event) => {
-      const current = tabs.findIndex((entry) => entry.id === tab);
-      const next = event.key === "ArrowRight" ? (current + 1) % tabs.length : event.key === "ArrowLeft" ? (current + tabs.length - 1) % tabs.length : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : -1;
-      if (next < 0) return;
-      event.preventDefault(); setTab(tabs[next].id); setSearch("");
-      document.getElementById(`tab-${type}-${tabs[next].id}`)?.focus();
-    }} onClick={() => { setTab(item.id); setSearch(""); }}>{item.label}<span>{item.count}</span></button>)}</div>
-    <div role="tabpanel" id={`panel-${type}-${tab}`} aria-labelledby={`tab-${type}-${tab}`}>
+    <div>
       {tab === "products" && <>
         <section className="catalog-controls" aria-label="Pencarian dan filter katalog"><div className="catalog-toolbar"><div><h2>Master produk PO</h2><p>Harga dan varian siap pakai untuk setiap pesanan.{!importAllowed && " Import template Excel tersedia di Pro."}</p></div><div className="catalog-actions"><Button className="btn btn-secondary" onClick={()=>importAllowed ? setProductImportOpen(true) : onUpgrade()}><Upload size={16}/>Import produk Excel{!importAllowed && <span aria-hidden="true" className="status-tag">Pro</span>}</Button><Button className="btn btn-primary" onClick={newProduct}><Plus size={16} />Produk baru</Button></div></div>
         <div className="catalog-filters"><div className="search-field"><Search size={17} /><input aria-label="Cari produk master" placeholder="Cari produk, varian, atau SKU..." value={search} onChange={(e) => setSearch(e.target.value)} /></div><Select className="input filter-input" aria-label="Filter produk" value={productStatus} onValueChange={(value) => setProductStatus(value)}><SelectOption value="active">Produk aktif</SelectOption><SelectOption value="archived">Diarsipkan</SelectOption><SelectOption value="all">Semua produk</SelectOption></Select><Select className="input filter-input" aria-label="Filter kategori produk" value={categoryFilter} onValueChange={setCategoryFilter}><SelectOption value="all">Semua kategori</SelectOption>{categories.map(category=><SelectOption key={category} value={category}>{category}</SelectOption>)}</Select></div></section>

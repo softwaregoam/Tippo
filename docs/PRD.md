@@ -161,7 +161,8 @@ Laba kotor belum dikurangi biaya operasional umum. Ringkasan ini membantu operas
 
 ```mermaid
 flowchart LR
-    D[Ringkasan] --> J[Jastip]
+    D[Switch usaha] --> J[Jastip]
+    J --> RJ[Ringkasan Jastip]
     J --> T[Perjalanan jastip]
     T --> FJ[Form barang bebas]
     J --> OJ[Pesanan jastip]
@@ -169,6 +170,7 @@ flowchart LR
     OJ --> IJ[Template Excel / unggah / pratinjau]
     IJ --> OJ
     D --> PO[Open PO]
+    PO --> RP[Ringkasan Open PO]
     PO --> M[Master produk]
     M --> B[Batch PO]
     B --> FP[Form PO ringkas]
@@ -179,13 +181,13 @@ flowchart LR
     OP --> P
     OJ --> I[Pratinjau invoice / salin WhatsApp]
     OP --> I
-    D --> S[Paket Gratis / Pro demo]
+    D --> S[Paket Gratis / Pro]
     D --> K[Pelanggan]
     D --> H[HPP dan Margin]
     D --> E[Ekspor / impor / mulai kosong]
 ```
 
-Navigasi utama: **Ringkasan, Jastip, Open PO, HPP & Margin, Pelanggan**. Kedua jenis usaha mempunyai daftar, ringkasan, batch, dan tombol input sendiri. Daftar gabungan masih dapat dibuka melalui tautan Ringkasan. Desktop memakai sidebar; ponsel memakai navigasi ringkas dan tombol input yang mudah dijangkau. Filter bulan berada di ringkasan, pencarian berada di daftar. Form menggunakan panel/modal agar alur tetap singkat.
+Navigasi dimulai dari switch **Jastip | Open PO**, dengan Ringkasan terpisah. Sidebar Jastip berisi Perjalanan/Pesanan/HPP; sidebar Open PO berisi Produk/Batch PO/Pesanan/HPP. Pelanggan dan Pengaturan Data adalah menu bersama. Desktop memakai sidebar; ponsel memakai switch yang memenuhi lebar layar serta sidebar yang dapat dibuka. Filter bulan berada di ringkasan mode aktif, pencarian berada di daftar. Form menggunakan panel/modal agar alur tetap singkat.
 
 ## Gaya visual
 
@@ -356,3 +358,9 @@ Data baru ditambahkan di depan daftar pelanggan, produk, batch/perjalanan, dan p
 Halaman gabungan Semua Pesanan dihapus. Ringkasan tidak memiliki tombol Lihat Tagihan; pengguna mengelola pesanan melalui tab Pesanan di Jastip atau Open PO.
 
 Ringkasan memiliki kartu Tagihan belum lunas di bawah Aliran pembayaran. Kartu mengikuti bulan terpilih (Gratis tetap bulan berjalan), menampilkan maksimal lima pesanan terbaru yang memiliki sisa pembayaran, nama pelanggan, batch/tanggal dan sisa pembayaran per pesanan. Pesanan dibatalkan/lunas tidak masuk. Total mencakup semua tagihan pada bulan tersebut; jika lebih dari lima, jumlah yang ditampilkan dijelaskan. Ringkasan tetap readonly tanpa aksi atau perubahan status. Kondisi kosong membedakan belum ada tagihan dari semua pesanan aktif sudah lunas.
+
+## Revisi: fokus dua usaha, tanpa ringkasan gabungan
+
+Revisi ini menggantikan rancangan ringkasan gabungan sebelumnya. Pengguna memilih Jastip atau Open PO melalui switch dua tombol. Pilihan terakhir diingat pada browser; default pertama Jastip. Pergantian membuka Ringkasan usaha terpilih. Jastip memiliki menu Ringkasan, Perjalanan, Pesanan, HPP & Margin; Open PO memiliki Ringkasan, Produk, Batch PO, Pesanan, HPP & Margin. Grafik, penjualan/margin, pembayaran/refund, pesanan terbaru, tagihan belum lunas, batch aktif dan pemilih HPP hanya menggunakan transaksi dari jenis batch mode aktif. Pembuatan pesanan/batch otomatis mengikuti mode, tanpa dialog pilihan jenis lagi. Pembatasan Gratis tetap 5 pesanan per mode per bulan dan 5 produk PO; Pro satu langganan akun. Pilihan bulan sebelumnya tetap Pro saja.
+
+Pelanggan, Profil Bisnis, Pengaturan Data dan Langganan merupakan menu akun bersama. Daftar kontak pelanggan tetap satu; jumlah pesanan pelanggan mengikuti mode aktif. Cadangan data tetap memuat kedua usaha. Data lama tidak dipindahkan atau dihapus; penyimpanan HPP/pesanan tetap menyertakan workspace penuh agar transaksi usaha lain terjaga.

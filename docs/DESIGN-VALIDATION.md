@@ -665,3 +665,66 @@ Teks Sudah dibayar dipindah ke bawah lingkaran dengan jarak 8px, persentase teta
 Design Read: ENERGY 2 / RHYTHM 2 / MOTION 1, identitas Tippo tetap hangat. Ruang di bawah Aliran pembayaran digunakan untuk sisa tagihan nyata, bukan dekorasi. Grafik dan kolom kanan mengikuti tinggi isi masing-masing. Kartu baru hanya baca: maksimal lima pesanan terbaru, rincian pelanggan/batch/tanggal, total seluruh tagihan bulan terpilih, dan indikator batas tampilan. Kondisi kosong membedakan semua lunas dari belum ada tagihan. `outstanding` yang sama dengan ringkasan memperhitungkan DP, fee/ongkir, net pembayaran setelah refund, serta mengabaikan pesanan dibatalkan.
 
 Agen utama meninjau ulang 50 item Delivery Gate: PASS dalam lingkup perubahan ini, dengan bukti terdahulu di bagian Delivery Gate untuk identitas/kontras/navigasi yang tidak berubah. Bukti tambahan R-03/R-34/C-4: empat tampilan 320/1440 piksel pada terang/gelap lulus, nama pelanggan panjang membungkus tanpa overflow. R-17/R-38/C-5: nominal dan jumlah berasal dari workspace, pengujian memakai fixture Supabase terkontrol tanpa menulis ke produksi. R-24/R-26/C-2: tidak ada tombol atau tautan baru; kartu baru tidak menambahkan aksi Ringkasan. R-27: tes keadaan kosong dan semua lunas lulus. R-35: lint/build berhasil, tujuh workflow unik terkait lulus (empat tampilan daftar, dua kondisi kosong, satu Ringkasan readonly dengan aksi tetap di Jastip). Setelah penyesuaian tinggi grafik, empat tampilan diulang dan lulus. R-31/C-1/C-3/ruang kosong: baris daftar dan nominal kanan mendukung pengecekan sisa tagihan, kartu mengikuti tinggi konten. Screenshot desktop terang dan ponsel gelap ditinjau langsung. Fixture awal ditolak karena pesanan dibatalkan memiliki pembayaran tersisa; fixture diperbaiki sesuai validasi yang mensyaratkan net pembayaran nol pada pembatalan.
+
+## Switch dua usaha, 10 Oktober 2026
+
+Agen utama meninjau sendiri gate berikut setelah peninjauan screenshot dan pengujian. Design Read: Tippo memiliki mode Jastip/teal dan Open PO/jingga hangat, tanpa Ringkasan gabungan; ENERGY 2 / RHYTHM 2 / MOTION 1. Pembatasan data tampilan menggunakan jenis batch, sementara simpan pesanan/HPP tetap mengirim workspace penuh. Tidak diperlukan migrasi Supabase. Pilihan mode diingat di browser; akun/langganan/profil/kontak/cadangan bersama, jumlah pesanan pelanggan mengikuti mode aktif.
+
+Validasi: lint, typecheck, dan production build lulus. 30 workflow browser unik terkait lulus (25 pada pemeriksaan pertama; tambahan dua tampilan tablet, dua Pro historis, dan satu pengelolaan tabel). Enam alur switch akhir menguji 320/768/1440 dalam terang/gelap, dua ringkasan dengan nominal berbeda, refund/tagihan/grafik/batch/HPP terpisah, pembuatan form sesuai mode, keyboard, reload, serta tanpa overflow halaman. Simpan HPP mempertahankan transaksi usaha lain. Alur lama mencakup simpan/gagal pesanan, import produk berhasil/gagal dan batas Gratis, refund, status produk, tabel readonly serta detail ponsel. Fixture Supabase terkontrol; tidak ada penulisan data produksi. Suite demo legacy yang tidak lagi mempunyai rute publik tidak dijalankan.
+
+Screenshot akhir desktop PO terang, tablet PO gelap, Jastip desktop gelap dan ponsel PO gelap ditinjau langsung. Rasio kontras terhitung: putih/PO #94501f 6,13:1; PO/soft #fff2de 5,55:1; ink #14251e/PO gelap #e8b484 8,60:1; PO gelap/soft #382d22 7,21:1; label sidebar #b7ccc0/cokelat #402b1f 7,84:1 dan #241e18 9,74:1.
+
+| Gate | Status dan bukti perubahan |
+| --- | --- |
+| R-02 | PASS: copy switch/menu/judul tidak memakai em dash. |
+| R-03 | PASS: enam alur switch pada 320/768/1440 terang/gelap tanpa overflow halaman. |
+| R-17 | PASS: metrik dihitung dari transaksi mode aktif; nominal fixture terverifikasi 25rb Jastip dan 100rb PO. |
+| R-18 | PASS: tidak ada testimoni ditambahkan. |
+| R-23 | PASS: switch/navigasi/warna disetujui pengguna, ikon yang sudah tersedia dipakai tanpa aset/logo baru. |
+| R-24 | PASS: navigasi Produk, Batch PO, Perjalanan, Pesanan, Ringkasan dan HPP dibuka di browser; tujuan lama bersama tetap. |
+| R-25 | PASS: aksen baru memiliki rasio 5,55–9,74:1; warna teks/permutaan lainnya memakai token terverifikasi sebelumnya. |
+| R-26 | PASS: kedua tombol switch bekerja dengan klik/Enter, mengubah data/navigasi/tema dan menyimpan pilihan. |
+| R-27 | PASS: kondisi Ringkasan kosong/lunas serta kegagalan simpan tetap lulus; HPP kosong memakai Empty yang sudah ada. |
+| R-28 | PASS: FAQ tidak diubah. |
+| R-32 | PASS: switch native button memiliki aria-pressed, fokus terlihat, Enter mengubah mode; menu ponsel serta dialog/Escape lulus. |
+| R-33 | PASS: UI ditulis dalam source melalui apply_patch; tidak ada skrip runtime yang menambal source/CSS. |
+| R-34 | PASS: kedua usaha diuji dalam tema terang dan gelap. |
+| R-35 | PASS: lint/typecheck/build lulus, 30 workflow terkait lulus. |
+| R-36 | PASS: tidak ditambahkan klaim keamanan/performa/pelanggan. |
+| R-37 | PASS: arah hangat pengguna dan dials tercatat di DESIGN.md, switch/warna disetujui sebelum implementasi. |
+| R-38 | PASS: transaksi pada UI berasal dari workspace; fixture hanya dipakai pada pengujian/screenshot dokumentasi. |
+| R-01 | PASS: tidak ada gradient/glow baru. |
+| R-04 | PASS: tas/paket menandai jenis usaha; ReceiptText menandai pesanan; relevansi mengikuti isi navigasi. |
+| R-06 | PASS: Plus Jakarta Sans dan label usaha mengikuti arah tipografi yang sudah tertulis. |
+| R-07 | PASS: tidak ada pola latar baru. |
+| R-08 | PASS: switch tanpa panah dekoratif; panah rincian batch yang sudah ada menuju HPP. |
+| R-09 | PASS: penanda usaha/paket/status memuat konteks nyata; tidak ada badge pemasaran. |
+| R-10 | PASS: switch/sidebar memakai permukaan padat, tanpa glass/blur. |
+| R-12 | PASS: tidak ada bayangan baru pada switch/kartu. |
+| R-13 | PASS: tidak ada glow baru, fokus tetap outline. |
+| R-14 | PASS: struktur dua usaha sengaja konsisten agar switch mudah dipahami, menu mengikuti kebutuhan berbeda. |
+| R-19 | PASS: tidak ada animasi baru; state berubah langsung sesuai MOTION 1. |
+| R-22 | PASS: tidak ada ilustrasi baru. |
+| Dials | PASS: ENERGY 2 / RHYTHM 2 / MOTION 1 tercatat. |
+| Konsistensi dials | PASS: aksen terbatas, data/tabel utama, tidak ada gerak dekoratif. |
+| Titik perhatian | PASS: switch di atas judul dan nominal penjualan menandai konteks aktif. |
+| Ruang kosong | PASS: kartu mengikuti tinggi isi; dua usaha tidak memakai kartu ajakan alur berulang. |
+| Aksen | PASS: Jastip teal atau PO jingga mengikuti satu mode aktif. |
+| Motif identitas | PASS: catatan pesanan, perjalanan Jastip dan katalog PO tetap menjadi isi utama. |
+| Design Read | PASS: arah switch/fokus/warna diumumkan sebelum source UI diubah. |
+| C-1 | PASS: alasan warna/navigasi/scope ditulis di DESIGN.md. |
+| C-2 | PASS: switch/menu/form/import/aksi pesanan memberi hasil teruji, tanpa kontrol dummy. |
+| C-3 | PASS: sidebar Jastip dan PO berbeda mengikuti perjalanan versus master produk. |
+| C-4 | PASS: tema, breakpoints, keyboard/reload serta kegagalan simpan diuji; penyimpanan tidak menghilangkan usaha lain. |
+| C-5 | PASS: angka dari workspace, bukan statistik pelanggan rekaan. |
+| R-05 | PASS: switch menggantikan dua kartu ajakan dan tab duplikatif; komposisi mengikuti tugas operasional. |
+| R-11 | PASS: switch 10px dan tombol 6px, tidak semua komponen menjadi pil. |
+| R-15 | PASS: label Jastip/Open PO/Pesanan PO baru menyatakan konteks/tindakan. |
+| R-16 | PASS: bahasa memakai pesanan, perjalanan, produk, ringkasan, HPP; tanpa buzzword baru. |
+| R-20 | PASS: dua cara jualan dan menu khusus menjadi identitas Tippo. |
+| R-21 | PASS: default terang/pilihan gelap tetap tersedia; mode usaha tidak memaksa gelap. |
+| R-29 | PASS: satu aksen aktif plus tinta/permukaan, warna status tetap semantik dan konsisten. |
+| R-30 | PASS: susunan mengikuti brief pengguna, tidak menyalin produk lain. |
+| R-31 | PASS: satu alasan tiap keputusan utama tercatat: switch untuk fokus, warna untuk konteks, scope untuk metrik usaha. |
+
+Tambahan Pro: pemilih bulan tetap menampilkan tahun terpilih ketika mode lain belum memiliki transaksi pada tahun itu; hasilnya Ringkasan kosong yang jelas, bukan pilihan bulan kosong.

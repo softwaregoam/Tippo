@@ -11,8 +11,8 @@ Landing page memperlihatkan contoh pesanan fiktif yang dapat diganti antara
 Jastip dan Open PO, termasuk beberapa barang, total, pembayaran, dan sisa tagihan.
 Komposisi memakai slip pesanan, pasangan konteks usaha,
 uraian operasional, dan perbandingan paket; fitur tidak dipaksa menjadi kartu bento
-atau tiga langkah pemakaian. Pengguna bisa membuka `/demo` sebelum membuat
-akun.
+atau tiga langkah pemakaian. Pengguna masuk atau mendaftar untuk membuka
+ruang usaha; `/demo` mengarahkan ke halaman masuk.
 
 Latar paper `#F7F4ED`, teal `#245C4E`, dan tinta `#233D35` membentuk palet
 hangat. Bidang teal pekat `#173F38` memisahkan navigasi dari isi kerja dan
@@ -21,10 +21,11 @@ Open PO atau status yang membutuhkan perhatian. Plus Jakarta Sans dibundel
 lokal. Tombol dan input memiliki sudut sederhana; bayangan menandai dialog dan dropdown,
 sementara ruang kosong serta pemisah membantu pembacaan daftar pesanan.
 
-Ruang kerja mempertahankan navigasi Ringkasan, Jastip, Open PO, HPP & Margin,
-Pelanggan, dan Pengaturan data. Ringkasan angka tampil sebagai satu kelompok yang mudah
+Ruang kerja memiliki switch Jastip | Open PO dan navigasi sesuai usaha terpilih.
+Ringkasan, Pesanan, HPP, serta Perjalanan atau Produk/Batch PO mengikuti mode.
+Pelanggan dan Pengaturan data tetap bersama. Ringkasan angka tampil sebagai satu kelompok yang mudah
 dibandingkan. Tombol Akun membuka dropdown Profil bisnis, pilihan tema, dan Keluar;
-mode demo menyediakan Keluar demo. Menu dapat dibuka dengan Enter atau tombol
+akun produksi menyediakan Keluar. Menu dapat dibuka dengan Enter atau tombol
 panah, dinavigasi dengan panah/Home/End, serta ditutup dengan Escape, Tab, atau
 klik di luar. Fokus kembali ke tombol akun setelah Escape atau memilih profil bisnis.
 Katalog mendahulukan nama, harga, HPP, serta aksi produk tanpa
@@ -41,8 +42,7 @@ isian, termasuk ketika terjadi konflik versi. Reduced motion dihormati.
 
 Konten hanya menyebut fitur dan aturan paket yang tersedia. Tidak ada
 testimoni, angka pelanggan, atau klaim keamanan buatan. Data contoh ditandai
-demo; pembayaran Pro produksi belum tersedia dan aktivasi pada demo adalah
-simulasi. Referensi produk lain tidak menjadi template dan tidak ada klaim
+fiktif pada landing; pembayaran Pro produksi belum tersedia. Referensi produk lain tidak menjadi template dan tidak ada klaim
 screenshot aplikasi lain berhasil dikumpulkan.
 
 Pratinjau implementasi:
@@ -176,3 +176,7 @@ Data baru ditambahkan di depan daftar pelanggan, produk, batch/perjalanan, dan p
 Aliran pembayaran pada Ringkasan memakai kartu dengan tinggi mengikuti isi: donut di kiri, label dan nominal di kanan, pemisah untuk setiap nominal. Lebar grafik menyesuaikan lebar kartu; angka tetap terbaca pada ponsel dan tema gelap.
 
 Kolom kanan Ringkasan menumpuk Aliran pembayaran dan Tagihan belum lunas. Daftar tagihan memakai baris sederhana, nama/batch/tanggal di kiri dan sisa pembayaran di kanan, tanpa tombol aksi. Grafik dan kolom pembayaran masing-masing mengikuti tinggi isinya agar tidak membentuk ruang kosong di dalam kartu. Di ponsel urutannya grafik, Aliran pembayaran, lalu Tagihan belum lunas.
+
+## Switch Jastip dan Open PO
+
+Switch Jastip | Open PO menggantikan dua menu usaha dan kartu ajakan memilih alur. Dua tombol dengan aria-pressed berada di atas judul halaman; dapat dipilih dengan keyboard, memenuhi lebar ponsel, serta memberi aksen teal untuk Jastip/jingga hangat untuk PO. Nama usaha juga tampil pada judul Ringkasan dan label menu, sehingga konteks tidak bergantung pada warna. Sidebar langsung berisi halaman operasional sesuai usaha; tab Produk/Pesanan/Batch yang duplikatif dihapus. Form mengikuti mode, HPP hanya menawarkan batch mode tersebut. Menu bersama tetap terlihat. Tema gelap menggunakan jingga terang yang kontras, sementara warna status pesanan konsisten.

@@ -113,8 +113,9 @@ Invoice disalin untuk ditempel ke WhatsApp, bukan dikirim otomatis.
 
 ## Layar, keadaan, dan akses
 
-Navigasi akun mengikuti bagian yang sudah ada: Ringkasan, Jastip, Open PO,
-HPP & Margin, dan Pelanggan. Rute demo dan akun memakai penanda yang berbeda.
+Navigasi akun dimulai dari switch Jastip | Open PO; Ringkasan, Pesanan,
+Perjalanan atau Produk/Batch PO, serta HPP & Margin mengikuti mode. Pelanggan
+dan Pengaturan Data tetap bersama. Rute demo mengarahkan ke halaman masuk.
 Pesanan Jastip memakai barang bebas dengan atribut per barang; form Open PO
 memilih master produk dan jumlah. Tanggal, ongkir, serta catatan opsional
 dapat ditempatkan pada detail tambahan agar input utama tetap ringkas.
@@ -255,3 +256,7 @@ Bagian Pesanan terbaru pada ringkasan hanya menampilkan data. Tombol Semua pesan
 ## Daftar ringkas ponsel, 10 Oktober 2026
 
 Pada lebar maksimal 600 piksel, tabel pesanan, produk, batch/perjalanan, dan pelanggan diganti daftar baris ringkas. Setiap baris menampilkan nama, konteks singkat, nominal/jumlah pesanan, dan status bila ada. Ketuk untuk membuka dialog detail. Produk menyediakan edit dan status; batch/perjalanan menyediakan edit/status; pelanggan menyediakan alamat/kontak dan edit; pesanan menyediakan status/edit/invoice/refund. Ringkasan pesanan tetap hanya baca. Desktop mempertahankan tabel. Dialog dapat ditutup melalui tombol atau Escape, mengembalikan fokus ke baris, dan tindakan edit/invoice/refund menutup detail sebelum membuka form berikutnya.
+
+## Dua usaha dengan switch
+
+Keputusan pengguna: Tippo memiliki dua mode, Jastip dan Open PO, tanpa ringkasan gabungan. Switch berlabel tetap terlihat di atas isi halaman, navigasi mengikuti mode, dan pilihan terakhir disimpan di browser. Jastip memakai teal, Open PO memakai jingga hangat; warna status pesanan konsisten di kedua mode. Permukaan/tabel/font dan pengaturan terang/gelap tetap sama. ENERGY 2 / RHYTHM 2 / MOTION 1 untuk ruang kerja. Aksen PO terang #94501f dengan putih pada tombol, PO gelap #e8b484 dengan ink #14251e. Sidebar PO memakai cokelat gelap agar konteks terlihat tanpa mewarnai seluruh halaman. HPP pada grafik PO memakai warna netral dan garis putus-putus untuk dibedakan dari penjualan jingga. Scope mode berlaku pada ringkasan, grafik, pembayaran/refund, tagihan, pesanan, batch/perjalanan dan HPP. Akun, langganan, profil, data cadangan dan daftar kontak pelanggan tetap bersama.

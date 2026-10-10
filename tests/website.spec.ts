@@ -37,6 +37,15 @@ async function authenticate(page:Page, options:{failSave?:boolean;missing?:boole
   });
   return requests;
 }
+async function openSection(page:Page,name:string) {
+ const menu=page.getByRole("button",{name:"Buka navigasi",exact:true});
+ if(await menu.isVisible()&&await menu.getAttribute("aria-expanded")==="false")await menu.click();
+ await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name,exact:true}).click();
+}
+async function openBusiness(page:Page,name:string) {
+ await page.getByRole("group",{name:"Pilih usaha"}).getByRole("button",{name,exact:true}).click();
+ await openSection(page,name==="Open PO"?"Produk":"Perjalanan");
+}
 test("homepage interactions and mobile navigation lead to real routes",async({page})=>{
   const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
   await page.goto("/"); await expect(page.locator(".wordmark").first()).toHaveText("Tippo."); await expect(page).toHaveTitle("Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{level:1})).toHaveText("Titip & Pesan, Beres di Tippo.");
@@ -120,13 +129,13 @@ test("successful email login opens the authenticated account workspace",async({p
     if(url.includes("/auth/v1/user")) return route.fulfill({json:auth.user});
     return route.fulfill({json:{data:fixture,version:0,subscription:{tier:"free",expiresAt:null},usage:[]}});
   });
-  await page.goto("/masuk");await page.getByLabel("Email",{exact:true}).fill("naya@example.test");await page.getByLabel("Kata sandi",{exact:true}).fill("example-password-strong");await page.getByRole("button",{name:"Masuk ke Tippo"}).click();await expect(page).toHaveURL(/\/app$/);await expect(page.getByRole("heading",{name:"Ringkasan usaha."})).toBeVisible();await page.getByRole("button",{name:"Menu akun",exact:true}).click();await expect(page.getByText("Titipan Naya",{exact:true})).toBeVisible();await page.keyboard.press("Escape");
+  await page.goto("/masuk");await page.getByLabel("Email",{exact:true}).fill("naya@example.test");await page.getByLabel("Kata sandi",{exact:true}).fill("example-password-strong");await page.getByRole("button",{name:"Masuk ke Tippo"}).click();await expect(page).toHaveURL(/\/app$/);await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();await page.getByRole("button",{name:"Menu akun",exact:true}).click();await expect(page.getByText("Titipan Naya",{exact:true})).toBeVisible();await page.keyboard.press("Escape");
 });
 test("account saves await Supabase, ignore local Pro and keep demo data separate",async({page})=>{
   const requests=await authenticate(page);const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
-  await page.goto("/app");await expect(page).toHaveTitle("Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{name:"Ringkasan usaha."})).toBeVisible();await expect(page.locator(".cloud-toolbar, .owner")).toHaveCount(0);await page.getByRole("button",{name:"Menu akun",exact:true}).click();await expect(page.getByText("Titipan Naya",{exact:true})).toBeVisible();await page.keyboard.press("Escape");
+  await page.goto("/app");await expect(page).toHaveTitle("Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();await expect(page.locator(".cloud-toolbar, .owner")).toHaveCount(0);await page.getByRole("button",{name:"Menu akun",exact:true}).click();await expect(page.getByText("Titipan Naya",{exact:true})).toBeVisible();await page.keyboard.press("Escape");
   await expect(page.getByLabel("Pilih bulan ringkasan")).toBeDisabled();
-  await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Jastip",exact:true}).click();
+  await openSection(page,"Pesanan");
   await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
   await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama barang",{exact:true}).fill("Tote Canvas");await dialog.getByLabel("Harga jual / barang",{exact:true}).fill("150000");await dialog.getByLabel("Harga beli / barang",{exact:true}).fill("100000");
@@ -166,19 +175,19 @@ test("account dropdown supports keyboard, outside click, settings and demo exit"
 test("sign out clears the local session even when remote logout fails", async ({page}) => {
   await authenticate(page);
   await page.route(`${endpoint}/auth/v1/logout**`,route=>route.fulfill({status:500,json:{message:"Logout unavailable"}}));
-  await page.goto("/app"); await expect(page.getByRole("heading",{name:"Ringkasan usaha."})).toBeVisible();
+  await page.goto("/app"); await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();
   await page.getByRole("button",{name:"Menu akun",exact:true}).click();
   await page.getByRole("menuitem",{name:"Keluar",exact:true}).click();
   await expect(page).toHaveURL(/\/masuk$/);
   expect(await page.evaluate(() => localStorage.getItem("sb-bkplemoflteubfgvqhke-auth-token"))).toBeNull();
 });
 test("failed account save retains form inputs and never announces a successful save",async({page})=>{
-  await authenticate(page,{failSave:true}); await page.goto("/app");await expect(page.getByRole("heading",{name:"Ringkasan usaha."})).toBeVisible();
-  await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Jastip",exact:true}).click();await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
+  await authenticate(page,{failSave:true}); await page.goto("/app");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();
+  await openSection(page,"Pesanan");await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
   await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama barang",{exact:true}).fill("Belum tersimpan");await dialog.getByLabel("Harga jual / barang",{exact:true}).fill("50000");await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).toBeVisible();await expect(dialog.getByLabel("Nama barang",{exact:true})).toHaveValue("Belum tersimpan");await expect(dialog.getByRole("alert")).toBeVisible();await expect(dialog.getByRole("alert")).toContainText("perangkat lain");await expect(page.locator(".cloud-error")).toContainText("perangkat lain");await expect(page.getByText("Pesanan baru berhasil dicatat",{exact:true})).toHaveCount(0);
 });
 test("missing remote database displays a recovery screen instead of demo transactions",async({page})=>{
-  await authenticate(page,{missing:true});await page.goto("/app");await expect(page.getByRole("heading",{name:"Ruang usahamu belum terbuka."})).toBeVisible();await expect(page.locator(".workspace-wait-card [role=alert]")).toContainText("mengaktifkan database");await expect(page.getByRole("heading",{name:"Ringkasan usaha."})).toHaveCount(0);
+  await authenticate(page,{missing:true});await page.goto("/app");await expect(page.getByRole("heading",{name:"Ruang usahamu belum terbuka."})).toBeVisible();await expect(page.locator(".workspace-wait-card [role=alert]")).toContainText("mengaktifkan database");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toHaveCount(0);
 });
 
 
@@ -189,7 +198,7 @@ test("sidebar minimizes on desktop and keeps mobile navigation usable", async ({
   await expect(page.getByRole("button", {name:"Menu akun",exact:true}).locator("svg")).toHaveCount(1);
   await page.getByRole("button",{name:"Minimalkan sidebar"}).click();
   await expect(page.locator(".sidebar")).toHaveCSS("width","76px");
-  await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Jastip",exact:true}).click();
+  await openBusiness(page,"Jastip");
   await expect(page.getByRole("button",{name:"Pesanan jastip baru",exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Perluas sidebar"}).click();
   await expect(page.locator(".sidebar")).toHaveCSS("width","228px");
@@ -198,7 +207,7 @@ test("sidebar minimizes on desktop and keeps mobile navigation usable", async ({
   await page.getByRole("button",{name:"Buka navigasi"}).click();
   await expect(page.locator(".sidebar")).toHaveCSS("width","280px");
   await expect(page.getByRole("button",{name:"Tutup navigasi",exact:true}).last()).toBeFocused();
-  await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Open PO",exact:true}).click();
+  await openBusiness(page,"Open PO");
   await expect(page.locator(".sidebar")).not.toBeVisible();
 });
 
@@ -244,7 +253,7 @@ test("customer dialog restores keyboard focus after cancel and save", async ({pa
 
 for(const failSave of [false,true])test(`product Excel import ${failSave?"retains preview on RPC failure":"saves atomically to the account"}`,async({page})=>{
   const requests=await authenticate(page,{failSave,pro:true});
-  await page.goto("/app");await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Open PO",exact:true}).click();
+  await page.goto("/app");await openBusiness(page,"Open PO");
   await page.getByRole("button",{name:"Import produk Excel",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Import produk Excel",exact:true});
   const ExcelJS=(await import("exceljs")).default;const book=new ExcelJS.Workbook();const sheet=book.addWorksheet("Produk");sheet.addRow(["produk","varian","sku_produk","harga_jual","harga_beli"]);sheet.addRow(["Produk akun","","SKU-A",150000,100000]);
@@ -260,14 +269,14 @@ test("cloud Free account cannot unlock Excel imports with a local demo Pro entit
   await page.goto("/app");
   await expect(page.locator(".plan-pill")).toHaveText("Gratis");
   for(const mode of ["Jastip","Open PO"]){
-    await page.locator(".sidebar").getByRole("button",{name:mode,exact:true}).click();
-    await page.getByRole("tab",{name:/^Pesanan/}).click();
+    await openBusiness(page,mode);
+    await openSection(page,"Pesanan");
     await page.getByRole("button",{name:"Import Excel",exact:true}).click();
     await expect(page.getByRole("region",{name:"Paket Pro"})).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
   }
-  await page.locator(".sidebar").getByRole("button",{name:"Open PO",exact:true}).click();
-  await page.getByRole("tab",{name:/Produk/}).click();
+  await openBusiness(page,"Open PO");
+  await openSection(page,"Produk");
   await page.getByRole("button",{name:"Import produk Excel",exact:true}).click();
   await expect(page.getByRole("region",{name:"Paket Pro"})).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -297,7 +306,7 @@ test("Google callback creates the account session from tokens and opens its work
   const auth=session();
   await page.goto(`/auth/callback#access_token=${auth.access_token}&refresh_token=${auth.refresh_token}&expires_in=3600&token_type=bearer`);
   await expect(page).toHaveURL(/\/app$/);
-  await expect(page.getByRole("heading",{name:"Ringkasan usaha."})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();
   await expect(page.locator(".plan-pill")).toHaveText("Gratis");
 });
 
@@ -361,7 +370,7 @@ for(const fail of [false,true])test(`cloud business profile ${fail?"preserves in
 
 for(const failSave of [false,true])test(`account refund ${failSave?"retains form on failure":"saves net payment and refund together"}`,async({page})=>{
  const data:AppData={...structuredClone(fixture),orders:[{id:"refund-cloud",batchId:"trip",customerId:"aly",createdAt:"2026-10-09T00:00:00Z",date:"2026-10-09",paid:100000,status:"new",serviceFee:0,shippingCharge:0,notes:"",items:[{id:"refund-item",product:"Refund cloud",variant:"",color:"",size:"",quantity:1,unitPrice:100000,unitCost:50000}]}]};
- const requests=await authenticate(page,{failSave,workspace:data});await page.goto("/app");await page.locator(".sidebar").getByRole("button",{name:"Jastip",exact:true}).click();await page.getByRole("tab",{name:/^Pesanan/}).click();await page.getByRole("button",{name:"Refund Refund cloud",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Refund pesanan",exact:true});await dialog.getByLabel("Nominal refund",{exact:true}).fill("50000");await dialog.getByRole("button",{name:"Catat refund",exact:true}).click();
+ const requests=await authenticate(page,{failSave,workspace:data});await page.goto("/app");await openBusiness(page,"Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Refund Refund cloud",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Refund pesanan",exact:true});await dialog.getByLabel("Nominal refund",{exact:true}).fill("50000");await dialog.getByRole("button",{name:"Catat refund",exact:true}).click();
  if(failSave){await expect(dialog.getByRole("alert")).toContainText("Refund belum tersimpan");await expect(dialog.getByLabel("Nominal refund",{exact:true})).toHaveValue("50.000");await expect(page.getByText("Refund berhasil dicatat",{exact:true})).toHaveCount(0);}
  else await expect(dialog).not.toBeVisible();
  expect(requests).toHaveLength(1);expect(requests[0].p_data.orders[0].paid).toBe(50000);expect(requests[0].p_data.orders[0].refunds![0].amount).toBe(50000);
@@ -369,7 +378,7 @@ for(const failSave of [false,true])test(`account refund ${failSave?"retains form
 
  test("demo is unavailable and management tables have only edit and removal actions",async({page})=>{
  await page.goto("/demo");await expect(page).toHaveURL(/\/masuk$/);await expect(page.locator('a[href="/demo"]')).toHaveCount(0);await page.goto("/");await expect(page.locator('a[href="/demo"]')).toHaveCount(0);
- const data=structuredClone(fixture);data.batches.push({...data.batches[0],id:"po-test",type:"po",name:"PO Uji"});data.products.push({id:"product-test",name:"Produk Uji",variant:"",sku:"",unitPrice:25000,unitCost:12000,active:true});await authenticate(page,{workspace:data});await page.goto("/app");await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Open PO",exact:true}).click();let table=page.getByRole("table",{name:"Daftar produk PO"});await expect(table.getByRole("button",{name:"Edit produk Produk Uji"})).toBeVisible();await table.screenshot({path:"docs/preview-account-products-simple.png"});await expect(table.getByRole("button",{name:"Pesan produk"})).toHaveCount(0);await page.getByRole("tab",{name:/^Batch PO/}).click();table=page.getByRole("table",{name:"Daftar batch PO"});await expect(table.getByRole("button",{name:"Edit batch PO Uji"})).toBeVisible();await expect(table.getByRole("button",{name:/HPP|Tambah pesanan/})).toHaveCount(0);await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Jastip",exact:true}).click();table=page.getByRole("table",{name:"Daftar perjalanan Jastip"});await expect(table.getByRole("button",{name:/HPP|Tambah pesanan/})).toHaveCount(0);await expect(table.getByRole("button",{name:"Edit batch Jastip Seoul"})).toBeVisible();await table.screenshot({path:"docs/preview-account-journeys-simple.png"});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
+ const data=structuredClone(fixture);data.batches.push({...data.batches[0],id:"po-test",type:"po",name:"PO Uji"});data.products.push({id:"product-test",name:"Produk Uji",variant:"",sku:"",unitPrice:25000,unitCost:12000,active:true});await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,"Open PO");let table=page.getByRole("table",{name:"Daftar produk PO"});await expect(table.getByRole("button",{name:"Edit produk Produk Uji"})).toBeVisible();await table.screenshot({path:"docs/preview-account-products-simple.png"});await expect(table.getByRole("button",{name:"Pesan produk"})).toHaveCount(0);await openSection(page,"Batch PO");table=page.getByRole("table",{name:"Daftar batch PO"});await expect(table.getByRole("button",{name:"Edit batch PO Uji"})).toBeVisible();await expect(table.getByRole("button",{name:/HPP|Tambah pesanan/})).toHaveCount(0);await openBusiness(page,"Jastip");table=page.getByRole("table",{name:"Daftar perjalanan Jastip"});await expect(table.getByRole("button",{name:/HPP|Tambah pesanan/})).toHaveCount(0);await expect(table.getByRole("button",{name:"Edit batch Jastip Seoul"})).toBeVisible();await table.screenshot({path:"docs/preview-account-journeys-simple.png"});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
  });
 
 test("customers use a searchable table with address and edit action",async({page})=>{
@@ -377,18 +386,18 @@ test("customers use a searchable table with address and edit action",async({page
 });
 
 test("dashboard recent orders are read only while Jastip retains actions",async({page})=>{
- const data=structuredClone(fixture);data.orders.push({id:"recent-test",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"new",paid:0,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"recent-item",product:"Barang Ringkasan",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});await authenticate(page,{workspace:data});await page.goto("/app");const recent=page.locator(".recent-card");await expect(recent).toContainText("Barang Ringkasan");await expect(recent).toContainText("Tercatat");await expect(recent.getByRole("button")).toHaveCount(0);await expect(recent.getByRole("combobox")).toHaveCount(0);await expect(recent.getByRole("columnheader",{name:"Tindakan"})).toHaveCount(0);const alignment=await recent.locator("table").evaluate(t=>{const h=t.querySelector(".status-column-title")!,v=t.querySelector("tbody .status-tag")!;const hr=document.createRange();hr.selectNodeContents(h);const vr=document.createRange();vr.selectNodeContents(v);return Math.abs(hr.getBoundingClientRect().x-vr.getBoundingClientRect().x);});expect(alignment).toBeLessThan(1);await recent.screenshot({path:"docs/preview-dashboard-orders-readonly.png"});await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Jastip",exact:true}).click();await page.getByRole("tab",{name:/^Pesanan/}).click();await expect(page.getByRole("button",{name:"Edit pesanan Barang Ringkasan"})).toBeVisible();await expect(page.getByLabel("Status pesanan Barang Ringkasan untuk Alya")).toBeVisible();
+ const data=structuredClone(fixture);data.orders.push({id:"recent-test",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"new",paid:0,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"recent-item",product:"Barang Ringkasan",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});await authenticate(page,{workspace:data});await page.goto("/app");const recent=page.locator(".recent-card");await expect(recent).toContainText("Barang Ringkasan");await expect(recent).toContainText("Tercatat");await expect(recent.getByRole("button")).toHaveCount(0);await expect(recent.getByRole("combobox")).toHaveCount(0);await expect(recent.getByRole("columnheader",{name:"Tindakan"})).toHaveCount(0);const alignment=await recent.locator("table").evaluate(t=>{const h=t.querySelector(".status-column-title")!,v=t.querySelector("tbody .status-tag")!;const hr=document.createRange();hr.selectNodeContents(h);const vr=document.createRange();vr.selectNodeContents(v);return Math.abs(hr.getBoundingClientRect().x-vr.getBoundingClientRect().x);});expect(alignment).toBeLessThan(1);await recent.screenshot({path:"docs/preview-dashboard-orders-readonly.png"});await openBusiness(page,"Jastip");await openSection(page,"Pesanan");await expect(page.getByRole("button",{name:"Edit pesanan Barang Ringkasan"})).toBeVisible();await expect(page.getByLabel("Status pesanan Barang Ringkasan untuk Alya")).toBeVisible();
 });
 
 test("product status dropdown confirms archive and preserves status on cancel",async({page})=>{
- const data=structuredClone(fixture);data.products.push({id:"status-product",name:"Produk Status",variant:"",sku:"",unitPrice:25000,unitCost:12000,active:true});await authenticate(page,{workspace:data});await page.goto("/app");await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Open PO",exact:true}).click();const status=page.getByLabel("Status produk Produk Status");await expect(status).toHaveAttribute("data-value","active");await chooseOption(status,"archived");const confirmation=page.getByRole("dialog",{name:"Hapus produk dari katalog aktif?"});await expect(confirmation).toBeVisible();await confirmation.getByRole("button",{name:"Batal",exact:true}).click();await expect(status).toHaveAttribute("data-value","active");await chooseOption(status,"archived");await confirmation.getByRole("button",{name:"Ya, arsipkan produk",exact:true}).click();await chooseOption(page.getByLabel("Filter produk"),"archived");await expect(status).toHaveAttribute("data-value","archived");await chooseOption(status,"active");await chooseOption(page.getByLabel("Filter produk"),"active");await expect(status).toHaveAttribute("data-value","active");
+ const data=structuredClone(fixture);data.products.push({id:"status-product",name:"Produk Status",variant:"",sku:"",unitPrice:25000,unitCost:12000,active:true});await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,"Open PO");const status=page.getByLabel("Status produk Produk Status");await expect(status).toHaveAttribute("data-value","active");await chooseOption(status,"archived");const confirmation=page.getByRole("dialog",{name:"Hapus produk dari katalog aktif?"});await expect(confirmation).toBeVisible();await confirmation.getByRole("button",{name:"Batal",exact:true}).click();await expect(status).toHaveAttribute("data-value","active");await chooseOption(status,"archived");await confirmation.getByRole("button",{name:"Ya, arsipkan produk",exact:true}).click();await chooseOption(page.getByLabel("Filter produk"),"archived");await expect(status).toHaveAttribute("data-value","archived");await chooseOption(status,"active");await chooseOption(page.getByLabel("Filter produk"),"active");await expect(status).toHaveAttribute("data-value","active");
 });
 
 for(const mobileWidth of [320,390]) for(const mobileTheme of ["light","dark"]) test(`mobile compact lists ${mobileWidth} ${mobileTheme} open details and keep dashboard read only`,async({page})=>{
  await page.addInitScript(theme=>localStorage.setItem("tippo.theme.v1",theme),mobileTheme);
  const data=structuredClone(fixture);data.customers[0].address="Jakarta";data.products.push({id:"mobile-product",name:"Roti Mobile",variant:"Coklat",sku:"RM",category:"Makanan",unitPrice:25000,unitCost:12000,active:true});data.batches.push({...data.batches[0],id:"mobile-po",name:"PO Mobile",type:"po"});data.orders.push({id:"mobile-order",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"new",paid:10000,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"mobile-item",productId:null,product:"Roti Mobile",variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});await authenticate(page,{workspace:data});await page.setViewportSize({width:mobileWidth,height:844});await page.goto("/app");const recent=page.locator(".recent-card");await recent.getByRole("button",{name:"Detail Alya",exact:true}).click();let dialog=page.getByRole("dialog",{name:"Detail Alya",exact:true});await expect(dialog).toContainText(/15\.000/);await expect(dialog.getByRole("button",{name:/^Edit$|^Invoice$|^Refund$/})).toHaveCount(0);await dialog.getByRole("button",{name:"Tutup detail"}).click();
- async function nav(name:string){await page.getByRole("button",{name:"Buka navigasi",exact:true}).click();await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name,exact:true}).click();}
- await nav("Open PO");await page.getByRole("button",{name:"Detail Roti Mobile",exact:true}).click();dialog=page.getByRole("dialog",{name:"Detail Roti Mobile",exact:true});await expect(dialog).toContainText("Makanan");await dialog.screenshot({path:"docs/preview-mobile-product-detail.png"});await dialog.getByRole("button",{name:"Edit produk",exact:true}).click();await expect(page.getByRole("dialog",{name:"Edit produk",exact:true})).toBeVisible();await page.keyboard.press("Escape");await page.getByRole("tab",{name:/^Batch PO/}).click();await page.getByRole("button",{name:"Detail PO Mobile",exact:true}).click();await expect(page.getByRole("dialog",{name:"Detail PO Mobile"})).toContainText("Seoul");await page.keyboard.press("Escape");await nav("Jastip");await page.getByRole("button",{name:"Detail Jastip Seoul",exact:true}).click();await page.keyboard.press("Escape");await page.getByRole("tab",{name:/^Pesanan/}).click();await page.getByRole("button",{name:"Detail Alya",exact:true}).click();dialog=page.getByRole("dialog",{name:"Detail Alya",exact:true});await expect(dialog.getByRole("button",{name:"Edit",exact:true})).toBeVisible();await dialog.getByRole("button",{name:"Invoice",exact:true}).click();await expect(page.getByRole("dialog",{name:/Invoice/})).toBeVisible();await page.keyboard.press("Escape");await nav("Pelanggan");await page.getByRole("button",{name:"Detail Alya",exact:true}).click();dialog=page.getByRole("dialog",{name:"Detail Alya",exact:true});await expect(dialog).toContainText("Jakarta");await page.keyboard.press("Escape");await page.screenshot({path:"docs/preview-mobile-customer-list.png",fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(mobileWidth);
+ async function nav(name:string){if(name==="Jastip"||name==="Open PO")await openBusiness(page,name);else await openSection(page,name);}
+ await nav("Open PO");await page.getByRole("button",{name:"Detail Roti Mobile",exact:true}).click();dialog=page.getByRole("dialog",{name:"Detail Roti Mobile",exact:true});await expect(dialog).toContainText("Makanan");await dialog.screenshot({path:"docs/preview-mobile-product-detail.png"});await dialog.getByRole("button",{name:"Edit produk",exact:true}).click();await expect(page.getByRole("dialog",{name:"Edit produk",exact:true})).toBeVisible();await page.keyboard.press("Escape");await openSection(page,"Batch PO");await page.getByRole("button",{name:"Detail PO Mobile",exact:true}).click();await expect(page.getByRole("dialog",{name:"Detail PO Mobile"})).toContainText("Seoul");await page.keyboard.press("Escape");await nav("Jastip");await page.getByRole("button",{name:"Detail Jastip Seoul",exact:true}).click();await page.keyboard.press("Escape");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Detail Alya",exact:true}).click();dialog=page.getByRole("dialog",{name:"Detail Alya",exact:true});await expect(dialog.getByRole("button",{name:"Edit",exact:true})).toBeVisible();await dialog.getByRole("button",{name:"Invoice",exact:true}).click();await expect(page.getByRole("dialog",{name:/Invoice/})).toBeVisible();await page.keyboard.press("Escape");await nav("Pelanggan");await page.getByRole("button",{name:"Detail Alya",exact:true}).click();dialog=page.getByRole("dialog",{name:"Detail Alya",exact:true});await expect(dialog).toContainText("Jakarta");await page.keyboard.press("Escape");await page.screenshot({path:"docs/preview-mobile-customer-list.png",fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(mobileWidth);
 });
 
 test("new customers prepend and editing an older customer preserves order",async({page})=>{
@@ -396,7 +405,7 @@ test("new customers prepend and editing an older customer preserves order",async
 });
 
 test("orders sort by creation time rather than editable transaction date",async({page})=>{
- const data=structuredClone(fixture);data.orders=[{id:"sort-old",batchId:"trip",customerId:"aly",date:"2026-10-10",createdAt:"2026-10-01T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"sort-item-old",productId:null,product:"Pesanan Lama",variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]},{id:"sort-new",batchId:"trip",customerId:"aly",date:"2026-10-01",createdAt:"2026-10-10T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"sort-item-new",productId:null,product:"Pesanan Baru",variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]}];await authenticate(page,{workspace:data});await page.goto("/app");await expect(page.locator(".recent-card tbody tr").first()).toContainText("Pesanan Baru");await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Jastip",exact:true}).click();await page.getByRole("tab",{name:/^Pesanan/}).click();await expect(page.locator(".orders-table tbody tr").first()).toContainText("Pesanan Baru");
+ const data=structuredClone(fixture);data.orders=[{id:"sort-old",batchId:"trip",customerId:"aly",date:"2026-10-10",createdAt:"2026-10-01T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"sort-item-old",productId:null,product:"Pesanan Lama",variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]},{id:"sort-new",batchId:"trip",customerId:"aly",date:"2026-10-01",createdAt:"2026-10-10T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"sort-item-new",productId:null,product:"Pesanan Baru",variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]}];await authenticate(page,{workspace:data});await page.goto("/app");await expect(page.locator(".recent-card tbody tr").first()).toContainText("Pesanan Baru");await openBusiness(page,"Jastip");await openSection(page,"Pesanan");await expect(page.locator(".orders-table tbody tr").first()).toContainText("Pesanan Baru");
 });
 
 for(const width of [320,1440])for(const theme of ["light","dark"])test(`unpaid dashboard ${width} ${theme} shows monthly balances without actions`,async({page})=>{
@@ -414,4 +423,41 @@ for(const paid of [false,true])test(`unpaid dashboard distinguishes ${paid?"sett
  const data=structuredClone(fixture);
  if(paid)data.orders.push({id:"paid-order",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"done",paid:25000,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"paid-item",product:"Produk lunas",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});
  await authenticate(page,{workspace:data});await page.goto("/app");const card=page.getByRole("region",{name:"Tagihan belum lunas"});await expect(card).toContainText(paid?"Semua tagihan bulan ini sudah lunas.":"Belum ada tagihan bulan ini.");await expect(card.locator("li")).toHaveCount(0);
+});
+
+function twoBusinessWorkspace():AppData {
+ const data=structuredClone(fixture),date=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"});
+ data.customers.push({id:"bima",name:"Bima PO",phone:""});
+ data.batches.push({...data.batches[0],id:"po-business",type:"po",name:"PO Mingguan"});
+ data.products.push({id:"po-product",name:"Produk PO",variant:"Coklat",sku:"PO-1",unitPrice:100000,unitCost:50000,active:true});
+ data.orders.push({id:"jastip-business-order",batchId:"trip",customerId:"aly",date,createdAt:new Date().toISOString(),status:"new",paid:10000,refunds:[{id:"refund-jastip",amount:1000,date,reason:"Koreksi pembayaran",createdAt:new Date().toISOString()}],serviceFee:0,shippingCharge:0,notes:"",items:[{id:"jastip-business-item",product:"Titipan Jastip",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});
+ data.orders.push({id:"po-business-order",batchId:"po-business",customerId:"bima",date,createdAt:new Date().toISOString(),status:"new",paid:20000,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"po-business-item",product:"Produk PO",productId:"po-product",variant:"Coklat",color:"",size:"",quantity:1,unitPrice:100000,unitCost:50000}]});
+ return data;
+}
+for(const width of [320,768,1440])for(const theme of ["light","dark"])test(`business switch ${width} ${theme} scopes summaries navigation forms and remembers mode`,async({page})=>{
+ await page.setViewportSize({width,height:1000});await page.addInitScript(t=>localStorage.setItem("tippo.theme.v1",t),theme);
+ await authenticate(page,{workspace:twoBusinessWorkspace()});await page.goto("/app");
+ const switcher=page.getByRole("group",{name:"Pilih usaha"});await expect(switcher.getByRole("button",{name:"Jastip",exact:true})).toHaveAttribute("aria-pressed","true");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Jastip.");await expect(page.locator(".stats-grid")).toContainText("Rp 25.000");await expect(page.locator(".payments-card")).toContainText("Rp 1.000");await expect(page.locator(".unpaid-card")).toContainText("Alya");await expect(page.locator(".recent-card")).not.toContainText("Produk PO");await expect(page.locator(".batch-preview")).not.toContainText("PO Mingguan");await expect(page.locator(".quota-banner")).toContainText("Jastip 1 / 5");
+ await openSection(page,"HPP & Margin");const hpp=page.getByLabel("Pilih batch untuk HPP");await hpp.click();await expect(page.getByRole("option",{name:"Jastip Seoul",exact:true})).toBeVisible();await expect(page.getByRole("option",{name:"PO Mingguan",exact:true})).toHaveCount(0);await page.keyboard.press("Escape");
+ const jastipAccent=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--primary"));
+ await switcher.getByRole("button",{name:"Open PO",exact:true}).focus();await page.keyboard.press("Enter");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");await expect(page.locator(".stats-grid")).toContainText("Rp 100.000");await expect(page.locator(".payments-card")).not.toContainText("Refund pesanan bulan ini");await expect(page.locator(".unpaid-card")).toContainText("Bima PO");await expect(page.locator(".unpaid-card")).not.toContainText("Alya");await expect(page.locator(".recent-card")).not.toContainText("Titipan Jastip");await expect(page.locator(".quota-banner")).toContainText("Open PO 1 / 5");expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--primary"))).not.toBe(jastipAccent);await expect(page.locator(".current-month-chart")).toHaveAttribute("aria-label",/100\.000.*50\.000/);
+ await page.screenshot({path:`docs/preview-business-po-${width}-${theme}.png`,fullPage:true});
+ await openSection(page,"HPP & Margin");await hpp.click();await expect(page.getByRole("option",{name:"PO Mingguan",exact:true})).toBeVisible();await expect(page.getByRole("option",{name:"Jastip Seoul",exact:true})).toHaveCount(0);await page.keyboard.press("Escape");
+ await openSection(page,"Pesanan");await page.getByRole("button",{name:"Pesanan PO baru",exact:true}).click();const form=page.getByRole("dialog",{name:"Pesanan PO baru",exact:true});await expect(form).toBeVisible();await expect(form.getByLabel("Batch PO",{exact:true})).toHaveAttribute("data-value","po-business");await page.keyboard.press("Escape");
+ await page.reload();await expect(switcher.getByRole("button",{name:"Open PO",exact:true})).toHaveAttribute("aria-pressed","true");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");await switcher.getByRole("button",{name:"Jastip",exact:true}).click();await expect(page.locator(".recent-card")).toContainText("Titipan Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();await expect(page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true})).toBeVisible();await page.keyboard.press("Escape");await openSection(page,"Ringkasan");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+ await page.screenshot({path:`docs/preview-business-jastip-${width}-${theme}.png`,fullPage:true});
+});
+test("HPP save in one business preserves the other business transactions",async({page})=>{
+ const original=twoBusinessWorkspace(),requests=await authenticate(page,{workspace:original});await page.goto("/app");await openSection(page,"HPP & Margin");await page.getByRole("button",{name:"Simpan harga beli",exact:true}).click();await expect.poll(()=>requests.length).toBe(1);expect(requests[0].p_data.orders.find(o=>o.id==="po-business-order")).toEqual(original.orders.find(o=>o.id==="po-business-order"));expect(requests[0].p_data.batches).toEqual(original.batches);expect(requests[0].p_data.products).toEqual(original.products);
+});
+
+test("Pro historical month and annual chart stay scoped when switching business",async({page})=>{
+ const data=twoBusinessWorkspace();
+ for(const order of [...data.orders])data.orders.push({...order,id:order.id+"-old",date:"2025-01-10",createdAt:"2025-01-10T00:00:00Z",paid:0,refunds:[],items:order.items.map(item=>({...item,id:item.id+"-old",unitPrice:order.batchId==="trip"?30000:90000,unitCost:order.batchId==="trip"?8000:60000}))});
+ await authenticate(page,{workspace:data,pro:true});await page.goto("/app");await chooseOption(page.getByLabel("Pilih bulan ringkasan"),"2025-01");await expect(page.locator(".stats-grid")).toContainText("Rp 30.000");await expect(page.locator(".chart-summary")).toContainText("Rp 30.000");await expect(page.locator(".monthly-chart svg")).toHaveAttribute("aria-label",/30\.000.*8\.000/);
+ await page.getByRole("group",{name:"Pilih usaha"}).getByRole("button",{name:"Open PO",exact:true}).click();await expect(page.getByLabel("Pilih bulan ringkasan")).toHaveAttribute("data-value","2025-01");await expect(page.locator(".stats-grid")).toContainText("Rp 90.000");await expect(page.locator(".chart-summary")).toContainText("Rp 90.000");await expect(page.locator(".monthly-chart svg")).toHaveAttribute("aria-label",/90\.000.*60\.000/);await expect(page.locator(".unpaid-card")).toContainText("Bima PO");await expect(page.locator(".unpaid-card")).not.toContainText("Alya");
+});
+
+test("Pro keeps the chosen historical month visible when the other business has no data that year",async({page})=>{
+ const data=twoBusinessWorkspace(),source=data.orders[0];data.orders.push({...source,id:"old-jastip-only",date:"2024-01-10",createdAt:"2024-01-10T00:00:00Z",refunds:[],paid:0,items:source.items.map(item=>({...item,id:"old-jastip-only-item"}))});await authenticate(page,{workspace:data,pro:true});await page.goto("/app");await chooseOption(page.getByLabel("Pilih bulan ringkasan"),"2024-01");await page.getByRole("group",{name:"Pilih usaha"}).getByRole("button",{name:"Open PO",exact:true}).click();await expect(page.getByLabel("Pilih bulan ringkasan")).toHaveAttribute("data-value","2024-01");await expect(page.getByLabel("Pilih bulan ringkasan")).toContainText("Januari 2024");await expect(page.locator(".unpaid-card")).toContainText("Belum ada tagihan bulan ini.");await expect(page.locator(".stats-grid .stat-value").first()).toContainText("Rp 0");
 });

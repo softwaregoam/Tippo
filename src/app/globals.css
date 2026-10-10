@@ -66,6 +66,11 @@ svg { flex-shrink: 0; }
 .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; color: var(--muted); background: var(--tone-surface-eef1ee); }
 .avatar-0,.avatar-1,.avatar-2,.avatar-3 { background: var(--tone-surface-eef1ee); color: var(--muted); }
 .main-shell { margin-left: 228px; min-width: 0; }
+.business-switch { display: flex; width: 320px; max-width: 100%; gap: 4px; padding: 4px; margin-bottom: 24px; border: 1px solid var(--control-border); border-radius: 10px; background: var(--paper); }
+.business-switch button { flex: 1; display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; }
+.business-switch button:hover { background: var(--tone-surface-eaf0e8); }
+.business-switch button[aria-pressed="true"] { color: var(--on-action); background: var(--primary); }
+@media(max-width:600px) { .business-switch { width: 100%; } }
 .topbar { min-height: 76px; background: var(--tone-surface-fbfaf6); border-bottom: 1px solid var(--border); padding: 12px 36px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .breadcrumb { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); min-width: 0; }
 .breadcrumb strong { color: var(--ink); font-weight: 600; }
@@ -147,6 +152,7 @@ svg { flex-shrink: 0; }
 .legend-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .legend-dot.teal { background: var(--primary); }
 .legend-dot.gold { background: var(--warning); }
+.chart-card .legend-dot.gold { background: var(--chart-cost, var(--warning)); }
 .legend-dot.pale { background: var(--control-border); }
 .monthly-chart { position: relative; padding: 18px 16px 0 8px; }
 .monthly-chart>svg { display: block; width: 100%; height: auto; }
@@ -386,7 +392,7 @@ svg { flex-shrink: 0; }
 .current-bar-track { height: 145px; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--border); }
 .current-bar-track>span { display: block; width: 76px; max-width: 100%; border-radius: 6px 6px 0 0; min-height: 2px; }
 .current-bar-track .teal { background: var(--primary); }
-.current-bar-track .gold { background: var(--warning); }
+.current-bar-track .gold { background: var(--chart-cost, var(--warning)); }
 .current-month-chart>p { text-align: center; color: var(--muted); font-size: 13px; margin-top: 20px; }
 .subscription-layout { display: grid; gap: 24px; }
 .subscription-usage { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; padding: 24px; }
