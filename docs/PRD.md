@@ -361,6 +361,8 @@ Ringkasan memiliki kartu Tagihan belum lunas di bawah Aliran pembayaran. Kartu m
 
 ## Revisi: fokus dua usaha, tanpa ringkasan gabungan
 
+Halaman awal menjelaskan switch Jastip/Open PO dan ringkasan yang terpisah. Pratinjau interaktif menampilkan contoh pesanan serta susunan menu masing-masing mode; teal untuk Jastip, jingga hangat untuk PO. FAQ menjelaskan data usaha yang terpisah, kontak/akun/langganan bersama, lokasi import template, dan alur status batch satu arah. Perbandingan paket menyebut ringkasan per usaha. Pratinjau tetap ilustrasi berlabel fiktif, bukan fitur demo aplikasi.
+
 Revisi ini menggantikan rancangan ringkasan gabungan sebelumnya. Pengguna memilih Jastip atau Open PO melalui switch dua tombol. Pilihan terakhir diingat pada browser; default pertama Jastip. Pergantian membuka Ringkasan usaha terpilih. Jastip memiliki menu Ringkasan, Perjalanan, Pesanan, HPP & Margin; Open PO memiliki Ringkasan, Produk, Batch PO, Pesanan, HPP & Margin. Grafik, penjualan/margin, pembayaran/refund, pesanan terbaru, tagihan belum lunas, batch aktif dan pemilih HPP hanya menggunakan transaksi dari jenis batch mode aktif. Pembuatan pesanan/batch otomatis mengikuti mode, tanpa dialog pilihan jenis lagi. Pembatasan Gratis tetap 5 pesanan per mode per bulan dan 5 produk PO; Pro satu langganan akun. Pilihan bulan sebelumnya tetap Pro saja.
 
 Pelanggan, Profil Bisnis, Pengaturan Data dan Langganan merupakan menu akun bersama. Daftar kontak pelanggan tetap satu; jumlah pesanan pelanggan mengikuti mode aktif. Cadangan data tetap memuat kedua usaha. Data lama tidak dipindahkan atau dihapus; penyimpanan HPP/pesanan tetap menyertakan workspace penuh agar transaksi usaha lain terjaga.

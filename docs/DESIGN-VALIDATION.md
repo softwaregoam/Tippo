@@ -731,6 +731,12 @@ Tambahan Pro: pemilih bulan tetap menampilkan tahun terpilih ketika mode lain be
 
 ## Fokus halaman operasional
 
+## Penyesuaian halaman awal terhadap dua mode usaha
+
+Scope: copy hero/fitur/cara kerja/FAQ, label ringkasan paket, menu mode pada pratinjau dan palet PO. Tidak ada migrasi data, aset visual baru, navigasi fiktif, statistik atau klaim pelanggan. Arah switch dan palet dijelaskan sebelum perubahan. Motif catatan pesanan dan tagline tetap; alasan struktur/palet tercatat di DESIGN.md dengan ENERGY 2 / RHYTHM 3 / MOTION 1. Semua perubahan source/CSS menggunakan apply_patch.
+
+Production build dan lint lulus. Empat workflow homepage lulus pada 320/1440 piksel × terang/gelap: switch mengubah contoh dan menu, nominal pesanan tetap benar, FAQ ringkasan terpisah terbuka, menu ponsel menuju Harga lalu tutup, CTA menuju daftar, tanpa pageerror maupun overflow. Delapan screenshot Jastip/PO dihasilkan; agen utama meninjau PO desktop terang dan PO ponsel gelap secara langsung. Hover PO hanya mengubah tombol yang tidak aktif agar kontras tombol aktif tetap terbaca. Badge contoh fiktif dan keterangan pembayaran Pro belum tersedia tetap jujur. Pemeriksaan tidak mengubah Supabase atau memverifikasi deployment Vercel.
+
 ## Revisi ikon aksi status batch
 
 Scope revisi ini: tombol teks menjadi CircleArrowRight (Tutup batch), CircleCheck (Selesaikan batch), dan LockKeyhole abu-abu tanpa aksi untuk Selesai. Tooltip title dan aria-label menyatakan tindakan serta nama batch; target klik 44×44 piksel tetap. Alur konfirmasi tidak berubah. Production build dan lint lulus; empat workflow status batch lulus untuk PO/Jastip desktop dan PO ponsel gelap, termasuk title, fokus, backdrop, batal, gagal simpan dan penguncian setelah reload. Screenshot tabel terkunci desktop terang serta detail ponsel gelap ditinjau agen utama. R-03/R-26/R-32/R-34/R-35 PASS untuk pemeriksaan ini. R-04/R-31 PASS: ikon menunjukkan tindakan tahap berikutnya, alasannya tercatat di DESIGN.md. R-33 PASS untuk revisi ikon ini: perubahan sumber/CSS dilakukan dengan apply_patch; catatan kegagalan prosedural revisi sebelumnya tetap dipertahankan. Tidak ada penulisan data produksi atau verifikasi deployment Vercel.

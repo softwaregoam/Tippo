@@ -25,10 +25,12 @@ const exampleOrders: Record<"jastip" | "po", Order> = {
 };
 
 const questions = [
-  ["Apa bedanya Jastip dan Open PO?", "Jastip cocok untuk barang titipan dengan varian, warna, ukuran, dan fee jasa. Open PO memakai master produk, sehingga kamu cukup memilih produk dan jumlahnya saat mencatat pesanan."],
+  ["Apa bedanya Jastip dan Open PO?", "Jastip cocok untuk barang titipan dengan varian, warna, ukuran, dan fee jasa. Open PO memakai master produk, sehingga kamu cukup memilih produk dan jumlahnya saat mencatat pesanan. Ganti mode melalui switch Jastip / Open PO; masing-masing memiliki menu dan ringkasan sendiri."],
+  ["Apakah ringkasan Jastip dan Open PO digabung?", "Tidak. Penjualan, HPP, pembayaran, tagihan, dan grafik bulanan hanya menampilkan usaha yang sedang dipilih. Jastip memakai aksen teal, Open PO memakai jingga hangat. Akun, kontak pelanggan, profil bisnis, cadangan data, dan langganan tetap digunakan bersama."],
   ["Satu pesanan bisa berisi beberapa barang?", "Bisa. Tambahkan beberapa barang atau makanan dalam satu pesanan. Pembayaran, ongkir, dan invoice tetap menjadi satu. Kuota menghitung pesanan, bukan jumlah barang."],
   ["Bagaimana batas paket Gratis dihitung?", "Kamu mendapat 5 pesanan Jastip dan 5 pesanan Open PO secara terpisah setiap bulan, serta maksimal 5 produk Open PO termasuk produk yang diarsipkan. Kuota pesanan kembali tersedia tanggal 1 pukul 00.00 WIB. Pesanan yang dibatalkan tetap terhitung."],
-  ["Bisa pindahkan pesanan dari Excel?", "Bisa, dengan paket Pro. Tersedia template produk, pesanan Jastip, dan pesanan Open PO. Unduh template dari menu Jastip atau Open PO, isi pesanan, lalu unggah. Baris dengan nomor pesanan yang sama digabung menjadi satu pesanan. Kamu bisa memeriksa hasilnya sebelum menyimpan."],
+  ["Bisa pindahkan pesanan dari Excel?", "Bisa, dengan paket Pro. Tersedia template produk, pesanan Jastip, dan pesanan Open PO. Pilih mode usaha lalu buka Pesanan untuk import pesanan, atau Produk pada Open PO untuk import katalog. Unduh template, isi data, lalu unggah. Baris dengan nomor pesanan yang sama digabung menjadi satu pesanan. Kamu bisa memeriksa hasilnya sebelum menyimpan."],
+  ["Bagaimana status batch atau perjalanan diubah?", "Dari daftar Batch PO atau Perjalanan, gunakan ikon Tutup batch atau Selesaikan batch lalu konfirmasi. Alurnya Dibuka, Ditutup, lalu Selesai. Batch yang ditutup tidak bisa dibuka kembali; status Selesai terkunci. Status pesanan di dalamnya tetap diatur secara terpisah."],
   ["Apakah invoice langsung terkirim ke WhatsApp?", "Invoice dapat disalin lalu kamu tempel ke chat WhatsApp pelanggan. Pengiriman tetap kamu lakukan sendiri. Harga beli, HPP, dan catatan internal tidak ikut dalam invoice."],
   ["Apakah paket Pro sudah bisa dibeli?", "Harga Pro adalah Rp25.000 per bulan. Pembayaran langganan sedang disiapkan. Kamu dapat mulai memakai paket Gratis."],
 ];
@@ -38,7 +40,7 @@ const planRows = [
   ["Pesanan Open PO", "5 per bulan", "Tanpa batas kuota"],
   ["Master produk Open PO", "Maksimal 5 produk", "Tanpa batas kuota"],
   ["Template dan import Excel", "Tidak tersedia", "Produk, Jastip, dan Open PO"],
-  ["Ringkasan & grafik", "Bulan berjalan", "Termasuk bulan sebelumnya"],
+  ["Ringkasan & grafik per usaha", "Bulan berjalan", "Termasuk bulan sebelumnya"],
 ];
 
 export function LandingPage() {
@@ -87,7 +89,7 @@ export function LandingPage() {
           <div className="hero-copy">
             <p className="hero-kicker">Untuk usaha jastip & open PO</p>
             <h1 id="hero-title">Titip &amp; Pesan, <br /><span>Beres di Tippo.</span></h1>
-            <p>Barang titipan, pesanan makanan, sampai DP pelanggan. Catat di satu tempat, dengan alur Jastip dan Open PO yang terpisah.</p>
+            <p>Pilih Jastip atau Open PO lewat satu switch. Pesanan, HPP, tagihan, dan ringkasan mengikuti usaha yang kamu pilih, dengan catatan masing-masing.</p>
             <div className="hero-actions">
               <Link href="/daftar" className="landing-button primary">Buat akun gratis</Link>
 
@@ -96,11 +98,12 @@ export function LandingPage() {
           </div>
 
           <div className={`order-ledger ${preview === "po" ? "ledger-po" : ""}`}>
-            <div className="ledger-cover"><strong>Satu pesanan, lengkap.</strong><span>Contoh pesanan fiktif</span></div>
+            <div className="ledger-cover"><strong>Dua mode, fokus masing-masing.</strong><span>Contoh pesanan fiktif</span></div>
             <div className="ledger-tabs" role="group" aria-label="Pilihan alur pesanan">
               <button type="button" aria-pressed={preview === "jastip"} aria-controls="ledger-content" onClick={() => setPreview("jastip")}>Jastip</button>
               <button type="button" aria-pressed={preview === "po"} aria-controls="ledger-content" onClick={() => setPreview("po")}>Open PO</button>
             </div>
+            <div className="ledger-mode-context" aria-live="polite"><strong>Menu {preview === "jastip" ? "Jastip" : "Open PO"}</strong><p>{preview === "jastip" ? "Ringkasan · Perjalanan · Pesanan · HPP & Margin" : "Ringkasan · Produk · Batch PO · Pesanan · HPP & Margin"}</p></div>
             <div id="ledger-content" className="ledger-page" aria-live="polite">
               <div className="ledger-heading">
                 <p>{preview === "jastip" ? "Titipan belanja" : "Pesanan dari katalog"}</p>
@@ -119,28 +122,28 @@ export function LandingPage() {
               </dl>
               <div className="ledger-payment"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(example))}</strong></div>
             </div>
-            <p className="ledger-caption">Contoh perhitungan pesanan. Harga beli tidak masuk invoice pelanggan.</p>
+            <p className="ledger-caption">Ringkasan tiap usaha terpisah. Ini contoh perhitungan satu pesanan; harga beli tidak masuk invoice pelanggan.</p>
           </div>
         </section>
 
         <section id="fitur" className="mode-section landing-container" aria-labelledby="mode-title">
           <div className="landing-mode-intro">
-            <p className="section-label">Pilih ruang usahamu</p>
+            <p className="section-label">Satu akun, dua mode usaha</p>
             <h2 id="mode-title">Dua cara jualan.<br />Punya catatan<br />masing-masing.</h2>
-            <p>Kamu langsung memilih Jastip atau Open PO dari menu. Form dan daftar pesanannya terpisah.</p>
+            <p>Ganti usaha melalui switch Jastip / Open PO. Menu, form, dan ringkasan mengikuti mode aktif tanpa menggabungkan transaksi kedua usaha.</p>
           </div>
           <div className="mode-notes">
             <article className="mode-note">
               <span className="mode-note-context">Titipan belanja</span>
               <h3>Jastip</h3>
               <p>Untuk barang yang kamu belikan atas titipan pelanggan.</p>
-              <ul><li>Kelompokkan pesanan dalam batch perjalanan.</li><li>Isi varian, warna, dan ukuran per barang.</li><li>Catat harga beli serta fee jastip.</li></ul>
+              <ul><li>Kelompokkan pesanan dalam perjalanan.</li><li>Isi varian, warna, dan ukuran per barang.</li><li>Catat harga beli serta fee jastip.</li><li>Periksa ringkasan dan tagihan Jastip.</li></ul>
             </article>
             <article className="mode-note mode-note-po">
               <span className="mode-note-context">Produk dari katalog</span>
               <h3>Open PO</h3>
               <p>Untuk produk atau makanan yang sudah punya katalog.</p>
-              <ul><li>Siapkan master produk dan HPP lebih dahulu.</li><li>Pilih produk dan jumlah saat membuat pesanan.</li><li>Kelompokkan pesanan dalam batch PO.</li></ul>
+              <ul><li>Siapkan master produk beserta kategorinya.</li><li>Pilih produk dan jumlah saat membuat pesanan.</li><li>Kelompokkan pesanan dalam batch PO.</li><li>Periksa ringkasan dan tagihan Open PO.</li></ul>
             </article>
           </div>
         </section>
@@ -156,7 +159,7 @@ export function LandingPage() {
             <div className="working-list">
               <article><h3>Isi cepat atau impor Excel</h3><p>Dengan Pro, gunakan template sesuai jenis usaha. Baris dengan nomor pesanan yang sama akan menjadi satu pesanan. Periksa pratinjau sebelum menyimpan.</p></article>
               <article><h3>Lengkapi modal, cek margin</h3><p>HPP memakai harga beli per barang dan jumlahnya. Tippo menandai biaya yang belum lengkap agar kamu tahu pesanan mana yang perlu diperiksa.</p></article>
-              <article><h3>Periksa ringkasan bulanan</h3><p>Lihat penjualan, HPP, dan margin terhitung lewat ringkasan dan grafik. Paket Gratis menampilkan bulan berjalan.</p></article>
+              <article><h3>Periksa ringkasan usaha terpilih</h3><p>Penjualan, HPP, margin, pembayaran, dan tagihan mengikuti mode Jastip atau Open PO yang aktif. Grafik kedua usaha tidak digabung. Paket Gratis menampilkan bulan berjalan.</p></article>
               <article><h3>Salin invoice ke WhatsApp</h3><p>Invoice memuat seluruh barang, pembayaran, dan sisa tagihan. Kamu salin lalu tempel ke chat pelanggan. HPP serta catatan internal tetap di catatanmu.</p></article>
             </div>
           </div>

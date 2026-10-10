@@ -46,16 +46,27 @@ async function openBusiness(page:Page,name:string) {
  await page.getByRole("group",{name:"Pilih usaha"}).getByRole("button",{name,exact:true}).click();
  await openSection(page,name==="Open PO"?"Produk":"Perjalanan");
 }
-test("homepage interactions and mobile navigation lead to real routes",async({page})=>{
+for (const width of [320,1440]) for (const theme of ["light","dark"]) {
+test(`homepage interactions and mobile navigation lead to real routes ${width} ${theme}`,async({page})=>{
+  await page.setViewportSize({width,height:1000});
+  await page.addInitScript(theme=>localStorage.setItem("tippo.theme.v1",theme),theme);
   const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
   await page.goto("/"); await expect(page.locator(".wordmark").first()).toHaveText("Tippo."); await expect(page).toHaveTitle("Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{level:1})).toHaveText("Titip & Pesan, Beres di Tippo.");
   await expect(page.getByText("Contoh pesanan fiktif",{exact:true})).toBeVisible();
   await expect(page.locator(".ledger-product")).toHaveCount(2);
   await expect(page.locator(".ledger-total")).toContainText(/Rp\s*1\.638\.000/);
+  await expect(page.locator(".ledger-mode-context")).toContainText("Ringkasan · Perjalanan · Pesanan · HPP & Margin");
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+  await page.screenshot({path:`docs/preview-landing-jastip-${width}-${theme}.png`});
   await page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Open PO"}).click();
   await expect(page.getByText("Produk siap, pesanan lebih ringkas.",{exact:true})).toBeVisible();
   await expect(page.locator(".ledger-total")).toContainText(/Rp\s*533\.000/);
   await expect(page.locator(".ledger-payment")).toContainText(/Rp\s*383\.000/);
+  await expect(page.locator(".ledger-mode-context")).toContainText("Ringkasan · Produk · Batch PO · Pesanan · HPP & Margin");
+  await expect(page.locator(".order-ledger")).toHaveClass(/ledger-po/);
+  await page.screenshot({path:`docs/preview-landing-po-${width}-${theme}.png`});
+  await page.locator("summary").filter({hasText:"Apakah ringkasan Jastip dan Open PO digabung?"}).click();
+  await expect(page.locator("details[open]")).toContainText("Tidak. Penjualan, HPP, pembayaran, tagihan, dan grafik bulanan hanya menampilkan usaha yang sedang dipilih.");
   await page.locator("summary").filter({hasText:"Satu pesanan bisa berisi beberapa barang?"}).click();
   await expect(page.getByText("Bisa. Tambahkan beberapa barang",{exact:false})).toBeVisible();
   await page.setViewportSize({width:390,height:844}); await page.getByRole("button",{name:"Buka menu",exact:true}).click();
@@ -66,6 +77,7 @@ test("homepage interactions and mobile navigation lead to real routes",async({pa
   await expect(page).toHaveURL(/\/daftar$/); await expect(page.getByLabel("Nama usaha",{exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
+}
 test("registration uses Supabase signup and waits for email confirmation",async({page})=>{
   let payload:Record<string,unknown>|null=null;
   await page.route(`${endpoint}/auth/v1/signup**`,async route=>{payload=route.request().postDataJSON();expect(route.request().url()).toContain("redirect_to=");await route.fulfill({json:{id:owner,email:"naya@example.test",identities:[{id:"identity"}]}});});

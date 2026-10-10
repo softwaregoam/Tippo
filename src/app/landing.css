@@ -50,6 +50,14 @@
 .ledger-tabs button:hover { background:var(--tone-surface-245c4e); color:var(--tone-text-fff); }
 .ledger-tabs button[aria-pressed="true"] { background:var(--tone-surface-f7f4ed); color:var(--tone-text-173f38); }
 .ledger-po .ledger-tabs button[aria-pressed="true"] { background:var(--tone-surface-fff2de); color:var(--tone-text-94501f); }
+.order-ledger.ledger-po { background: #402b1f; }
+.ledger-po .ledger-tabs { background: #241e18; }
+.ledger-po .ledger-tabs button:not([aria-pressed="true"]):hover { background: #65412a; }
+.ledger-mode-context { color: var(--tone-text-d8e8df); padding: 0 .2rem 1rem; font-size: .75rem; }
+.ledger-mode-context strong { font-weight: 650; }
+.ledger-mode-context p { margin-top: .35rem; }
+:root[data-theme="dark"] .order-ledger.ledger-po { background: #241e18; }
+:root[data-theme="dark"] .ledger-po .ledger-tabs { background: #382d22; }
 .order-ledger :is(button,a):focus-visible { outline-color:var(--tone-text-fff2de); }
 .ledger-page { background:var(--tone-surface-fffdf8); border-radius:4px; padding:1.1rem; }
 .ledger-heading { border-bottom:1px solid var(--tone-line-dedcd3); padding-bottom:1.1rem; }
