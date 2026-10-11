@@ -276,7 +276,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               const quantityId = index === 0 ? "po-order-quantity" : `po-order-${item.id}-quantity`;
               const rowErrors = itemErrors[item.id];
               return <fieldset key={item.id} className="order-item-card">
-                <legend className="field-label" style={{ padding: "0 6px" }}>Barang {index + 1}</legend>
+                <legend className="field-label" style={{ padding: "0 6px" }}>Produk</legend>
                 <div className="order-item-heading">
                   <span className="field-hint">Subtotal {formatCurrency(itemDraft.quantity * itemDraft.unitPrice)}</span>
                   <button type="button" className="icon-button delete-item" aria-label={`Hapus barang ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
