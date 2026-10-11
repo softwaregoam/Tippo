@@ -675,6 +675,14 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Open PO",390]
   await expect(form.getByLabel("Diskon",{exact:true})).toHaveValue("10");
   await chooseOption(form.getByLabel("Jenis diskon",{exact:true}),"amount");
   await expect(form.getByLabel("Diskon",{exact:true})).toHaveValue("");
+  await form.getByLabel("Diskon",{exact:true}).fill("55001");
+  await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();
+  await expect(form.getByText("Diskon tidak boleh melebihi total tagihan sebelum diskon.",{exact:true})).toBeVisible();
+  expect(requests).toHaveLength(1);
+  await form.getByLabel("Diskon",{exact:true}).fill("55000");
+  await expect(form.locator(".payment-total")).toContainText("Rp 0");
+  await expect(form.getByRole("button",{name:"Lunas",exact:true})).toBeDisabled();
+  await expect(form.getByRole("button",{name:"Bayar sebagian",exact:true})).toBeDisabled();
   await form.getByLabel("Diskon",{exact:true}).fill("10000");
   await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();
   await expect(form.getByText("Pembayaran tidak boleh melebihi total tagihan setelah diskon.",{exact:true})).toBeVisible();

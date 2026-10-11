@@ -10,6 +10,8 @@ before(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/202610080001_tippo_workspace.sql", import.meta.url), "utf8"));
   const discountSql=await readFile(new URL("../supabase/migrations/202610110004_order_discount.sql", import.meta.url),"utf8");
   await db.exec(discountSql); await db.exec(discountSql);
+  const limitsSql=await readFile(new URL("../supabase/migrations/202610110005_discount_limits.sql", import.meta.url),"utf8");
+  await db.exec(limitsSql); await db.exec(limitsSql);
 });
 after(async () => { await db.close(); });
 async function login(user: string) { await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${user}',false);`); }
@@ -77,4 +79,9 @@ test("discount RPC saves net payment, rejects invalid discounts and preserves qu
   excessive.orders[0].discount={type:"amount",value:41001}; await assert.rejects(save(excessive,own.version),/TIPPO_INVALID/);
   excessive.orders[0].discount={type:"amount",value:1000}; excessive.orders[0].paid=40000;
   own=await save(excessive,own.version); assert.equal(own.usage.length,count); assert.equal(own.data.orders[0].paid,40000);
+  const fullDiscount=structuredClone(own.data); fullDiscount.orders[0].shippingCharge=5000;
+  fullDiscount.orders[0].discount={type:"amount",value:46000}; fullDiscount.orders[0].paid=0;
+  own=await save(fullDiscount,own.version); assert.equal(own.data.orders[0].discount?.value,46000);
+  fullDiscount.orders[0].discount.value=46001;
+  await assert.rejects(save(fullDiscount,own.version),/TIPPO_INVALID/);
 });

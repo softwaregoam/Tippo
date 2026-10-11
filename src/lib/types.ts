@@ -61,7 +61,7 @@ export interface Order {
   serviceFee: number;
   /** Total delivery charge billed to this customer. */
   shippingCharge: number;
-  /** Discount on items plus service fee; shipping is excluded. */
+  /** Percent discounts exclude shipping; rupiah discounts may cover the entire gross bill. */
   discount?: { type: "amount" | "percent"; value: number };
   /** Net payment retained after recorded refunds. */
   paid: number;

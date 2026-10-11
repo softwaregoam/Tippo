@@ -203,7 +203,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     const discountValue = Number(fields.discountValue);
     if (!Number.isSafeInteger(discountValue) || discountValue < 0) nextErrors.discountValue = "Masukkan diskon berupa angka bulat minimal 0.";
     else if (fields.discountType === "percent" && discountValue > 100) nextErrors.discountValue = "Diskon maksimal 100%.";
-    else if (fields.discountType === "amount" && discountValue > orderSubtotal(draft)) nextErrors.discountValue = "Diskon tidak boleh melebihi subtotal barang dan fee.";
+    else if (fields.discountType === "amount" && discountValue > orderSubtotal(draft) + draft.shippingCharge) nextErrors.discountValue = "Diskon tidak boleh melebihi total tagihan sebelum diskon.";
     if (!nextErrors.paid && Number(fields.paid) > revenue) nextErrors.paid = "Pembayaran tidak boleh melebihi total tagihan setelah diskon.";
     if (order?.status === "cancelled" && Number(fields.paid) > 0) nextErrors.paid = "Untuk pesanan yang dibatalkan, pembayaran harus 0.";
     const parsedDate = new Date(`${fields.date}T00:00:00Z`);

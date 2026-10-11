@@ -24,9 +24,12 @@ test("percent discounts round half up, allow free items and remain exact at safe
   assert.equal(orderDiscount({...small,items:[{...small.items[0],unitPrice:Number.MAX_SAFE_INTEGER}],discount:{type:"percent",value:100}}),Number.MAX_SAFE_INTEGER);
 });
 test("discount validation rejects invalid types, excessive discounts and payment above net bill", () => {
-  for (const discount of [{type:"percent",value:101},{type:"amount",value:60001},{type:"amount",value:-1},{type:"percent",value:1.5},{type:"other",value:1},null]) {
+  for (const discount of [{type:"percent",value:101},{type:"amount",value:65001},{type:"amount",value:-1},{type:"percent",value:1.5},{type:"other",value:1},null]) {
     assert.equal(isAppData(workspace({...order,discount} as Order)),false);
   }
   assert.equal(isAppData(workspace({...order,discount:{type:"percent",value:100},paid:5001})),false);
   assert.equal(isAppData(workspace({...order,discount:{type:"percent",value:100},paid:5000})),true);
+  const free={...order,discount:{type:"amount" as const,value:65000},paid:0};
+  assert.equal(isAppData(workspace(free)),true); assert.equal(orderRevenue(free),0);
+  assert.equal(isAppData(workspace({...free,paid:1})),false);
 });

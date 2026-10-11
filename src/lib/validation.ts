@@ -139,7 +139,7 @@ export function isAppData(value: unknown): value is AppData {
       const discount = order.discount;
       const base = revenue - (order.shippingCharge as number);
       if (!record(discount) || !["amount", "percent"].includes(discount.type as string) || !money(discount.value)) return false;
-      if (discount.type === "percent" && discount.value > 100 || discount.type === "amount" && discount.value > base) return false;
+      if (discount.type === "percent" && discount.value > 100 || discount.type === "amount" && discount.value > revenue) return false;
       revenue -= discount.type === "percent" ? Number((BigInt(base) * BigInt(discount.value) + BigInt(50)) / BigInt(100)) : discount.value;
     }
     if ((order.paid as number) > revenue) return false;

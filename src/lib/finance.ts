@@ -29,7 +29,7 @@ export function orderSubtotal(order: Order): number {
 export function orderDiscount(order: Order): number {
   const base = orderSubtotal(order), discount = order.discount;
   if (!discount || !Number.isSafeInteger(base) || base < 0 || !Number.isSafeInteger(discount.value) || discount.value < 0) return 0;
-  if (discount.type === "amount") return Math.min(base, discount.value);
+  if (discount.type === "amount") return Math.min(base + order.shippingCharge, discount.value);
   if (discount.type !== "percent" || discount.value > 100) return 0;
   return Number((BigInt(base) * BigInt(discount.value) + BigInt(50)) / BigInt(100));
 }
