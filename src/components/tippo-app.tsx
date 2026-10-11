@@ -202,7 +202,6 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const activeBatches = modeBatches.filter((b) => b.status === "open");
   const visibleCustomers = data.customers.filter((customer) => customer.name.toLowerCase().includes(search.toLowerCase()));
   const hppBatch = modeBatches.find((b) => b.id === selectedHpp) ?? modeBatches[0];
-  const hasDemoData = data.orders.some((order) => seedData.orders.some((sample) => sample.id === order.id));
   function startOrder(type: Batch["type"] = mode, batchId?: string, productId?: string) {
     setSaveError("");
     const quota = canCreateOrders(data, subscription, 1, new Date(), type);
@@ -341,7 +340,6 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                 </div>
                 <section className="batch-preview"><div className="section-heading"><div><h2>{mode === "po" ? "Batch PO aktif" : "Perjalanan aktif"} <span className="count-pill">{activeBatches.length}</span></h2><p>Jangan sampai ada pesanan yang terlewat.</p></div></div><div className="batch-preview-grid">{activeBatches.length ? activeBatches.map((batch, index) => <BatchCard key={batch.id} batch={batch} data={data} index={index} onOpen={() => { setSelectedHpp(batch.id); go("hpp"); }} />) : <div className="empty-state compact"><Layers3 size={28} /><p>{mode === "po" ? "Belum ada batch PO aktif." : "Belum ada perjalanan aktif."}</p><Button className="btn btn-secondary" onClick={() => setBatchModal({ type: mode })}>{mode === "po" ? "Buat batch PO" : "Buat perjalanan"}</Button></div>}<button className="new-batch-card" onClick={() => setBatchModal({ type: mode })}><span><Plus size={22} /></span><strong>{mode === "po" ? "Batch PO baru" : "Perjalanan baru"}</strong><p>{mode === "po" ? "Buka periode pesanan berikutnya" : "Siapkan perjalanan belanja berikutnya"}</p></button></div></section>
                 <section className="card recent-card"><div className="card-header"><div><h2>Pesanan terbaru</h2><p>Yang baru masuk, langsung tercatat.</p></div></div><OrdersTable data={data} orders={monthOrders.slice(0, 5)} onEdit={editOrder} onStatus={updateStatus} onRefund={refundOrder} compact readOnly /></section>
-                <div className="page-footnote"><span>{hasDemoData ? "Ringkasan ini memuat data contoh." : "Ringkasan dihitung dari pesanan yang kamu simpan."}</span><button onClick={() => go("settings")}>Kelola dan ekspor data</button></div>
               </>}
 
 
