@@ -2,6 +2,7 @@
 
 import { canChangeBatchStatus } from "@/lib/batch-status";
 import { isAppData } from "@/lib/validation";
+import { FeedbackPanel } from "@/components/feedback-panel";
 import { applyRefund, refundedTotal } from "@/lib/refund";
 import { BusinessProfilePanel } from "@/components/business-profile";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -10,7 +11,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import {
   ArrowRight, ArrowUpRight, CalendarDays, Crown,
   Check, ChevronDown, CircleHelp, Download, FileJson, Layers3,
-  LayoutDashboard, LogOut, MapPin, Menu, Package, Pencil, Plus, ReceiptText, Search, Settings2,
+  LayoutDashboard, LogOut, MapPin, Menu, MessageSquare, Package, Pencil, Plus, ReceiptText, Search, Settings2,
   ShoppingBag, Upload, UsersRound, Wallet, X,
 } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
@@ -30,7 +31,7 @@ import type { AppData, Batch, Customer, Order, Product } from "@/lib/types";
 import type { AccountWorkspace } from "./cloud-workspace";
 import Link from "next/link";
 
-type Page = "dashboard" | "orders" | "products" | "batches" | "hpp" | "customers" | "settings" | "profile" | "subscription";
+type Page = "dashboard" | "orders" | "products" | "batches" | "hpp" | "customers" | "settings" | "profile" | "subscription" | "feedback";
 const businessModeKey = "tippo.business-mode.v1";
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const subtitles = {
@@ -43,6 +44,7 @@ const subtitles = {
   profile: "Nama dan kontak usaha dalam satu tempat.",
   settings: "Simpan cadangan data Jastip dan Open PO dalam akun ini.",
   subscription: "Pilih ruang yang sesuai untuk usaha yang terus tumbuh.",
+  feedback: "Bagikan pengalaman dan idemu untuk Tippo.",
 };
 const shortMoney = (n: number) => n >= 1000000 ? `${(n / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} jt` : n >= 1000 ? `${Math.round(n / 1000)} rb` : `${n}`;
 const monthLabel = (month: string) => `${monthNames[Number(month.slice(5)) - 1]} ${month.slice(0, 4)}`;
@@ -65,7 +67,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     catch { return "jastip"; }
   });
   const modeLabel = mode === "po" ? "Open PO" : "Jastip";
-  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan" };
+  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran" };
   const navigation = [
     { id: "dashboard" as Page, label: "Ringkasan", icon: LayoutDashboard },
     ...(mode === "po" ? [{ id: "products" as Page, label: "Produk", icon: Package }] : []),
@@ -74,6 +76,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     { id: "hpp" as Page, label: "HPP & Margin", icon: Wallet },
     { id: "customers" as Page, label: "Pelanggan", icon: UsersRound },
     { id: "settings" as Page, label: "Pengaturan data", icon: Settings2 },
+    { id: "feedback" as Page, label: "Kritik & saran", icon: MessageSquare },
   ];
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [page, setPage] = useState<Page>("dashboard");
@@ -361,6 +364,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
               {page === "subscription" && <SubscriptionPanel data={data} subscription={subscription} account={cloud ? { id: cloud.ownerId, name: cloud.name, email: cloud.email } : undefined} onNotify={notify} />}
 
               {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} />}
+              {page === "feedback" && <FeedbackPanel key={cloud?.ownerId ?? "local"} onNotify={notify} />}
               {page === "settings" && <DataSettings data={data} cloud={!!cloud} onUpdate={replaceData} onNotify={notify} />}
             </div>
         </main>

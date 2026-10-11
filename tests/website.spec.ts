@@ -563,3 +563,23 @@ test("Pro invoice handles blocked browser storage without claiming a saved draft
  await page.goto("/app");await openSection(page,"Paket & langganan");const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});
  await panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true}).click();await expect(panel.getByRole("alert")).toContainText("Draf belum tersimpan");await expect(panel.locator("dl")).toHaveCount(0);
 });
+
+for (const width of [1440,390]) {
+ test(`feedback sends authenticated input without changing workspace ${width}`,async({page})=>{
+  await page.setViewportSize({width,height:1000});if(width<600)await page.addInitScript(()=>localStorage.setItem("tippo.theme.v1","dark"));
+  const saves=await authenticate(page),feedback:Record<string,string>[]=[];
+  await page.route(`${endpoint}/rest/v1/rpc/submit_tippo_feedback`,async route=>{const body=route.request().postDataJSON();feedback.push(body);await new Promise(resolve=>setTimeout(resolve,200));await route.fulfill({json:{id:body.p_id,createdAt:new Date().toISOString()}});});
+  await page.goto("/app");await openSection(page,"Kritik & saran");
+  await chooseOption(page.getByLabel("Jenis masukan",{exact:true}),"issue");await chooseOption(page.getByLabel("Bagian Tippo",{exact:true}),"po");
+  await page.getByLabel("Judul",{exact:true}).fill(" Filter pelanggan ");await page.getByLabel("Pesan",{exact:true}).fill(" Tambahkan filter pelanggan di daftar pesanan PO. ");
+  await page.getByRole("region",{name:"Form kritik dan saran",exact:true}).screenshot({path:`docs/preview-feedback-${width}.png`});
+  await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("button",{name:"Mengirim…",exact:true})).toBeDisabled();
+  await expect(page.getByRole("status",{name:"Masukan terkirim",exact:true})).toBeVisible();expect(feedback).toHaveLength(1);expect(feedback[0]).toMatchObject({p_category:"issue",p_area:"po",p_subject:"Filter pelanggan",p_message:"Tambahkan filter pelanggan di daftar pesanan PO."});expect(feedback[0]).not.toHaveProperty("owner_id");expect(saves).toHaveLength(0);
+  await page.getByRole("button",{name:"Kirim masukan lain",exact:true}).click();await expect(page.getByLabel("Judul",{exact:true})).toBeFocused();await expect(page.getByLabel("Pesan",{exact:true})).toHaveValue("");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+ });
+}
+test("feedback failure retains input and retries with the same request id",async({page})=>{
+ await authenticate(page);const ids:string[]=[];
+ await page.route(`${endpoint}/rest/v1/rpc/submit_tippo_feedback`,async route=>{const body=route.request().postDataJSON();ids.push(body.p_id);if(ids.length===1)return route.fulfill({status:404,json:{code:"PGRST202",message:"schema cache"}});return route.fulfill({json:{id:body.p_id,createdAt:new Date().toISOString()}});});
+ await page.goto("/app");await openSection(page,"Kritik & saran");await page.getByLabel("Judul",{exact:true}).fill("Saran baru");await page.getByLabel("Pesan",{exact:true}).fill("Tolong tambahkan pencarian untuk pelanggan.");await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("region",{name:"Form kritik dan saran",exact:true}).getByRole("alert")).toContainText("mengaktifkan database kritik & saran");await expect(page.getByLabel("Pesan",{exact:true})).toHaveValue("Tolong tambahkan pencarian untuk pelanggan.");await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("status",{name:"Masukan terkirim",exact:true})).toBeVisible();expect(ids).toHaveLength(2);expect(ids[0]).toBe(ids[1]);
+});

@@ -361,6 +361,8 @@ Ringkasan memiliki kartu Tagihan belum lunas di bawah Aliran pembayaran. Kartu m
 
 ## Revisi: fokus dua usaha, tanpa ringkasan gabungan
 
+Kritik & saran tersedia sebagai menu bersama bagi Gratis dan Pro: kategori, bagian Tippo, judul dan pesan dikirim menggunakan akun yang sedang masuk. Pengiriman tidak mengonsumsi kuota pesanan. Data disimpan dalam tippo_feedback dengan owner/timestamp server dan dapat ditinjau pengelola di Supabase. UI menampilkan busy, sukses, validasi/error dan retry tanpa duplikasi; setup produksi membutuhkan migration sesuai docs/FEEDBACK-SETUP.md.
+
 Tambahan beranda: dua contoh testimoni hardcode berbahasa casual, dengan disclaimer bahwa belum merupakan ulasan pelanggan asli. Tambahan langganan: akun dapat membuat draf invoice Pro 1 bulan seharga Rp25.000 pada Paket & langganan, menyalin atau mengunduh dokumen .txt, serta melihat draf yang sama setelah kembali/reload pada browser yang sama. Draf terpisah per akun dan tidak mengaktifkan Pro. Integrasi QRIS, webhook, riwayat pembayaran server, dan sinkronisasi invoice antarperangkat menyusul; rincian ada di docs/PRO-PAYMENT-INTEGRATION.md.
 
 Halaman awal menjelaskan switch Jastip/Open PO dan ringkasan yang terpisah. Pratinjau interaktif menampilkan contoh pesanan serta susunan menu masing-masing mode; teal untuk Jastip, jingga hangat untuk PO. FAQ menjelaskan data usaha yang terpisah, kontak/akun/langganan bersama, lokasi import template, dan alur status batch satu arah. Perbandingan paket menyebut ringkasan per usaha. Pratinjau tetap ilustrasi berlabel fiktif, bukan fitur demo aplikasi.

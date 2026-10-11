@@ -731,6 +731,12 @@ Tambahan Pro: pemilih bulan tetap menampilkan tahun terpilih ketika mode lain be
 
 ## Fokus halaman operasional
 
+## Kritik & saran
+
+Menu bersama kedua mode, form wajib kategori/bagian/judul/pesan, state busy/sukses/error dan RPC idempotent ditambahkan. Build/lint, dua tes domain/database dan tiga workflow browser lulus. Database PGlite memakai role/RLS nyata dan migration dijalankan dua kali: owner dari auth.uid, retry tidak menggandakan row, cross-owner read kosong, update/delete/anon ditolak, isi ID konflik ditolak, payload invalid ditolak. Browser menggunakan RPC fixture, menguji 1440 terang/390 gelap, kategori/area, trim, disabled saat mengirim, sukses, reset/fokus, workspace tidak tersimpan ulang, error migration belum aktif, pesan tetap, retry dengan ID sama. Label aksesibel dan selector error diperbaiki setelah kegagalan awal, lalu pengujian terkait lulus. Screenshot kedua ukuran ditinjau langsung oleh agen utama.
+
+R-03/R-25/R-32/R-34 PASS: token aplikasi, target kontrol/fokus dan layout desktop/mobile diperiksa. R-04/R-15/R-31 PASS: MessageSquare untuk menu komunikasi, Send untuk pengiriman; label menyatakan aksi dan alasan tercatat di DESIGN.md. R-26/R-27/C-2/C-4 PASS: fungsi dan state error/busy/sukses/retry teruji. R-33 PASS: source/CSS diedit dengan apply_patch. R-35/C-5 PASS: hasil tes lokal dicatat; tidak mengklaim pengiriman produksi sudah aktif. Arah sebelum edit, ENERGY 2 / RHYTHM 2 / MOTION 1, tanpa aset/klaim/animasi/warna/CTA pemasaran baru; item gate lain tetap mengikuti review aplikasi yang sudah tercatat. Pemeriksaan lingkungan hanya menemukan publishable config; tidak ada tool/koneksi admin database. Migration produksi dan deployment Vercel belum dijalankan/diverifikasi. Langkah aktivasi konkret ada di docs/FEEDBACK-SETUP.md.
+
 ## Contoh testimoni dan draf invoice Pro
 
 Revisi nomor/tanggal: draf memakai INV-PRO-YYYYMMDD-16 karakter dari UUID acak dengan tanggal Asia/Jakarta. Label Tanggal dibuat menggunakan nama bulan/jam WIB pada UI dan ekspor. Konversi nomor UUID lama deterministik dan mempertahankan timestamp asli. Unit domain memeriksa pergantian tanggal Jakarta, format, keunikan contoh, migrasi legacy serta penolakan dokumen salah owner/status/nominal. Build/lint dan empat workflow invoice Gratis/Pro desktop/ponsel lulus; nomor dan tanggal tetap setelah reload, hasil salin/unduh diperiksa. Agen utama meninjau screenshot ponsel gelap: nomor/tanggal membungkus dalam kolom tanpa overflow. Tidak mengubah QRIS, aktivasi Pro, skema database atau memverifikasi deployment.
