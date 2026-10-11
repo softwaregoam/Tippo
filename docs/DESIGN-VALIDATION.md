@@ -733,6 +733,8 @@ Tambahan Pro: pemilih bulan tetap menampilkan tahun terpilih ketika mode lain be
 
 ## Contoh testimoni dan draf invoice Pro
 
+Revisi nomor/tanggal: draf memakai INV-PRO-YYYYMMDD-16 karakter dari UUID acak dengan tanggal Asia/Jakarta. Label Tanggal dibuat menggunakan nama bulan/jam WIB pada UI dan ekspor. Konversi nomor UUID lama deterministik dan mempertahankan timestamp asli. Unit domain memeriksa pergantian tanggal Jakarta, format, keunikan contoh, migrasi legacy serta penolakan dokumen salah owner/status/nominal. Build/lint dan empat workflow invoice Gratis/Pro desktop/ponsel lulus; nomor dan tanggal tetap setelah reload, hasil salin/unduh diperiksa. Agen utama meninjau screenshot ponsel gelap: nomor/tanggal membungkus dalam kolom tanpa overflow. Tidak mengubah QRIS, aktivasi Pro, skema database atau memverifikasi deployment.
+
 Build, lint, satu tes domain invoice dan 11 workflow browser lulus. Tes browser mencakup beranda 320/1440 terang/gelap, login akun, invoice Gratis/Pro pada 1440 terang dan 390 gelap, persistence setelah reload, salin/unduh dengan pemeriksaan isi file, clipboard ditolak, dan storage ditolak. Draf tidak melakukan RPC save atau mengubah entitlement. Tes domain menolak status paid, nominal berubah dan owner berbeda, serta memeriksa tanggal Jakarta. Helper navigasi tes sempat gagal karena Paket berada di luar nav utama dan sidebar mobile belum siap; selector/wait diperbaiki, kemudian run 11 tes selesai lulus. Agen utama meninjau screenshot testimoni serta invoice desktop terang dan ponsel gelap. API/webhook QRIS tidak dijalankan, invoice belum tersimpan di server, deployment Vercel belum diverifikasi.
 
 Delivery Gate berikut hanya menilai revisi ini, bukan mengulang audit seluruh aplikasi.

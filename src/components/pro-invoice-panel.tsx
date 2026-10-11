@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Copy, Download, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createProInvoice, parseProInvoice, proInvoiceText, type ProInvoice } from "@/lib/pro-invoice";
+import { createProInvoice, formatProInvoiceDate, parseProInvoice, proInvoiceText, type ProInvoice } from "@/lib/pro-invoice";
 
 export function ProInvoicePanel({ account, onNotify }: { account: { id: string; name: string; email: string }; onNotify?: (message: string) => void }) {
   const key = `tippo.pro-invoice.draft.v1.${account.id}`;
@@ -43,7 +43,7 @@ export function ProInvoicePanel({ account, onNotify }: { account: { id: string; 
     <div className="pro-invoice-body">
       <p className="field-hint">Pembayaran QRIS belum tersedia. Draf ini bukan bukti pembayaran dan tidak mengaktifkan Pro. Tersimpan hanya di browser ini, terpisah per akun.</p>
       {invoice ? <>
-        <dl className="pro-invoice-details"><dt>Nomor invoice</dt><dd>{invoice.id}</dd><dt>Tanggal</dt><dd>{new Date(invoice.createdAt).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB</dd><dt>Nama usaha</dt><dd>{invoice.businessName}</dd><dt>Email</dt><dd>{invoice.email}</dd><dt>Paket</dt><dd>Tippo Pro · 1 bulan</dd><dt>Status</dt><dd><span className="status-tag">Draf · pembayaran belum tersedia</span></dd><dt>Total</dt><dd><strong>Rp25.000</strong></dd></dl>
+        <dl className="pro-invoice-details"><dt>Nomor invoice</dt><dd>{invoice.id}</dd><dt>Tanggal dibuat</dt><dd>{formatProInvoiceDate(invoice.createdAt)}</dd><dt>Nama usaha</dt><dd>{invoice.businessName}</dd><dt>Email</dt><dd>{invoice.email}</dd><dt>Paket</dt><dd>Tippo Pro · 1 bulan</dd><dt>Status</dt><dd><span className="status-tag">Draf · pembayaran belum tersedia</span></dd><dt>Total</dt><dd><strong>Rp25.000</strong></dd></dl>
         <p className="field-hint">Masa aktif dihitung setelah pembayaran terverifikasi. Jika Pro masih aktif, 1 bulan ditambahkan dari tanggal berakhirnya.</p>
         <div className="pro-invoice-actions"><Button className="btn btn-secondary" disabled={copying} onClick={copy}><Copy size={16} />{copying ? "Menyalin…" : "Salin invoice"}</Button><Button className="btn btn-primary" onClick={download}><Download size={16} />Unduh invoice (.txt)</Button></div>
       </> : <div className="pro-invoice-empty"><p>Belum ada invoice langganan. Buat draf untuk melihat rincian paket dan tagihan sebelum pembayaran tersedia.</p><Button className="btn btn-primary" onClick={create}><ReceiptText size={16} />Buat draf invoice Pro</Button></div>}

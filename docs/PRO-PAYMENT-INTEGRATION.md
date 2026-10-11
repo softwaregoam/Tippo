@@ -1,5 +1,7 @@
 # Invoice langganan Pro
 
+Format draf terbaru: INV-PRO-YYYYMMDD-16KARAKTER, tanggal berdasarkan Asia/Jakarta dan suffix dari UUID acak. Tanggal dibuat ditampilkan lengkap dengan jam WIB, memakai timestamp pembuatan yang tersimpan, bukan waktu halaman dibuka. Draf lama dengan nomor UUID diubah secara deterministik ke format ini saat dibaca, tanpa mengubah tanggal atau status. Ketika integrasi server tersedia, keunikan nomor tetap harus ditegakkan oleh constraint server.
+
 Tahap saat ini: draf invoice lokal pada Paket & langganan. Satu draf terakhir disimpan per ID akun di browser; bukan rekaman pembayaran, tidak tersinkron antarperangkat, dan tidak termasuk cadangan data pesanan. Nomor memakai UUID, waktu ditampilkan dalam Asia/Jakarta, paket 1 bulan dengan total Rp25.000. Dokumen dapat disalin atau diunduh sebagai teks. Pembuatan/ekspor tidak menulis workspace Supabase maupun mengubah entitlement Pro. Status draf tetap sampai integrasi pembayaran selesai.
 
 API InterActive QRIS dan webhook belum tersedia. Jangan menggunakan draf browser sebagai invoice resmi, sumber nominal pembayaran, atau bukti pembayaran. Tidak ada tombol konfirmasi pembayaran manual, QR palsu, maupun aktivasi Pro dari klien.

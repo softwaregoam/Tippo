@@ -535,13 +535,14 @@ for (const [width,pro] of [[1440,false],[390,false],[1440,true],[390,true]] as c
   const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});
   await panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true}).click();
   await expect(panel).toContainText("Titipan Naya");await expect(panel).toContainText("naya@example.test");await expect(panel).toContainText("Rp25.000");
-  const id=await panel.locator("dd").first().innerText();expect(id).toMatch(/^INV-PRO-/);
+  const id=await panel.locator("dd").first().innerText();expect(id).toMatch(/^INV-PRO-\d{8}-[A-F0-9]{16}$/);
+  const date=await panel.locator("dd").nth(1).innerText();expect(date).toMatch(/\d{1,2} [A-Za-z]+ \d{4}.*WIB/);
   await panel.getByRole("button",{name:"Salin invoice",exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toContain("Ini bukan bukti pembayaran.");
   const downloadPromise=page.waitForEvent("download");await panel.getByRole("button",{name:"Unduh invoice (.txt)",exact:true}).click();
   const download=await downloadPromise;expect(download.suggestedFilename()).toBe(`${id}.txt`);
   const body=await readFile((await download.path())!,"utf8");expect(body).toContain(id);expect(body).toContain("Total: Rp25.000");
-  await page.reload();await openSection(page,"Paket & langganan");await expect(panel.locator("dd").first()).toHaveText(id);
+  await page.reload();await openSection(page,"Paket & langganan");await expect(panel.locator("dd").first()).toHaveText(id);await expect(panel.locator("dd").nth(1)).toHaveText(date);
   await expect(panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true})).toHaveCount(0);
   await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText(pro?"Paketmu: Pro":"Paketmu: Gratis");
   expect(requests).toHaveLength(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
