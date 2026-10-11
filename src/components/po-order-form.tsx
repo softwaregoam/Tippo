@@ -285,7 +285,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               const quantityId = index === 0 ? "po-order-quantity" : `po-order-${item.id}-quantity`;
               const rowErrors = itemErrors[item.id];
               return <fieldset key={item.id} className="order-item-card">
-                <legend className="field-label" style={{ padding: "0 6px" }}>Produk</legend>
+                <legend className="field-label" style={{ padding: "0 6px" }}>Produk {index + 1}</legend>
                 <div className="order-item-heading">
                   <span className="field-hint">Subtotal {formatCurrency(itemDraft.quantity * itemDraft.unitPrice)}</span>
                   <button type="button" className="icon-button delete-item" aria-label={`Hapus barang ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
@@ -312,7 +312,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
                 </div>
               </fieldset>;
             })}
-            <Button className="btn btn-primary add-order-item" type="button" onClick={addItem} disabled={items.length >= 100 || !hasActiveProducts} style={{ marginTop: 14 }}><Plus size={16} />Tambah barang</Button>
+            <Button className="btn btn-primary add-order-item" type="button" onClick={addItem} disabled={items.length >= 100 || !hasActiveProducts} style={{ marginTop: 14 }}><Plus size={16} />Tambah produk</Button>
             {items.length >= 100 && <p className="field-hint">Maksimal 100 barang per pesanan.</p>}
           </div>
           <section className="order-section">
