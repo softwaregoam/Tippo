@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ModalScrollLock } from "@/components/modal-scroll-lock";
 import "./globals.css";
 import "@fontsource/plus-jakarta-sans/latin-400.css";
 import "@fontsource/plus-jakarta-sans/latin-500.css";
@@ -19,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: `try{document.documentElement.dataset.theme=localStorage.getItem("tippo.theme.v1")==="dark"?"dark":"light"}catch{}` }} /></head>
-      <body>{children}</body>
+      <body><ModalScrollLock />{children}</body>
     </html>
   );
 }

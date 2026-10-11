@@ -692,6 +692,34 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Open PO",390]
   expect(requests[1].p_data.orders[0].discount).toEqual({type:"amount",value:10000}); expect(requests[1].p_data.orders[0].paid).toBe(45000);
 });
 
+for(const business of ["Jastip","Open PO"] as const) test(`mobile dialogs lock background and restore scroll ${business}`,async({page})=>{
+  const data=twoBusinessWorkspace(); const source=data.orders.find(o=>data.batches.find(b=>b.id===o.batchId)?.type===(business==="Jastip"?"jastip":"po"))!;
+  data.orders=Array.from({length:24},(_,i)=>({...source,id:`scroll-order-${i}`,items:source.items.map((item,j)=>({...item,id:`scroll-item-${i}-${j}`}))}));
+  await authenticate(page,{workspace:data,pro:true}); await page.setViewportSize({width:390,height:700});
+  await page.goto("/app"); await openBusiness(page,business); await openSection(page,"Pesanan");
+  const row=page.locator("main .mobile-data-row").nth(10); await row.scrollIntoViewIfNeeded();
+  const original=await page.evaluate(()=>window.scrollY); expect(original).toBeGreaterThan(0);
+  await row.click(); let dialog=page.getByRole("dialog"); await expect(dialog).toBeVisible();
+  await expect(page.locator("body")).toHaveCSS("position","fixed");
+  await expect(page.locator("body")).toHaveCSS("top",`${-original}px`);
+  await page.mouse.move(2,690); await page.mouse.wheel(0,600);
+  await expect(page.locator("body")).toHaveCSS("top",`${-original}px`);
+  await dialog.getByRole("button",{name:"Edit",exact:true}).click();
+  dialog=page.getByRole("dialog",{name:business==="Jastip"?"Edit pesanan jastip":"Edit pesanan PO",exact:true});
+  await expect(dialog).toBeVisible(); await expect(page.locator("body")).toHaveCSS("position","fixed");
+  await expect(page.locator("body")).toHaveCSS("top",`${-original}px`);
+  await dialog.evaluate(element=>{element.scrollTop=0;});
+  await page.mouse.move(195,350); await page.mouse.wheel(0,600);
+  await expect.poll(()=>dialog.evaluate(element=>element.scrollTop)).toBeGreaterThan(0);
+  await expect(page.locator("body")).toHaveCSS("top",`${-original}px`);
+  await dialog.getByRole("button",{name:/^Tutup formulir pesanan/}).click();
+  await expect(dialog).toHaveCount(0);
+  await expect.poll(()=>page.evaluate(()=>document.body.style.position)).toBe("");
+  await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBe(original);
+  await page.mouse.move(195,350); await page.mouse.wheel(0,300);
+  await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeGreaterThan(original);
+});
+
 test("feedback failure retains input and retries with the same request id",async({page})=>{
  await authenticate(page);const ids:string[]=[];
  await page.route(`${endpoint}/rest/v1/rpc/submit_tippo_feedback`,async route=>{const body=route.request().postDataJSON();ids.push(body.p_id);if(ids.length===1)return route.fulfill({status:404,json:{code:"PGRST202",message:"schema cache"}});return route.fulfill({json:{id:body.p_id,createdAt:new Date().toISOString()}});});

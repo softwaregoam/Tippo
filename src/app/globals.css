@@ -332,6 +332,7 @@ svg { flex-shrink: 0; }
 .modal { background: var(--paper); width: min(100%, 700px); border-radius: 14px; box-shadow: 0 24px 75px var(--tone-line-17352824); max-height: calc(100dvh - 48px); display: flex; flex-direction: column; overflow: auto; }
 .native-dialog { border: none; border-radius: 14px; padding: 0; margin: auto; width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); box-shadow: 0 24px 75px var(--tone-line-17352824); color: var(--ink); }
 .native-dialog::backdrop { background: var(--tone-surface-18312880); }
+.native-dialog,.modal { overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 26px 20px; border-bottom: 1px solid var(--border); }
 .modal-header h2 { font-size: 22px; letter-spacing: -.6px; }
 .modal-header p { font-size: 14px; line-height: 1.7; color: var(--muted); margin-top: 7px; }
