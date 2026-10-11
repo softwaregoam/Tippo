@@ -3,7 +3,7 @@ import {useState} from "react";
 import {BatchStatusDialog} from "@/components/batch-status-dialog";
 import {batchStatusLabels} from "@/lib/batch-status";
 import {MobileDataList} from "@/components/mobile-data-list";
-import {Archive,ArchiveRestore,CircleArrowRight,CircleCheck,LockKeyhole,Pencil} from "lucide-react";
+import {Archive,ArchiveRestore,CircleArrowRight,CircleCheck,Pencil} from "lucide-react";
 import {formatCurrency} from "@/lib/finance";
 import type {Product,Batch,Order} from "@/lib/types";
 export function ProductsTable({products,onEdit,onRemove}:{products:Product[];onEdit:(p:Product)=>void;onRemove:(p:Product)=>void}){
@@ -16,15 +16,16 @@ export function BatchesTable({ title, batches, orders, onEdit, onStatus }: {
 }) {
  const [changing, setChanging] = useState<Batch | null>(null);
  const count = (batch: Batch) => orders.filter(order => order.batchId === batch.id && order.status !== "cancelled").length;
- const badge = (batch: Batch) => <span className={`status-tag status-${batch.status === "open" ? "done" : batch.status === "closed" ? "cancelled" : "shipped"}`}>{batchStatusLabels[batch.status]}</span>;
+ const badge = (batch: Batch) => <span className={`status-tag batch-status-${batch.status}`}>{batchStatusLabels[batch.status]}</span>;
  const statusAction = (batch: Batch) => batch.status === "completed"
-   ? <span className="batch-status-locked" role="img" aria-label={`Status terkunci ${batch.name}`} title="Status terkunci"><LockKeyhole size={18} aria-hidden="true" /></span>
+   ? null
    : <button className="icon-button" data-close-detail aria-label={`${batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} ${batch.name}`} title={batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} onClick={() => setChanging(batch)}>{batch.status === "open" ? <CircleArrowRight size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}</button>;
  return <>
    <MobileDataList entries={batches.map(batch => ({
      id: batch.id, title: batch.name, subtitle: batch.origin || "Lokasi belum diisi",
      meta: `${new Date(`${batch.closeDate}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} · ${count(batch)} pesanan`,
      status: batchStatusLabels[batch.status],
+     statusClassName: `status-tag batch-status-${batch.status}`,
      details: <><dl className="mobile-detail-fields"><dt>Lokasi / supplier</dt><dd>{batch.origin || "Belum diisi"}</dd><dt>Tutup pesanan</dt><dd>{batch.closeDate}</dd><dt>Jumlah pesanan</dt><dd>{count(batch)}</dd><dt>Status</dt><dd>{badge(batch)}</dd></dl>{statusAction(batch)}<button className="btn btn-primary" data-close-detail onClick={() => onEdit(batch)}>Edit batch</button></>,
    }))} />
    <div className="card management-table-wrap desktop-data-table"><table className="management-table" aria-label={title}>

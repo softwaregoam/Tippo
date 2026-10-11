@@ -753,7 +753,7 @@ test("Pro keeps the chosen historical month visible when the other business has 
  const data=twoBusinessWorkspace(),source=data.orders[0];data.orders.push({...source,id:"old-jastip-only",date:"2024-01-10",createdAt:"2024-01-10T00:00:00Z",refunds:[],paid:0,items:source.items.map(item=>({...item,id:"old-jastip-only-item"}))});await authenticate(page,{workspace:data,pro:true});await page.goto("/app");await chooseOption(page.getByLabel("Pilih bulan ringkasan"),"2024-01");await page.getByRole("group",{name:"Pilih usaha"}).getByRole("button",{name:"Open PO",exact:true}).click();await expect(page.getByLabel("Pilih bulan ringkasan")).toHaveAttribute("data-value","2024-01");await expect(page.getByLabel("Pilih bulan ringkasan")).toContainText("Januari 2024");await expect(page.locator(".unpaid-card")).toContainText("Belum ada tagihan bulan ini.");await expect(page.locator(".stats-grid .stat-value").first()).toContainText("Rp 0");
 });
 
-for (const [business,width] of [["Open PO",1440],["Jastip",1440],["Open PO",390]] as const) {
+for (const [business,width] of [["Open PO",1440],["Jastip",1440],["Open PO",390],["Jastip",390]] as const) {
  test(`batch status advances irreversibly with confirmation ${business} ${width}`, async ({page}) => {
   await page.setViewportSize({width,height:900});
   const data=twoBusinessWorkspace(), requests=await authenticate(page,{workspace:data});
@@ -780,7 +780,9 @@ for (const [business,width] of [["Open PO",1440],["Jastip",1440],["Open PO",390]
   expect(requests[1].p_data.batches.find(b=>b.id===batch.id)!.status).toBe("completed");
   if(width<600)await page.getByRole("button",{name:`Detail ${batch.name}`,exact:true}).click();
   await expect(page.getByRole("button",{name:new RegExp(`^(Tutup batch|Selesaikan batch) ${batch.name}$`)})).toHaveCount(0);
-  await expect(page.getByRole("img",{name:`Status terkunci ${batch.name}`,exact:true}).filter({visible:true})).toBeVisible();
+  await expect(page.getByRole("img",{name:`Status terkunci ${batch.name}`,exact:true})).toHaveCount(0);
+  const actions=width<600?page.getByRole("dialog",{name:`Detail ${batch.name}`,exact:true}).locator(".modal-body"):page.getByRole("row").filter({hasText:batch.name}).locator(".management-actions");
+  await expect(actions.getByRole("button")).toHaveCount(1);await expect(actions.getByRole("button",{name:width<600?"Edit batch":`Edit batch ${batch.name}`,exact:true})).toBeVisible();
   await page.screenshot({path:`docs/preview-batch-locked-${business==="Open PO"?"po":"jastip"}-${width}.png`});
   if(width<600)await page.getByRole("button",{name:"Tutup detail",exact:true}).click();
   await page.reload();await expect(page.getByRole("heading",{name:`Ringkasan ${business}.`,exact:true})).toBeVisible();

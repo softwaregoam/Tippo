@@ -41,7 +41,7 @@ export function BatchStatusDialog({ batch, onClose, onSave }: {
     <div className="modal-header"><h2 id="batch-status-title">Ubah status {batch.type === "po" ? "batch PO" : "perjalanan"}</h2><button className="icon-button" aria-label="Tutup perubahan status" disabled={busy} onClick={onClose}><X size={20} /></button></div>
     <div className="modal-body batch-status-body">
       <strong>{batch.name}</strong>
-      <div className="batch-status-flow" aria-label="Perubahan status"><span className={`status-tag status-${batch.status === "open" ? "done" : "cancelled"}`}>{batchStatusLabels[batch.status]}</span><ArrowRight size={18} aria-hidden="true" /><span className={`status-tag status-${next === "completed" ? "shipped" : "cancelled"}`}>{next ? batchStatusLabels[next] : "Selesai"}</span></div>
+      <div className="batch-status-flow" aria-label="Perubahan status"><span className={`status-tag batch-status-${batch.status}`}>{batchStatusLabels[batch.status]}</span><ArrowRight size={18} aria-hidden="true" /><span className={`status-tag batch-status-${next ?? "completed"}`}>{next ? batchStatusLabels[next] : "Selesai"}</span></div>
       <p id="batch-status-impact">{next === "closed" ? "Batch tidak akan muncul pada pilihan batch untuk pesanan baru. Pesanan yang sudah ada tetap dapat diproses. Batch yang ditutup tidak bisa dibuka kembali." : "Status batch akan terkunci dan tidak bisa diubah lagi. Status setiap pesanan tetap mengikuti perubahan yang Anda buat pada pesanan."}</p>
       {error && <p className="error-message" role="alert">{error}</p>}
     </div>

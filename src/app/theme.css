@@ -265,6 +265,9 @@
 .order-status-new,.mobile-row-heading small.order-status-new { color:var(--order-blue); background:var(--order-blue-soft); }
 .order-status-shipped,.mobile-row-heading small.order-status-shipped { color:var(--order-purple); background:var(--order-purple-soft); }
 .order-status-done,.mobile-row-heading small.order-status-done { color:var(--success); background:var(--success-soft); }
+.batch-status-open,.mobile-row-heading small.batch-status-open { color:var(--order-blue); background:var(--order-blue-soft); }
+.batch-status-closed,.mobile-row-heading small.batch-status-closed { color:var(--muted); background:var(--tone-surface-e9eae7); }
+.batch-status-completed,.mobile-row-heading small.batch-status-completed { color:var(--success); background:var(--success-soft); }
 .order-status-cancelled,.mobile-row-heading small.order-status-cancelled { color:var(--danger); background:var(--tone-surface-fff2ed); }
 .payment-paid { color:var(--success); }
 .payment-partial { color:var(--payment-partial); }
