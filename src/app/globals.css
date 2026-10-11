@@ -650,6 +650,12 @@ details.form-section[open]>summary::after { transform: rotate(225deg); margin-bo
 .select-trigger { display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; max-width: 100%; text-align: left; color: var(--ink); background: var(--tone-surface-fffefa); border: 1px solid var(--control-border); border-radius: 6px; padding: 8px 12px; font-size: 16px; }
 .select-trigger > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .select-trigger > span:last-child { display: flex; flex-shrink: 0; }
+.category-mode-toggle { display:flex; align-items:center; gap:10px; min-height:44px; margin-top:6px; padding:4px 0; border:0; background:transparent; color:var(--ink); font:inherit; font-size:14px; cursor:pointer; }
+.category-mode-toggle:focus-visible { outline:2px solid var(--primary); outline-offset:4px; border-radius:4px; }
+.category-toggle-track { display:flex; align-items:center; width:38px; height:22px; padding:2px; border:1px solid var(--control-border); border-radius:20px; background:var(--tone-surface-e9eae7); flex-shrink:0; }
+.category-toggle-track > span { width:16px; height:16px; border-radius:50%; background:var(--muted); }
+.category-mode-toggle[aria-checked="true"] .category-toggle-track { background:var(--primary); border-color:var(--primary); }
+.category-mode-toggle[aria-checked="true"] .category-toggle-track > span { transform:translateX(16px); background:var(--tone-surface-fffefa); }
 .select-trigger[data-state="open"] > span:last-child { transform: rotate(180deg); }
 .select-content { z-index: 120; width: max-content; min-width: var(--radix-select-trigger-width); max-width: calc(100vw - 24px); max-height: min(320px, var(--radix-select-content-available-height)); overflow: hidden; border: 1px solid var(--control-border); border-radius: 8px; padding: 6px; background: var(--tone-surface-fffefa); color: var(--ink); box-shadow: 0 8px 24px var(--tone-line-173f3818); }
 .select-option { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 10px 12px; border-radius: 5px; font-size: 16px; line-height: 1.5; cursor: pointer; overflow-wrap: anywhere; }
