@@ -509,7 +509,7 @@ for(const failSave of [false,true])test(`product Excel import ${failSave?"retain
 test("cloud Free account cannot unlock Excel imports with a local demo Pro entitlement",async({page})=>{
   const requests=await authenticate(page);
   await page.goto("/app");
-  await expect(page.locator(".plan-pill")).toHaveText("Gratis");
+  await expect(page.locator(".sidebar-plan-badge")).toHaveText("Gratis");
   for(const mode of ["Jastip","Open PO"]){
     await openBusiness(page,mode);
     await openSection(page,"Pesanan");
@@ -549,7 +549,7 @@ test("Google callback creates the account session from tokens and opens its work
   await page.goto(`/auth/callback#access_token=${auth.access_token}&refresh_token=${auth.refresh_token}&expires_in=3600&token_type=bearer`);
   await expect(page).toHaveURL(/\/app$/);
   await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();
-  await expect(page.locator(".plan-pill")).toHaveText("Gratis");
+  await expect(page.locator(".sidebar-plan-badge")).toHaveText("Gratis");
 });
 
 test("cancelled Google login offers a retry instead of opening the workspace",async({page})=>{
