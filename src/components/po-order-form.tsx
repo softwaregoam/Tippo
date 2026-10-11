@@ -224,7 +224,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
         <span aria-hidden="true" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--muted)", fontSize: 13 }}>Rp</span>
         <NumberInput id={`po-order-${name}`} name={name} className="input" inputMode="numeric" min="0" step="1" style={{ paddingLeft: 37 }} placeholder="0" value={fields[name]} onValueChange={(value) => update(name, value)} aria-invalid={Boolean(errors[name])} aria-describedby={errors[name] ? `po-error-${name}` : undefined} />
       </div>
-      {name === "paid" && <div className="payment-shortcuts"><Button type="button" className="btn btn-secondary" disabled={order?.status === "cancelled" || revenue <= 0 || !Number.isSafeInteger(revenue)} onClick={() => update("paid", String(revenue))}>Lunas</Button><Button type="button" className="btn btn-secondary" disabled={order?.status === "cancelled"} onClick={() => { update("paid", ""); document.getElementById("po-order-paid")?.focus(); }}>Bayar sebagian</Button></div>}
+      {name === "paid" && <div className="payment-shortcuts"><Button type="button" className="btn btn-secondary" disabled={order?.status === "cancelled" || revenue <= 0 || !Number.isSafeInteger(revenue)} onClick={() => update("paid", String(revenue))}>Lunas</Button><Button type="button" className="btn btn-secondary" disabled={order?.status === "cancelled" || revenue <= 0 || !Number.isSafeInteger(revenue)} onClick={() => { update("paid", ""); document.getElementById("po-order-paid")?.focus(); }}>Bayar sebagian</Button></div>}
       {errors[name] && <span className="error-message" id={`po-error-${name}`}>{errors[name]}</span>}
     </div>;
   }
