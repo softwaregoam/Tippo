@@ -310,7 +310,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
             <Button className="btn btn-primary add-order-item" type="button" onClick={addItem} disabled={items.length >= 100} style={{ marginTop: 14 }}><Plus size={16} />Tambah barang</Button>
             {items.length >= 100 && <p className="field-hint">Maksimal 100 barang per pesanan.</p>}
           </div>
-          <div className="form-section order-section order-payment">
+          <div className="form-section order-section">
             <h3><span className="order-section-number">3</span>Ongkir & catatan</h3>
             <div className="form-grid" style={{ marginTop: 12 }}>
               {amountField("serviceFee", "Fee jastip / pesanan", "Total fee untuk semua barang pada pesanan ini.")}

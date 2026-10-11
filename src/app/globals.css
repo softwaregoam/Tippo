@@ -683,7 +683,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .order-dialog .field { margin:0; min-width:0; }
 .order-dialog .field-label { display:block; margin-bottom:8px; line-height:1.5; }
 .order-dialog .input { width:100%; min-height:46px; }
-.order-dialog .order-context { padding-bottom:24px; border-bottom:1px solid var(--border); }
+.order-dialog .order-section + .order-section { padding-top:24px; border-top:1px solid var(--border); }
 .order-dialog .order-item-card { min-width:0; border:1px solid var(--control-border); border-radius:10px; padding:18px; margin:18px 0 0; background:var(--tone-surface-fffefa); }
 .order-dialog .order-item-card legend { padding:0 8px; color:var(--primary); margin:0; }
 .order-item-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
