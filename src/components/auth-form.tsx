@@ -87,8 +87,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" | "forgot" | "rese
     <main className="auth-page">
       <header className="auth-header">
         <Wordmark />
-        <ThemeToggle />
-        <Link href="/" className="auth-back"><ArrowLeft size={18} aria-hidden="true" />Kembali ke beranda</Link>
+        <div className="auth-header-actions">
+          <Link href="/" className="auth-back"><ArrowLeft size={18} aria-hidden="true" />Kembali ke beranda</Link>
+          <ThemeToggle />
+        </div>
       </header>
       <div className="auth-layout">
         <section className="auth-story" aria-labelledby="auth-story-title">
