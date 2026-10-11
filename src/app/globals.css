@@ -338,6 +338,8 @@ svg { flex-shrink: 0; }
 .date-picker-display > span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .date-picker-display svg { flex-shrink:0; }
 .date-picker-empty { color:var(--muted); }
+.date-picker[data-disabled] .date-picker-display { background:var(--tone-surface-e9eae7); color:var(--tone-text-626762); border-color:var(--tone-line-7d817d); }
+.date-picker[data-disabled] .date-picker-input { cursor:not-allowed; }
 .date-picker .date-picker-input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; min-width:0; }
 .date-picker:focus-within .date-picker-display { outline:2px solid var(--primary); outline-offset:2px; }
 .date-picker-input::-webkit-calendar-picker-indicator { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; }

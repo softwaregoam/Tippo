@@ -1,5 +1,5 @@
 import { chooseOption } from "./select-helper";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Locator } from "@playwright/test";
 import type { AppData } from "../src/lib/types";
 import { readFile } from "node:fs/promises";
 
@@ -11,6 +11,22 @@ function session() {
   return {access_token:token,refresh_token:"test-refresh",token_type:"bearer",expires_in:3600,expires_at:exp,user:{id:owner,aud:"authenticated",role:"authenticated",email:"naya@example.test",app_metadata:{},user_metadata:{business_name:"Titipan Naya"},created_at:"2026-10-08T00:00:00Z"}};
 }
 const fixture: AppData={batches:[{id:"trip",type:"jastip",name:"Jastip Seoul",origin:"Seoul",closeDate:"2026-12-01",status:"open",directCosts:0}],customers:[{id:"aly",name:"Alya",phone:""}],products:[],orders:[]};
+async function checkCalendarOnly(page:Page,input:Locator,form:Locator) {
+  const value=await input.inputValue();
+  await input.click({position:{x:8,y:20}});
+  await page.keyboard.press("Escape");
+  await expect(form).toBeVisible();
+  await input.evaluate(element=>{Object.defineProperty(element,"showPicker",{value:()=>{element.setAttribute("data-picker-calls",String(Number(element.getAttribute("data-picker-calls")??0)+1));}});});
+  await input.click({position:{x:8,y:20}});
+  await expect(input).toHaveAttribute("data-picker-calls","1");
+  await input.press("Enter");
+  await expect(input).toHaveAttribute("data-picker-calls","2");
+  await input.press("Backspace");
+  await page.keyboard.type("20261011");
+  await expect(input).toHaveValue(value);
+  const pasteBlocked=await input.evaluate(element=>!element.dispatchEvent(new Event("paste",{bubbles:true,cancelable:true})));
+  expect(pasteBlocked).toBe(true);
+}
 async function authenticate(page:Page, options:{failSave?:boolean;missing?:boolean;pro?:boolean;workspace?:AppData}={}) {
   const auth=session(); let version=0; let data=structuredClone(options.workspace ?? fixture); const requests: {p_data:AppData;p_expected_version:number}[]=[];
   await page.addInitScript(({auth})=>{
@@ -317,6 +333,7 @@ for (const width of [390,1440]) test(`data forms do not focus editable fields wh
   await page.getByRole("button",{name:"Batch jastip baru",exact:true}).click();
   form=page.getByRole("dialog",{name:"Batch jastip baru",exact:true});
   await expect(form.getByRole("button",{name:"Tutup",exact:true})).toBeFocused();
+  await checkCalendarOnly(page,form.getByLabel("Tutup pesanan",{exact:true}),form);
   await page.keyboard.press("Escape");
   await openBusiness(page,"Open PO");
   await page.getByRole("button",{name:"Produk baru",exact:true}).click();
@@ -327,6 +344,7 @@ for (const width of [390,1440]) test(`data forms do not focus editable fields wh
   await page.getByRole("button",{name:"Batch PO baru",exact:true}).first().click();
   form=page.getByRole("dialog",{name:"Batch PO baru",exact:true});
   await expect(form.getByRole("button",{name:"Tutup",exact:true})).toBeFocused();
+  await checkCalendarOnly(page,form.getByLabel("Tutup pesanan",{exact:true}),form);
 });
 
 test("custom selections support keyboard, touch and Escape without closing the order", async ({page}) => {
@@ -488,7 +506,7 @@ for(const fail of [false,true])test(`cloud business profile ${fail?"preserves in
 
 for(const failSave of [false,true])test(`account refund ${failSave?"retains form on failure":"saves net payment and refund together"}`,async({page})=>{
  const data:AppData={...structuredClone(fixture),orders:[{id:"refund-cloud",batchId:"trip",customerId:"aly",createdAt:"2026-10-09T00:00:00Z",date:"2026-10-09",paid:100000,status:"new",serviceFee:0,shippingCharge:0,notes:"",items:[{id:"refund-item",product:"Refund cloud",variant:"",color:"",size:"",quantity:1,unitPrice:100000,unitCost:50000}]}]};
- const requests=await authenticate(page,{failSave,workspace:data});await page.goto("/app");await openBusiness(page,"Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Refund Refund cloud",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Refund pesanan",exact:true});await dialog.getByLabel("Nominal refund",{exact:true}).fill("50000");await dialog.getByRole("button",{name:"Catat refund",exact:true}).click();
+ const requests=await authenticate(page,{failSave,workspace:data});await page.goto("/app");await openBusiness(page,"Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Refund Refund cloud",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Refund pesanan",exact:true});await checkCalendarOnly(page,dialog.getByLabel("Tanggal refund",{exact:true}),dialog);await dialog.getByLabel("Nominal refund",{exact:true}).fill("50000");await dialog.getByRole("button",{name:"Catat refund",exact:true}).click();
  if(failSave){await expect(dialog.getByRole("alert")).toContainText("Refund belum tersimpan");await expect(dialog.getByLabel("Nominal refund",{exact:true})).toHaveValue("50.000");await expect(page.getByText("Refund berhasil dicatat",{exact:true})).toHaveCount(0);}
  else await expect(dialog).not.toBeVisible();
  expect(requests).toHaveLength(1);expect(requests[0].p_data.orders[0].paid).toBe(50000);expect(requests[0].p_data.orders[0].refunds![0].amount).toBe(50000);
