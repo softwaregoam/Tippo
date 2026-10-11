@@ -50,4 +50,12 @@ test("public feedback requires consent and moderation and exposes only masked em
   const rows = (await db.query<{ email: string; id: string }>("select * from public.list_public_tippo_feedback()")).rows;
   assert.equal(rows.length, 1); assert.equal(rows[0].id, publicId); assert.equal(rows[0].email, "n***@example.com");
   assert.equal("owner_id" in rows[0], false);
+  await db.exec("reset role; update public.tippo_feedback set public_email=null;");
+  const fallback = await readFile(new URL("../supabase/migrations/202610110003_feedback_email_fallback.sql", import.meta.url), "utf8");
+  await db.exec(fallback); await db.exec(fallback);
+  await db.exec("set role anon;");
+  assert.equal((await db.query<{ email: string }>("select * from public.list_public_tippo_feedback()")).rows[0].email, "n***@example.com");
+  await db.exec("reset role; update auth.users set email=null;");
+  await db.exec("set role anon;");
+  assert.equal((await db.query<{ email: string }>("select * from public.list_public_tippo_feedback()")).rows[0].email, "Pengguna Tippo");
 });

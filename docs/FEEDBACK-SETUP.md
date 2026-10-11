@@ -12,6 +12,8 @@ Jika migration belum aktif, UI menampilkan error pengiriman, tidak menyatakan su
 
 ## Masukan publik di beranda
 
+Jika email masukan lama kosong, jalankan `supabase/migrations/202610110003_feedback_email_fallback.sql` setelah kedua migrasi sebelumnya. RPC akan mengambil email akun pengirim sebagai fallback dan menyamarkannya; tanpa email akun, label menjadi “Pengguna Tippo”. Izin publikasi dan moderasi tetap diwajibkan.
+
 Jalankan juga `supabase/migrations/202610110002_public_feedback.sql` setelah migrasi awal. Pengiriman biasa tetap privat. Pengguna harus mencentang izin publikasi; email diambil dari akun oleh server dan disamarkan. Masukan lama tidak otomatis diberi izin publikasi.
 
 Untuk menampilkan masukan, tinjau isi di Supabase Table Editor pada `tippo_feedback`, lalu ubah `published` menjadi `true` hanya pada baris dengan `public_consent=true`. Pastikan pesan tidak berisi data pribadi. Ubah kembali ke `false` untuk menarik publikasi. Pengguna biasa tidak dapat mengubah persetujuan pengelola. Beranda menampilkan enam masukan terbaru yang diizinkan dan dipublikasikan melalui RPC terbatas, tanpa akses publik ke tabel atau akun.

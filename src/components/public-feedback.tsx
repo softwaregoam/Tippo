@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase";
 
-interface PublicFeedback { id: string; category: string; area: string; subject: string; message: string; email: string; created_at: string }
+interface PublicFeedback { id: string; category: string; area: string; subject: string; message: string; email: string | null; created_at: string }
 const categories: Record<string, string> = { criticism: "Kritik", suggestion: "Saran", issue: "Laporan masalah" };
 
 export function PublicFeedback() {
@@ -25,6 +25,6 @@ export function PublicFeedback() {
   }, []);
   return <section className="testimonials-section landing-container" aria-labelledby="public-feedback-title">
     <div className="testimonials-heading"><p className="section-label">Kritik & saran</p><h2 id="public-feedback-title">Masukan dari pengguna Tippo.</h2><p>Masukan yang diizinkan pengguna dan ditinjau pengelola. Email disamarkan untuk menjaga privasi.</p></div>
-    <div className="testimonials-list">{items.length ? items.map(item => <figure className={item.area === "po" ? "testimonial-po" : ""} key={item.id}><h3>{item.subject}</h3><blockquote><p className="public-feedback-message">{item.message}</p></blockquote><figcaption><strong>{item.email}</strong><span>{categories[item.category]} · {new Date(item.created_at).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "long", year: "numeric" })}</span></figcaption></figure>) : <p role="status">{status}</p>}</div>
+    <div className="testimonials-list">{items.length ? items.map(item => <figure className={item.area === "po" ? "testimonial-po" : ""} key={item.id}><h3>{item.subject}</h3><blockquote><p className="public-feedback-message">{item.message}</p></blockquote><figcaption><strong>{item.email?.trim() || "Pengguna Tippo"}</strong><span>{categories[item.category]} · {new Date(item.created_at).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "long", year: "numeric" })}</span></figcaption></figure>) : <p role="status">{status}</p>}</div>
   </section>;
 }
