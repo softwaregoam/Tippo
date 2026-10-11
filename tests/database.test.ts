@@ -8,6 +8,8 @@ const userA = "00000000-0000-0000-0000-000000000001", userB = "00000000-0000-000
 before(async () => {
   await db.exec(`create role anon; create role authenticated; create role service_role; create schema auth; create table auth.users(id uuid primary key); insert into auth.users values('${userA}'),('${userB}'); create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$; grant usage on schema auth to authenticated,anon; grant execute on function auth.uid() to authenticated,anon;`);
   await db.exec(await readFile(new URL("../supabase/migrations/202610080001_tippo_workspace.sql", import.meta.url), "utf8"));
+  const discountSql=await readFile(new URL("../supabase/migrations/202610110004_order_discount.sql", import.meta.url),"utf8");
+  await db.exec(discountSql); await db.exec(discountSql);
 });
 after(async () => { await db.close(); });
 async function login(user: string) { await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${user}',false);`); }
@@ -62,4 +64,17 @@ test("server month rollover grants new slots without deleting historical orders"
   const cancel=structuredClone(own.data);cancel.orders.find(o=>o.id==="new-month")!.status="cancelled";own=await save(cancel,own.version);
   const more=[...own.data.orders,...Array.from({length:5},(_,i)=>order(`month-${i}`,"jastip"))];
   await assert.rejects(save({...own.data,orders:more},own.version),/TIPPO_ORDER_LIMIT/);
+});
+test("discount RPC saves net payment, rejects invalid discounts and preserves quota on edit", async () => {
+  await login(userB); let own=await get(); const data=structuredClone(own.data);
+  data.orders[0].discount={type:"percent",value:10}; data.orders[0].paid=36900;
+  own=await save(data,own.version); assert.deepEqual(own.data.orders[0].discount,{type:"percent",value:10});
+  const count=own.usage.length;
+  const excessive=structuredClone(own.data); excessive.orders[0].paid=41000;
+  await assert.rejects(save(excessive,own.version),/TIPPO_INVALID/);
+  excessive.orders[0].paid=0; excessive.orders[0].discount={type:"percent",value:101};
+  await assert.rejects(save(excessive,own.version),/TIPPO_INVALID/);
+  excessive.orders[0].discount={type:"amount",value:41001}; await assert.rejects(save(excessive,own.version),/TIPPO_INVALID/);
+  excessive.orders[0].discount={type:"amount",value:1000}; excessive.orders[0].paid=40000;
+  own=await save(excessive,own.version); assert.equal(own.usage.length,count); assert.equal(own.data.orders[0].paid,40000);
 });

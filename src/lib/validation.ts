@@ -134,7 +134,15 @@ export function isAppData(value: unknown): value is AppData {
       revenue += lineRevenue;
       purchase += linePurchase;
     }
-    if (![quantity, revenue, purchase].every(Number.isSafeInteger) || (order.paid as number) > revenue) return false;
+    if (![quantity, revenue, purchase].every(Number.isSafeInteger)) return false;
+    if (order.discount !== undefined) {
+      const discount = order.discount;
+      const base = revenue - (order.shippingCharge as number);
+      if (!record(discount) || !["amount", "percent"].includes(discount.type as string) || !money(discount.value)) return false;
+      if (discount.type === "percent" && discount.value > 100 || discount.type === "amount" && discount.value > base) return false;
+      revenue -= discount.type === "percent" ? Number((BigInt(base) * BigInt(discount.value) + BigInt(50)) / BigInt(100)) : discount.value;
+    }
+    if ((order.paid as number) > revenue) return false;
     aggregates.push({ batchId: order.batchId as string, quantity, revenue, purchase });
   }
   return safeAggregates(value.batches, aggregates);

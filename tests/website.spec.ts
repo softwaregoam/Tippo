@@ -636,6 +636,54 @@ for (const width of [1440,390]) {
   await page.getByRole("button",{name:"Kirim masukan lain",exact:true}).click();await expect(page.getByLabel("Judul",{exact:true})).toBeFocused();await expect(page.getByLabel("Pesan",{exact:true})).toHaveValue("");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
  });
 }
+for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Open PO",390]] as const) test(`order discounts persist and validate ${business} ${width}`,async({page})=>{
+  const data=structuredClone(fixture);
+  data.batches.push({id:"discount-po",name:"PO Diskon",type:"po",origin:"",closeDate:"2026-12-01",status:"open",directCosts:0});
+  data.products.push({id:"discount-product",name:"Roti Diskon",variant:"",sku:"DIS",unitPrice:25000,unitCost:12000,active:true});
+  const requests=await authenticate(page,{workspace:data});
+  await page.setViewportSize({width,height:1000}); await page.goto("/app"); await openBusiness(page,business); await openSection(page,"Pesanan");
+  await page.getByRole("button",{name:business==="Jastip"?"Pesanan jastip baru":"Pesanan PO baru",exact:true}).click();
+  let form=page.getByRole("dialog",{name:business==="Jastip"?"Pesanan jastip baru":"Pesanan PO baru",exact:true});
+  if(business==="Jastip") {
+    await form.getByLabel("Nama barang",{exact:true}).fill("Roti Diskon");
+    await form.getByLabel("Harga jual / barang",{exact:true}).fill("25000");
+    await form.getByLabel("Harga beli / barang",{exact:true}).fill("12000");
+  } else {
+    await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");
+    await chooseOption(form.getByLabel("Produk",{exact:true}),"discount-product");
+    await form.locator('input[type="date"]').fill("2026-10-11");
+  }
+  await form.getByLabel("Jumlah barang",{exact:true}).fill("2");
+  await form.locator('input[name="shippingCharge"]').fill("5000");
+  await chooseOption(form.getByLabel("Jenis diskon",{exact:true}),"percent");
+  await form.getByLabel("Diskon",{exact:true}).fill("101");
+  await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();
+  await expect(form.getByText("Diskon maksimal 100%.",{exact:true})).toBeVisible(); expect(requests).toHaveLength(0);
+  await form.getByLabel("Diskon",{exact:true}).fill("10");
+  await expect(form.locator(".payment-total")).toContainText("50.000");
+  await form.getByRole("button",{name:"Lunas",exact:true}).click();
+  await expect(form.locator('input[name="paid"]')).toHaveValue("50.000");
+  await form.locator(".order-discount-fields").locator("..").screenshot({path:`docs/preview-discount-${business==="Jastip"?"jastip":"po"}-${width}.png`});
+  await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click(); await expect(form).toHaveCount(0);
+  expect(requests[0].p_data.orders[0].discount).toEqual({type:"percent",value:10}); expect(requests[0].p_data.orders[0].paid).toBe(50000);
+  await page.reload(); await openSection(page,"Pesanan");
+  if(width<600) {
+    await page.getByRole("button",{name:"Detail Alya",exact:true}).click();
+    await page.getByRole("dialog",{name:"Detail Alya",exact:true}).getByRole("button",{name:"Edit",exact:true}).click();
+  } else await page.getByRole("button",{name:"Edit pesanan Roti Diskon",exact:true}).click();
+  form=page.getByRole("dialog",{name:business==="Jastip"?"Edit pesanan jastip":"Edit pesanan PO",exact:true});
+  await expect(form.getByLabel("Diskon",{exact:true})).toHaveValue("10");
+  await chooseOption(form.getByLabel("Jenis diskon",{exact:true}),"amount");
+  await expect(form.getByLabel("Diskon",{exact:true})).toHaveValue("");
+  await form.getByLabel("Diskon",{exact:true}).fill("10000");
+  await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();
+  await expect(form.getByText("Pembayaran tidak boleh melebihi total tagihan setelah diskon.",{exact:true})).toBeVisible();
+  expect(requests).toHaveLength(1);
+  await form.getByRole("button",{name:"Lunas",exact:true}).click();
+  await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click(); await expect(form).toHaveCount(0);
+  expect(requests[1].p_data.orders[0].discount).toEqual({type:"amount",value:10000}); expect(requests[1].p_data.orders[0].paid).toBe(45000);
+});
+
 test("feedback failure retains input and retries with the same request id",async({page})=>{
  await authenticate(page);const ids:string[]=[];
  await page.route(`${endpoint}/rest/v1/rpc/submit_tippo_feedback`,async route=>{const body=route.request().postDataJSON();ids.push(body.p_id);if(ids.length===1)return route.fulfill({status:404,json:{code:"PGRST202",message:"schema cache"}});return route.fulfill({json:{id:body.p_id,createdAt:new Date().toISOString()}});});

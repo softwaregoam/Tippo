@@ -1,12 +1,13 @@
 "use client";
 
 import { NumberInput } from "@/components/ui/number-input";
+import { OrderDiscountFields } from "@/components/order-discount-fields";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Plus, Trash2, X } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, orderHpp, orderMargin, orderRevenue, outstanding } from "@/lib/finance";
+import { formatCurrency, orderDiscount, orderSubtotal, orderHpp, orderMargin, orderRevenue, outstanding } from "@/lib/finance";
 import type { AppData, Customer, Order } from "@/lib/types";
 
 type OrderFormProps = {
@@ -27,6 +28,8 @@ type Fields = {
   customerAddress: string;
   serviceFee: string;
   shippingCharge: string;
+  discountType: "amount" | "percent";
+  discountValue: string;
   paid: string;
   date: string;
   notes: string;
@@ -74,6 +77,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     customerName: "", customerPhone: "", customerAddress: "",
     serviceFee: String(order?.serviceFee ?? 0),
     shippingCharge: String(order?.shippingCharge ?? 0),
+    discountType: order?.discount?.type ?? "amount", discountValue: order?.discount ? String(order.discount.value) : "",
     paid: String(order?.paid ?? 0),
     date: order?.date ?? jakartaToday(), notes: order?.notes ?? "",
   }));
@@ -130,6 +134,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
       unitCost: item.unitCost.trim() === "" ? null : previewAmount(item.unitCost),
     })),
     serviceFee: previewAmount(fields.serviceFee), shippingCharge: previewAmount(fields.shippingCharge), paid: previewAmount(fields.paid),
+    discount: { type: fields.discountType, value: previewAmount(fields.discountValue) }, refunds: order?.refunds,
     date: fields.date, createdAt, status: order?.status ?? "new", notes: fields.notes.trim(),
   }), [fields, items, order, createdAt]);
   const revenue = orderRevenue(draft);
@@ -207,7 +212,11 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
       const value = Number(fields[name]);
       if (fields[name].trim() === "" || !Number.isSafeInteger(value) || value < 0) nextErrors[name] = "Masukkan angka bulat minimal 0.";
     }
-    if (!nextErrors.paid && Number(fields.paid) > revenue) nextErrors.paid = "Pembayaran tidak boleh melebihi total tagihan.";
+    const discountValue = Number(fields.discountValue);
+    if (!Number.isSafeInteger(discountValue) || discountValue < 0) nextErrors.discountValue = "Masukkan diskon berupa angka bulat minimal 0.";
+    else if (fields.discountType === "percent" && discountValue > 100) nextErrors.discountValue = "Diskon maksimal 100%.";
+    else if (fields.discountType === "amount" && discountValue > orderSubtotal(draft)) nextErrors.discountValue = "Diskon tidak boleh melebihi subtotal barang dan fee.";
+    if (!nextErrors.paid && Number(fields.paid) > revenue) nextErrors.paid = "Pembayaran tidak boleh melebihi total tagihan setelah diskon.";
     if (order?.status === "cancelled" && Number(fields.paid) > 0) nextErrors.paid = "Untuk pesanan yang dibatalkan, pembayaran harus 0.";
     const parsedDate = new Date(`${fields.date}T00:00:00Z`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.date) || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== fields.date) nextErrors.date = "Pilih tanggal yang valid.";
@@ -311,7 +320,8 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
             {items.length >= 100 && <p className="field-hint">Maksimal 100 barang per pesanan.</p>}
           </div>
           <div className="form-section order-section">
-            <h3><span className="order-section-number">3</span>Ongkir & catatan</h3>
+            <h3><span className="order-section-number">3</span>Diskon, ongkir & catatan</h3>
+            <OrderDiscountFields id="order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />
             <div className="form-grid" style={{ marginTop: 12 }}>
               {amountField("serviceFee", "Fee jastip / pesanan", "Total fee untuk semua barang pada pesanan ini.")}
               {amountField("shippingCharge", "Ongkir yang ditagihkan")}

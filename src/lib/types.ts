@@ -61,6 +61,8 @@ export interface Order {
   serviceFee: number;
   /** Total delivery charge billed to this customer. */
   shippingCharge: number;
+  /** Discount on items plus service fee; shipping is excluded. */
+  discount?: { type: "amount" | "percent"; value: number };
   /** Net payment retained after recorded refunds. */
   paid: number;
   refunds?: { id: string; amount: number; date: string; reason: string; createdAt: string }[];

@@ -1,5 +1,5 @@
 import { refundedTotal } from "./refund.ts";
-import { formatCurrency, itemLabel, orderRevenue, outstanding } from "./finance.ts";
+import { formatCurrency, itemLabel, orderDiscount, orderRevenue, outstanding } from "./finance.ts";
 import type { Batch, Customer, Order } from "./types.ts";
 
 const statusLabels: Record<Order["status"], string> = {
@@ -43,6 +43,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer): 
     "",
     `Subtotal barang: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
     `Fee jastip: ${formatCurrency(order.serviceFee)}`,
+    ...(orderDiscount(order) > 0 ? [`Diskon${order.discount?.type === "percent" ? ` (${order.discount.value}%)` : ""}: -${formatCurrency(orderDiscount(order))}`] : []),
     `Ongkir: ${formatCurrency(order.shippingCharge)}`,
     `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
     ...(refundedTotal(order) > 0 ? [`Pembayaran sebelum refund: ${formatCurrency(order.paid + refundedTotal(order))}`, `Refund: ${formatCurrency(refundedTotal(order))}`, `Pembayaran tersisa: ${formatCurrency(order.paid)}`] : [`Sudah dibayar: ${formatCurrency(order.paid)}`]),
