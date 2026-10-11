@@ -209,6 +209,10 @@
 .quota-banner .quota-count { display: inline; color: var(--primary); font-size: inherit; line-height: inherit; margin: 0; }
 .unpaid-empty { background: var(--success-soft); }
 .unpaid-empty svg { color: var(--success); }
+.product-status-active,.mobile-row-heading small.product-status-active { color: var(--success); background: var(--success-soft); }
+.product-status-archived,.mobile-row-heading small.product-status-archived { color: var(--muted); background: var(--tone-surface-e9eae7); }
+.product-mobile-action { width: 100%; }
+.product-mobile-action + .product-mobile-action { margin-top: 10px; }
 :root[data-business-mode="po"] .btn-primary { background: var(--primary) !important; color: var(--on-action) !important; border-color: var(--primary); }
 :root[data-business-mode="po"] .btn-primary:hover { background: var(--business-hover) !important; }
 :root[data-theme="dark"] .sidebar { border-right-color: var(--border); }
