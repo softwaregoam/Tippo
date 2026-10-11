@@ -1,6 +1,7 @@
 import { chooseOption } from "./select-helper";
 import { expect, test, type Page } from "@playwright/test";
 import type { AppData } from "../src/lib/types";
+import { readFile } from "node:fs/promises";
 
 const endpoint="https://bkplemoflteubfgvqhke.supabase.co";
 const owner="00000000-0000-0000-0000-000000000001";
@@ -38,9 +39,11 @@ async function authenticate(page:Page, options:{failSave?:boolean;missing?:boole
   return requests;
 }
 async function openSection(page:Page,name:string) {
+ await page.locator(".page-heading h1").waitFor({state:"visible"});
  const menu=page.getByRole("button",{name:"Buka navigasi",exact:true});
  if(await menu.isVisible()&&await menu.getAttribute("aria-expanded")==="false")await menu.click();
- await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name,exact:true}).click();
+ const target=name==="Paket & langganan"?page.getByRole("button",{name,exact:true}):page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name,exact:true});
+ await target.click();
 }
 async function openBusiness(page:Page,name:string) {
  await page.getByRole("group",{name:"Pilih usaha"}).getByRole("button",{name,exact:true}).click();
@@ -67,6 +70,8 @@ test(`homepage interactions and mobile navigation lead to real routes ${width} $
   await page.screenshot({path:`docs/preview-landing-po-${width}-${theme}.png`});
   await page.locator("summary").filter({hasText:"Apakah ringkasan Jastip dan Open PO digabung?"}).click();
   await expect(page.locator("details[open]")).toContainText("Tidak. Penjualan, HPP, pembayaran, tagihan, dan grafik bulanan hanya menampilkan usaha yang sedang dipilih.");
+  await expect(page.locator(".testimonials-section")).toContainText("Belum merupakan ulasan pelanggan asli.");
+  await expect(page.locator(".testimonials-list figure")).toHaveCount(2);
   await page.locator("summary").filter({hasText:"Satu pesanan bisa berisi beberapa barang?"}).click();
   await expect(page.getByText("Bisa. Tambahkan beberapa barang",{exact:false})).toBeVisible();
   await page.setViewportSize({width:390,height:844}); await page.getByRole("button",{name:"Buka menu",exact:true}).click();
@@ -153,7 +158,7 @@ test("account saves await Supabase, ignore local Pro and keep demo data separate
   await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama barang",{exact:true}).fill("Tote Canvas");await dialog.getByLabel("Harga jual / barang",{exact:true}).fill("150000");await dialog.getByLabel("Harga beli / barang",{exact:true}).fill("100000");
   await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).not.toBeVisible();expect(requests).toHaveLength(1);expect(requests[0].p_data.orders[0].items[0].product).toBe("Tote Canvas");
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("tippo.workspace.v1")!).orders)).toEqual([]);
-  await page.getByRole("button",{name:"Paket & langganan",exact:true}).click();await expect(page.getByRole("button",{name:"Coba Pro (demo)"})).toHaveCount(0);await expect(page.getByText("Segera tersedia",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Paket & langganan",exact:true}).click();await expect(page.getByRole("button",{name:"Coba Pro (demo)"})).toHaveCount(0);await expect(page.getByRole("link",{name:"Lihat invoice Pro",exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Menu akun",exact:true}).click();await page.getByRole("menuitem",{name:"Keluar",exact:true}).click();await expect(page).toHaveURL(/\/masuk$/);expect(errors).toEqual([]);
 });
 
@@ -519,4 +524,41 @@ test("batch status confirmation stays open when cloud saving fails",async({page}
  await expect(dialog.getByRole("alert")).toHaveText("Status belum tersimpan. Coba lagi.");
  expect(requests).toHaveLength(1);await dialog.getByRole("button",{name:"Batal",exact:true}).click();
  await expect(page.getByRole("table",{name:"Daftar perjalanan Jastip"}).getByText("Dibuka",{exact:true})).toBeVisible();
+});
+
+for (const [width,pro] of [[1440,false],[390,false],[1440,true],[390,true]] as const) {
+ test(`Pro invoice draft persists and exports without activating payment ${width} ${pro}`,async({page,context})=>{
+  await context.grantPermissions(["clipboard-read","clipboard-write"]);
+  await page.setViewportSize({width,height:1000});
+  if(width<600)await page.addInitScript(()=>localStorage.setItem("tippo.theme.v1","dark"));
+  const requests=await authenticate(page,{pro});await page.goto("/app");await openSection(page,"Paket & langganan");
+  const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});
+  await panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true}).click();
+  await expect(panel).toContainText("Titipan Naya");await expect(panel).toContainText("naya@example.test");await expect(panel).toContainText("Rp25.000");
+  const id=await panel.locator("dd").first().innerText();expect(id).toMatch(/^INV-PRO-/);
+  await panel.getByRole("button",{name:"Salin invoice",exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toContain("Ini bukan bukti pembayaran.");
+  const downloadPromise=page.waitForEvent("download");await panel.getByRole("button",{name:"Unduh invoice (.txt)",exact:true}).click();
+  const download=await downloadPromise;expect(download.suggestedFilename()).toBe(`${id}.txt`);
+  const body=await readFile((await download.path())!,"utf8");expect(body).toContain(id);expect(body).toContain("Total: Rp25.000");
+  await page.reload();await openSection(page,"Paket & langganan");await expect(panel.locator("dd").first()).toHaveText(id);
+  await expect(panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true})).toHaveCount(0);
+  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText(pro?"Paketmu: Pro":"Paketmu: Gratis");
+  expect(requests).toHaveLength(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+  await panel.screenshot({path:`docs/preview-pro-invoice-${width}-${pro?"pro":"free"}.png`});
+ });
+}
+
+test("Pro invoice copy failure offers download without changing entitlement",async({page})=>{
+ const requests=await authenticate(page);await page.goto("/app");await openSection(page,"Paket & langganan");
+ const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});await panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true}).click();
+ await page.evaluate(()=>Object.defineProperty(navigator,"clipboard",{value:{writeText:async()=>{throw new Error("Denied");}},configurable:true}));
+ await panel.getByRole("button",{name:"Salin invoice",exact:true}).click();await expect(panel.getByRole("alert")).toContainText("Gunakan Unduh invoice");
+ await expect(panel.getByRole("button",{name:"Unduh invoice (.txt)",exact:true})).toBeEnabled();expect(requests).toHaveLength(0);
+});
+
+test("Pro invoice handles blocked browser storage without claiming a saved draft",async({page})=>{
+ await authenticate(page);await page.addInitScript(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key.startsWith("tippo.pro-invoice.draft.v1."))throw new Error("Blocked");return original.call(this,key,value);};});
+ await page.goto("/app");await openSection(page,"Paket & langganan");const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});
+ await panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true}).click();await expect(panel.getByRole("alert")).toContainText("Draf belum tersimpan");await expect(panel.locator("dl")).toHaveCount(0);
 });

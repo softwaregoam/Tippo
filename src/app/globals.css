@@ -821,6 +821,14 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 }
 
 .batch-status-body { display: grid; gap: 20px; }
+.pro-invoice-body { padding: 24px; display: grid; gap: 24px; }
+.pro-invoice-details { display: grid; grid-template-columns: minmax(110px, .5fr) minmax(0, 1fr); gap: 14px 24px; font-size: 14px; }
+.pro-invoice-details dt { color: var(--muted); }
+.pro-invoice-details dd { margin: 0; overflow-wrap: anywhere; }
+.pro-invoice-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.pro-invoice-empty { display: grid; gap: 16px; justify-items: start; }
+.pro-invoice-empty p { color: var(--muted); line-height: 1.8; }
+@media (max-width: 600px) { .pro-invoice-body { padding: 20px; } .pro-invoice-details { grid-template-columns: 1fr; gap: 8px; } .pro-invoice-details dd { margin-bottom: 8px; } .pro-invoice-actions { flex-direction: column; } }
 .batch-status-flow { display: flex; align-items: center; gap: 12px; }
 .batch-status-locked { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; color: #858582; flex-shrink: 0; }
 :root[data-theme="dark"] .batch-status-locked { color: #a3aaa5; }

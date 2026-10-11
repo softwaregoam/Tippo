@@ -2,6 +2,7 @@
 
 import { Check, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProInvoicePanel } from "@/components/pro-invoice-panel";
 import {
   effectivePlan, endProDemo, FREE_ORDER_LIMIT, FREE_PRODUCT_LIMIT, jakartaMonth,
   monthlyOrderUsage, PRO_MONTHLY_PRICE, startProDemo,
@@ -12,10 +13,11 @@ import type { AppData } from "@/lib/types";
 interface SubscriptionPanelProps {
   data: AppData;
   subscription: Subscription;
+  account?: { id: string; name: string; email: string };
   onNotify?: (message: string) => void;
 }
 
-export function SubscriptionPanel({ data, subscription, onNotify }: SubscriptionPanelProps) {
+export function SubscriptionPanel({ data, subscription, account, onNotify }: SubscriptionPanelProps) {
   const plan = effectivePlan(subscription);
   const live = subscription.mode === "live";
   const jastipUsed = monthlyOrderUsage(data, new Date(), "jastip");
@@ -42,7 +44,7 @@ export function SubscriptionPanel({ data, subscription, onNotify }: Subscription
         <div><strong>{data.products.length}{plan === "free" ? ` / ${FREE_PRODUCT_LIMIT}` : ""}</strong><span>Produk master PO</span><small>Produk yang diarsipkan tetap termasuk batas produk.</small></div>
       </div>
       {plan === "pro" && expiresLabel && <p className="subscription-expiry">{live ? "Pro" : "Demo Pro"} aktif sampai {expiresLabel} WIB.</p>}
-      {plan === "free" && subscription.tier === "pro" && <p className="subscription-expiry">Masa demo Pro berakhir. Paket Gratis berlaku kembali dan data lama tersimpan.</p>}
+      {plan === "free" && subscription.tier === "pro" && <p className="subscription-expiry">Masa {live ? "Pro" : "demo Pro"} berakhir. Paket Gratis berlaku kembali dan data lama tersimpan.</p>}
     </section>
 
     <div className="subscription-plans">
@@ -56,7 +58,7 @@ export function SubscriptionPanel({ data, subscription, onNotify }: Subscription
           <li><Check size={16} /><span>Banyak barang per pesanan dan invoice WhatsApp</span></li>
         </ul>
         <p className="field-hint">Kuota pesanan kembali tersedia setiap tanggal 1 pukul 00.00 WIB. Pesanan yang dibatalkan tetap terhitung.</p>
-        {plan === "pro" && !live ? <Button className="btn btn-secondary" onClick={returnToFree}>Kembali ke Gratis</Button> : <span className="status-tag">Paket aktif</span>}
+        {plan === "pro" && !live ? <Button className="btn btn-secondary" onClick={returnToFree}>Kembali ke Gratis</Button> : plan === "free" ? <span className="status-tag">Paket aktif</span> : null}
       </section>
       <section className="card subscription-plan pro-plan" aria-label="Paket Pro">
         <div className="subscription-plan-title"><Crown size={23} /><h2>Pro</h2></div>
@@ -69,8 +71,9 @@ export function SubscriptionPanel({ data, subscription, onNotify }: Subscription
           <li><Check size={16} /><span>Semua fitur paket Gratis</span></li>
         </ul>
         <p className="field-hint">{live ? "Pembayaran Pro sedang disiapkan. Paket Gratis tetap bisa digunakan; kami belum menerima pembayaran langganan." : "Pembayaran langganan belum tersedia pada prototipe ini. Tombol di bawah mengaktifkan demo lokal selama satu bulan tanpa biaya."}</p>
-        {live ? <span className="status-tag">{plan === "pro" ? "Pro aktif" : "Segera tersedia"}</span> : plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
+        {live ? <a className="btn btn-secondary" href="#invoice-pro">{plan === "pro" ? "Invoice perpanjangan Pro" : "Lihat invoice Pro"}</a> : plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
       </section>
     </div>
+    {live && account && <ProInvoicePanel key={account.id} account={account} onNotify={onNotify} />}
   </div>;
 }

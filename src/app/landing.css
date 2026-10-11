@@ -103,6 +103,15 @@
 .working-list p { color:var(--tone-text-d8e8df); font-size:.8125rem; margin-top:.6rem; }
 
 .pricing-section { padding-block:3.75rem; }
+.testimonials-section { display: grid; gap: 2rem; padding-block: 3.5rem; border-bottom: 1px solid var(--border); }
+.testimonials-heading > p:last-child { margin-top: 1rem; max-width: 360px; color: var(--muted); font-size: .875rem; }
+.testimonials-list { display: grid; gap: 1.75rem; }
+.testimonials-list figure { margin: 0; padding-left: 1.25rem; border-left: 3px solid var(--tone-text-245c4e); }
+.testimonials-list figure.testimonial-po { border-left-color: var(--tone-text-94501f); }
+.testimonials-list blockquote p { font-size: 1rem; line-height: 1.85; }
+.testimonials-list figcaption { display: grid; gap: .25rem; margin-top: .9rem; font-size: .8125rem; }
+.testimonials-list figcaption span { color: var(--muted); }
+@media (min-width: 940px) { .testimonials-section { grid-template-columns: .85fr 1.2fr; gap: 6rem; padding-block: 4.5rem; } }
 .pricing-heading { display:flex; align-items:flex-start; gap:1.5rem; flex-direction:column; }
 .pricing-heading p:not(.section-label) { max-width:530px; margin-top:1rem; color:var(--tone-text-53675f); font-size:.875rem; }
 .plan-table { width:100%; border-collapse:collapse; margin-top:2.25rem; table-layout:fixed; }

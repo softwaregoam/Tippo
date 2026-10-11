@@ -259,6 +259,8 @@ Pada lebar maksimal 600 piksel, tabel pesanan, produk, batch/perjalanan, dan pel
 
 ## Dua usaha dengan switch
 
+Beranda menyediakan dua kutipan hardcode dengan gaya casual untuk Jastip dan PO. Label Contoh testimoni, disclaimer bukan ulasan pelanggan asli, dan konteks contoh pada setiap kutipan mencegah kesan testimoni nyata; tidak ada nama, foto, bintang atau klaim pelanggan rekaan. Susunan berupa dua kutipan editorial dengan garis teal/jingga, bukan kartu rating. Invoice Pro menggunakan kartu rincian dalam Paket & langganan, status Draf yang eksplisit, total Rp25.000, identitas usaha serta aksi salin/unduh. QRIS belum tersedia; status Pro tidak berubah dari draf.
+
 Halaman awal mengikuti switch dua mode: pratinjau pesanan menampilkan daftar menu mode aktif, teal untuk Jastip dan cokelat/jingga hangat untuk PO. Penjelasan fitur dan FAQ menegaskan ringkasan per usaha tanpa total gabungan, sedangkan akun dan kontak pelanggan tetap bersama. Contoh pesanan berlabel fiktif dan bukan mode demo aplikasi. Struktur hero, tagline dan tabel paket tetap; narasi memperkenalkan cara memilih mode sebelum detail pencatatan. ENERGY 2 / RHYTHM 3 / MOTION 1 untuk halaman awal.
 
 Label Jastip/Open PO yang berulang di atas judul halaman dihapus. Switch usaha, navigasi dan judul kontekstual sudah menunjukkan mode aktif; judul langsung menjadi titik perhatian.

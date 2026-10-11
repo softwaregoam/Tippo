@@ -731,6 +731,67 @@ Tambahan Pro: pemilih bulan tetap menampilkan tahun terpilih ketika mode lain be
 
 ## Fokus halaman operasional
 
+## Contoh testimoni dan draf invoice Pro
+
+Build, lint, satu tes domain invoice dan 11 workflow browser lulus. Tes browser mencakup beranda 320/1440 terang/gelap, login akun, invoice Gratis/Pro pada 1440 terang dan 390 gelap, persistence setelah reload, salin/unduh dengan pemeriksaan isi file, clipboard ditolak, dan storage ditolak. Draf tidak melakukan RPC save atau mengubah entitlement. Tes domain menolak status paid, nominal berubah dan owner berbeda, serta memeriksa tanggal Jakarta. Helper navigasi tes sempat gagal karena Paket berada di luar nav utama dan sidebar mobile belum siap; selector/wait diperbaiki, kemudian run 11 tes selesai lulus. Agen utama meninjau screenshot testimoni serta invoice desktop terang dan ponsel gelap. API/webhook QRIS tidak dijalankan, invoice belum tersimpan di server, deployment Vercel belum diverifikasi.
+
+Delivery Gate berikut hanya menilai revisi ini, bukan mengulang audit seluruh aplikasi.
+
+Tambahan: workflow account saves await Supabase juga lulus, termasuk tautan invoice baru dan keluar akun. Total browser yang dijalankan untuk revisi ini: 12 workflow unik lulus.
+
+| Item | Hasil dan bukti |
+| --- | --- |
+| R-01 | PASS: memakai permukaan padat, tidak menambah gradien. |
+| R-02 | PASS: copy baru tanpa em dash. |
+| R-03 | PASS: beranda 320/1440 dan invoice 390/1440 tidak overflow. |
+| R-04 | PASS: receipt untuk invoice, copy untuk salin, download untuk unduh. |
+| R-05 | PASS: dua kutipan editorial sesuai mode, tanpa kartu rating generik. |
+| R-06 | PASS: font aplikasi dan skala heading dipakai kembali. |
+| R-07 | PASS: tanpa pola latar baru. |
+| R-08 | PASS: tidak menambah panah dekoratif. |
+| R-09 | PASS: label draf menunjukkan status dokumen. |
+| R-10 | PASS: tanpa glass/blur baru. |
+| R-11 | PASS: tombol dan kartu memakai radius aplikasi; kutipan tanpa kartu pil. |
+| R-12 | PASS: tanpa bayangan baru. |
+| R-13 | PASS: tanpa glow. |
+| R-14 | PASS: quote mengikuti isi, tanpa matriks kartu fitur. |
+| R-15 | PASS: Buat draf invoice Pro, Salin invoice, Unduh invoice menyatakan aksi. |
+| R-16 | PASS: bahasa sehari-hari, tanpa buzzword. |
+| R-17 | PASS: nominal tetap sesuai paket, bukan statistik pelanggan. |
+| R-18 | PASS: kutipan berlabel contoh dan bukan ulasan pelanggan asli, tanpa identitas rekaan. |
+| R-19 | PASS: tanpa animasi baru. |
+| R-20 | PASS: konteks warna/ukuran titipan dan katalog PO khusus Tippo. |
+| R-21 | PASS: tema terang/gelap tetap pilihan pengguna. |
+| R-22 | PASS: tanpa ilustrasi tambahan. |
+| R-23 | PASS: pengguna meminta hardcode testimoni; contoh diberi label, tidak menambah foto/avatar. |
+| R-24 | PASS: link invoice menuju section invoice-pro yang ada. |
+| R-25 | PASS: ink/muted/surface memakai token tema yang ada, screenshot kedua tema ditinjau. |
+| R-26 | PASS: create/copy/download nyata, tidak ada tombol bayar palsu. |
+| R-27 | PASS: empty, copying/error dan penyimpanan gagal ditangani. |
+| R-28 | PASS: tidak menambah FAQ generik. |
+| R-29 | PASS: teal/jingga dan token netral mengikuti dua usaha. |
+| R-30 | PASS: mengikuti permintaan pengguna, tanpa menyalin produk lain. |
+| R-31 | PASS: alasan editorial, label contoh, rincian draf tercatat di DESIGN.md. |
+| R-32 | PASS: kontrol native berlabel, fokus tombol memakai gaya aplikasi. |
+| R-33 | PASS: perubahan source/CSS menggunakan apply_patch. |
+| R-34 | PASS: screenshot desktop terang/ponsel gelap ditinjau; homepage kedua tema diuji. |
+| R-35 | PASS: build/lint, tes domain dan 11 workflow browser selesai lulus. |
+| R-36 | PASS: draf tidak dinyatakan sebagai pembayaran terverifikasi. |
+| R-37 | PASS: arah sample testimoni dan invoice draf diumumkan sebelum perubahan. |
+| R-38 | PASS: contoh dikatakan fiktif; identitas invoice mengikuti akun. |
+| Dials | PASS: ENERGY 2 / RHYTHM 3 beranda, RHYTHM 2 aplikasi / MOTION 1. |
+| Konsistensi dials | PASS: section editorial berbeda dari rincian invoice, tanpa gerak baru. |
+| Titik perhatian | PASS: kutipan pada section; total dan aksi pada invoice. |
+| Ruang kosong | PASS: gap memisahkan heading, quote, rincian dan aksi. |
+| Aksen | PASS: garis teal/jingga pada quote, tombol mengikuti mode aktif. |
+| Motif identitas | PASS: cerita detail titipan dan pesanan produk, invoice satu akun. |
+| Design Read | PASS: scope, label contoh dan tahap pembayaran dijelaskan di commentary. |
+| C-1 | PASS: alasan tiap bagian tercatat di DESIGN.md. |
+| C-2 | PASS: fungsi create/copy/download dan kegagalannya diuji. |
+| C-3 | PASS: testimonial dan invoice sesuai permintaan, tidak menambah bagian filler lain. |
+| C-4 | PASS: reload, ownership domain, storage/clipboard gagal, breakpoint dan tema diuji. |
+| C-5 | PASS: tanpa identitas pelanggan nyata palsu, tanpa status lunas rekaan. |
+
 ## Penyesuaian halaman awal terhadap dua mode usaha
 
 Scope: copy hero/fitur/cara kerja/FAQ, label ringkasan paket, menu mode pada pratinjau dan palet PO. Tidak ada migrasi data, aset visual baru, navigasi fiktif, statistik atau klaim pelanggan. Arah switch dan palet dijelaskan sebelum perubahan. Motif catatan pesanan dan tagline tetap; alasan struktur/palet tercatat di DESIGN.md dengan ENERGY 2 / RHYTHM 3 / MOTION 1. Semua perubahan source/CSS menggunakan apply_patch.

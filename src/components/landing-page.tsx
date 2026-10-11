@@ -43,6 +43,11 @@ const planRows = [
   ["Ringkasan & grafik per usaha", "Bulan berjalan", "Termasuk bulan sebelumnya"],
 ];
 
+const testimonials = [
+  { mode: "Jastip", quote: "Yang bikin ribet itu nyari lagi warna, ukuran, sama siapa yang udah bayar. Kalau detailnya ngumpul per pesanan, nggak perlu bolak-balik cari di chat.", context: "Contoh cerita usaha titipan belanja" },
+  { mode: "Open PO", quote: "Produkku itu-itu aja, jadi enak kalau tinggal pilih produk dan jumlah. Terus kelihatan siapa yang belum lunas, biar pas tutup PO nggak ada yang kelewat.", context: "Contoh cerita usaha makanan PO" },
+];
+
 export function LandingPage() {
   const [menu, setMenu] = useState(false);
   const [preview, setPreview] = useState<"jastip" | "po">("jastip");
@@ -163,6 +168,11 @@ export function LandingPage() {
               <article><h3>Salin invoice ke WhatsApp</h3><p>Invoice memuat seluruh barang, pembayaran, dan sisa tagihan. Kamu salin lalu tempel ke chat pelanggan. HPP serta catatan internal tetap di catatanmu.</p></article>
             </div>
           </div>
+        </section>
+
+        <section className="testimonials-section landing-container" aria-labelledby="testimonials-title">
+          <div className="testimonials-heading"><p className="section-label">Contoh testimoni</p><h2 id="testimonials-title">Catatan rapi itu<br />bikin kerja lebih ringan.</h2><p>Contoh tulisan dengan bahasa sehari-hari. Belum merupakan ulasan pelanggan asli.</p></div>
+          <div className="testimonials-list">{testimonials.map(item => <figure className={item.mode === "Open PO" ? "testimonial-po" : ""} key={item.mode}><blockquote><p>“{item.quote}”</p></blockquote><figcaption><strong>{item.mode}</strong><span>{item.context}</span></figcaption></figure>)}</div>
         </section>
 
         <section id="harga" className="pricing-section landing-container" aria-labelledby="pricing-title">
