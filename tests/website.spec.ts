@@ -138,6 +138,36 @@ test("login errors are friendly and password visibility and recovery work",async
 test("private workspace redirects visitors without a session",async({page})=>{
   await page.goto("/app");await expect(page).toHaveURL(/\/masuk$/);await expect(page.getByRole("heading",{name:"Masuk ke Tippo."})).toBeVisible();
 });
+test("browser back retains session and the homepage offers the existing account", async ({page}) => {
+  await authenticate(page);
+  let logoutCalls = 0;
+  page.on("request", request => { if (request.url().includes("/auth/v1/logout")) logoutCalls++; });
+  await page.goto("/");
+  await expect(page.getByRole("link", {name:"Buka usaha saya", exact:true})).toBeVisible();
+  const savedToken = await page.evaluate(() => localStorage.getItem("sb-bkplemoflteubfgvqhke-auth-token"));
+  await page.getByRole("link", {name:"Buka usaha saya", exact:true}).click();
+  await expect(page.locator(".page-heading h1")).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("link", {name:"Buka usaha saya", exact:true})).toBeVisible();
+  await expect(page.locator(".landing-nav-actions").getByRole("link", {name:"Masuk", exact:true})).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem("sb-bkplemoflteubfgvqhke-auth-token"))).toBe(savedToken);
+  await page.goForward();
+  await expect(page.locator(".page-heading h1")).toBeVisible();
+  await page.reload();
+  await expect(page.locator(".page-heading h1")).toBeVisible();
+  await page.goto("/masuk");
+  await expect(page).toHaveURL(/\/app$/);
+  await page.goto("/daftar");
+  await expect(page).toHaveURL(/\/app$/);
+  expect(logoutCalls).toBe(0);
+  await page.getByRole("button", {name:"Menu akun",exact:true}).click();
+  await page.getByRole("menuitem", {name:"Keluar",exact:true}).click();
+  await expect(page).toHaveURL(/\/masuk$/);
+  await page.goto("/");
+  await expect(page.locator(".landing-nav-actions").getByRole("link", {name:"Masuk",exact:true})).toBeVisible();
+  await expect(page.getByRole("link", {name:"Buka usaha saya",exact:true})).toHaveCount(0);
+});
 test("successful email login opens the authenticated account workspace",async({page})=>{
   const auth=session();
   await page.route(`${endpoint}/**`,route=>{

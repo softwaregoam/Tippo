@@ -2,6 +2,7 @@
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PublicFeedback } from "@/components/public-feedback";
+import { useAccountSession } from "@/lib/use-account-session";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -50,6 +51,7 @@ const testimonials = [
 ];
 
 export function LandingPage() {
+  const signedIn = useAccountSession();
   const [menu, setMenu] = useState(false);
   const [preview, setPreview] = useState<"jastip" | "po">("jastip");
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -83,8 +85,7 @@ export function LandingPage() {
           </nav>
           <div className="landing-nav-actions">
             <ThemeToggle />
-            <Link href="/masuk" className="landing-login">Masuk</Link>
-            <Link href="/daftar" className="landing-button primary small">Buat akun gratis</Link>
+            {signedIn === true ? <Link href="/app" className="landing-button primary small">Buka usaha saya</Link> : signedIn === false ? <><Link href="/masuk" className="landing-login">Masuk</Link><Link href="/daftar" className="landing-button primary small">Buat akun gratis</Link></> : null}
             <button ref={menuButton} type="button" className="landing-menu" aria-label={menu ? "Tutup menu" : "Buka menu"} aria-controls="website-menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? "Tutup" : "Menu"}</button>
           </div>
         </div>

@@ -8,9 +8,11 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { getSupabaseClient, authErrorMessage, isGoogleAuthEnabled } from "@/lib/supabase";
 import { Wordmark } from "./wordmark";
+import { useAccountSession } from "@/lib/use-account-session";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" | "forgot" | "reset" }) {
   const router = useRouter();
+  const signedIn = useAccountSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -21,6 +23,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" | "forgot" | "rese
   const [message, setMessage] = useState("");
   const [recoveryReady, setRecoveryReady] = useState(false);
   const signup = mode === "signup", forgot = mode === "forgot", reset = mode === "reset";
+  useEffect(() => {
+    if (signedIn && (mode === "login" || mode === "signup")) router.replace("/app");
+  }, [signedIn, mode, router]);
   useEffect(() => {
     if (!reset) return;
     const client = getSupabaseClient();
