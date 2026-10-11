@@ -7,10 +7,11 @@ import { Select, SelectOption } from "@/components/ui/select";
 import { getSupabaseClient } from "@/lib/supabase";
 import { feedbackError, validateFeedback, type FeedbackInput } from "@/lib/feedback";
 
-const empty: FeedbackInput = { category: "suggestion", area: "general", subject: "", message: "" };
+type FeedbackDraft = Omit<FeedbackInput, "category" | "area"> & { category: FeedbackInput["category"] | ""; area: FeedbackInput["area"] | "" };
+const empty: FeedbackDraft = { category: "", area: "", subject: "", message: "" };
 
 export function FeedbackPanel({ onNotify }: { onNotify: (message: string) => void }) {
-  const [input, setInput] = useState<FeedbackInput>({ ...empty });
+  const [input, setInput] = useState<FeedbackDraft>({ ...empty });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
@@ -23,7 +24,11 @@ export function FeedbackPanel({ onNotify }: { onNotify: (message: string) => voi
     event.preventDefault(); if (lock.current) return;
     setError("");
     let valid: FeedbackInput;
-    try { valid = validateFeedback(input); } catch (cause) { setError((cause as Error).message); return; }
+    try {
+      if (!input.category) throw new Error("Pilih jenis masukan.");
+      if (!input.area) throw new Error("Pilih bagian Tippo.");
+      valid = validateFeedback({ ...input, category: input.category, area: input.area });
+    } catch (cause) { setError((cause as Error).message); return; }
     const payload = JSON.stringify({ ...valid, publicConsent });
     if (!attempt.current || attempt.current.payload !== payload) attempt.current = { id: crypto.randomUUID(), payload };
     const id = attempt.current.id;
@@ -46,7 +51,7 @@ export function FeedbackPanel({ onNotify }: { onNotify: (message: string) => voi
     <div className="card-header"><div><h2>Apa yang bisa kami perbaiki?</h2><p>Ceritakan kendala atau ide yang kamu punya saat memakai Tippo.</p></div></div>
     <form onSubmit={submit} aria-busy={busy}>
       <div className="feedback-fields">
-        <div className="form-grid"><div className="field"><label className="field-label" htmlFor="feedback-category">Jenis masukan<span className="required-mark" aria-hidden="true"> *</span></label><Select id="feedback-category" aria-label="Jenis masukan" className="input" disabled={busy} value={input.category} onValueChange={category => setInput({ ...input, category: category as FeedbackInput["category"] })}><SelectOption value="suggestion">Saran</SelectOption><SelectOption value="criticism">Kritik</SelectOption><SelectOption value="issue">Laporkan masalah</SelectOption></Select></div><div className="field"><label className="field-label" htmlFor="feedback-area">Bagian Tippo<span className="required-mark" aria-hidden="true"> *</span></label><Select id="feedback-area" aria-label="Bagian Tippo" className="input" disabled={busy} value={input.area} onValueChange={area => setInput({ ...input, area: area as FeedbackInput["area"] })}><SelectOption value="general">Tippo secara umum</SelectOption><SelectOption value="jastip">Jastip</SelectOption><SelectOption value="po">Open PO</SelectOption></Select></div></div>
+        <div className="form-grid"><div className="field"><label className="field-label" htmlFor="feedback-category">Jenis masukan<span className="required-mark" aria-hidden="true"> *</span></label><Select placeholder="Pilih jenis masukan" aria-required="true" id="feedback-category" aria-label="Jenis masukan" className="input" disabled={busy} value={input.category} onValueChange={category => setInput({ ...input, category: category as FeedbackInput["category"] })}><SelectOption value="suggestion">Saran</SelectOption><SelectOption value="criticism">Kritik</SelectOption><SelectOption value="issue">Laporkan masalah</SelectOption></Select></div><div className="field"><label className="field-label" htmlFor="feedback-area">Bagian Tippo<span className="required-mark" aria-hidden="true"> *</span></label><Select placeholder="Pilih bagian Tippo" aria-required="true" id="feedback-area" aria-label="Bagian Tippo" className="input" disabled={busy} value={input.area} onValueChange={area => setInput({ ...input, area: area as FeedbackInput["area"] })}><SelectOption value="general">Tippo secara umum</SelectOption><SelectOption value="jastip">Jastip</SelectOption><SelectOption value="po">Open PO</SelectOption></Select></div></div>
         <div className="field"><label className="field-label" htmlFor="feedback-subject">Judul<span className="required-mark" aria-hidden="true"> *</span></label><input id="feedback-subject" aria-label="Judul" ref={subjectRef} className="input" required minLength={3} maxLength={120} disabled={busy} value={input.subject} onChange={event => setInput({ ...input, subject: event.target.value })} placeholder="Contoh: Filter pesanan berdasarkan pelanggan" /></div>
         <div className="field"><label className="field-label" htmlFor="feedback-message">Pesan<span className="required-mark" aria-hidden="true"> *</span></label><textarea id="feedback-message" aria-label="Pesan" className="input" rows={6} required minLength={10} maxLength={2000} disabled={busy} value={input.message} onChange={event => setInput({ ...input, message: event.target.value })} placeholder="Ceritakan yang terjadi, atau fitur yang ingin kamu tambahkan." /><p className="field-hint">{input.message.length.toLocaleString("id-ID")} / 2.000 karakter</p></div>
         <label className="field-hint"><input type="checkbox" checked={publicConsent} disabled={busy} onChange={event => setPublicConsent(event.target.checked)} /> Saya mengizinkan masukan ini tampil di beranda setelah ditinjau, dengan email disamarkan. Jangan sertakan data pribadi dalam pesan.</label>

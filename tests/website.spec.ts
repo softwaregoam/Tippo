@@ -754,7 +754,15 @@ for (const width of [1440,390]) {
   const saves=await authenticate(page),feedback:Record<string,string>[]=[];
   await page.route(`${endpoint}/rest/v1/rpc/submit_tippo_feedback`,async route=>{const body=route.request().postDataJSON();feedback.push(body);await new Promise(resolve=>setTimeout(resolve,200));await route.fulfill({json:{id:body.p_id,createdAt:new Date().toISOString()}});});
   await page.goto("/app");await openSection(page,"Kritik & saran");
-  await chooseOption(page.getByLabel("Jenis masukan",{exact:true}),"issue");await chooseOption(page.getByLabel("Bagian Tippo",{exact:true}),"po");
+  await expect(page.getByLabel("Jenis masukan",{exact:true})).toHaveText("Pilih jenis masukan");
+  await expect(page.getByLabel("Bagian Tippo",{exact:true})).toHaveText("Pilih bagian Tippo");
+  await page.getByLabel("Judul",{exact:true}).fill("Filter pelanggan");await page.getByLabel("Pesan",{exact:true}).fill("Tambahkan filter pelanggan di daftar pesanan PO.");
+  await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();
+  await expect(page.getByRole("region",{name:"Form kritik dan saran"}).getByRole("alert")).toHaveText("Pilih jenis masukan.");expect(feedback).toHaveLength(0);
+  await chooseOption(page.getByLabel("Jenis masukan",{exact:true}),"issue");
+  await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();
+  await expect(page.getByRole("region",{name:"Form kritik dan saran"}).getByRole("alert")).toHaveText("Pilih bagian Tippo.");expect(feedback).toHaveLength(0);
+  await chooseOption(page.getByLabel("Bagian Tippo",{exact:true}),"po");
   await page.getByLabel("Judul",{exact:true}).fill(" Filter pelanggan ");await page.getByLabel("Pesan",{exact:true}).fill(" Tambahkan filter pelanggan di daftar pesanan PO. ");
   await page.getByRole("region",{name:"Form kritik dan saran",exact:true}).screenshot({path:`docs/preview-feedback-${width}.png`});
   await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("button",{name:"Mengirim…",exact:true})).toBeDisabled();
@@ -904,5 +912,5 @@ for(const business of ["Jastip","Open PO"] as const) test(`mobile dialogs lock b
 test("feedback failure retains input and retries with the same request id",async({page})=>{
  await authenticate(page);const ids:string[]=[];
  await page.route(`${endpoint}/rest/v1/rpc/submit_tippo_feedback`,async route=>{const body=route.request().postDataJSON();ids.push(body.p_id);if(ids.length===1)return route.fulfill({status:404,json:{code:"PGRST202",message:"schema cache"}});return route.fulfill({json:{id:body.p_id,createdAt:new Date().toISOString()}});});
- await page.goto("/app");await openSection(page,"Kritik & saran");await page.getByLabel("Judul",{exact:true}).fill("Saran baru");await page.getByLabel("Pesan",{exact:true}).fill("Tolong tambahkan pencarian untuk pelanggan.");await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("region",{name:"Form kritik dan saran",exact:true}).getByRole("alert")).toContainText("mengaktifkan database kritik & saran");await expect(page.getByLabel("Pesan",{exact:true})).toHaveValue("Tolong tambahkan pencarian untuk pelanggan.");await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("status",{name:"Masukan terkirim",exact:true})).toBeVisible();expect(ids).toHaveLength(2);expect(ids[0]).toBe(ids[1]);
+ await page.goto("/app");await openSection(page,"Kritik & saran");await chooseOption(page.getByLabel("Jenis masukan",{exact:true}),"suggestion");await chooseOption(page.getByLabel("Bagian Tippo",{exact:true}),"general");await page.getByLabel("Judul",{exact:true}).fill("Saran baru");await page.getByLabel("Pesan",{exact:true}).fill("Tolong tambahkan pencarian untuk pelanggan.");await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("region",{name:"Form kritik dan saran",exact:true}).getByRole("alert")).toContainText("mengaktifkan database kritik & saran");await expect(page.getByLabel("Pesan",{exact:true})).toHaveValue("Tolong tambahkan pencarian untuk pelanggan.");await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("status",{name:"Masukan terkirim",exact:true})).toBeVisible();expect(ids).toHaveLength(2);expect(ids[0]).toBe(ids[1]);
 });
