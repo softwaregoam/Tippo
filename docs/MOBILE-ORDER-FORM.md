@@ -1,0 +1,5 @@
+# Form pesanan ponsel
+
+Pada lebar hingga 600px, field Sudah dibayar memakai satu kolom penuh. Tombol Lunas dan Bayar sebagian bertumpuk di bawahnya, masing-masing full width. Input tanggal tetap sejajar pelanggan, dengan min-width 0, batas lebar dan padding/font lebih ringkas untuk mencegah kontrol tanggal melebar. Ringkasan form memakai satu kolom dan estimasi HPP ditempatkan sebelum total tagihan. Layout desktop dipertahankan.
+
+Validasi: lint dan production build berhasil. Lima skenario browser diskon/form berhasil: Jastip dan PO desktop, Jastip 390px, PO 390px dan PO 320px. Pada ponsel tes memeriksa lebar pembayaran/tombol, posisi tombol di bawah field, batas input tanggal, urutan visual HPP sebelum total, dan tidak ada overflow horizontal. Alur simpan, reload, edit, pembatasan diskon dan pembayaran juga lulus. Screenshot pembayaran dan konteks tanggal PO 320px ditinjau visual. Pengujian memakai Chromium dan mock Supabase; perangkat iOS fisik dan deployment Vercel belum diverifikasi.

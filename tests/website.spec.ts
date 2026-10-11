@@ -636,7 +636,7 @@ for (const width of [1440,390]) {
   await page.getByRole("button",{name:"Kirim masukan lain",exact:true}).click();await expect(page.getByLabel("Judul",{exact:true})).toBeFocused();await expect(page.getByLabel("Pesan",{exact:true})).toHaveValue("");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
  });
 }
-for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Open PO",390]] as const) test(`order discounts persist and validate ${business} ${width}`,async({page})=>{
+for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],["Open PO",390],["Open PO",320]] as const) test(`order discounts persist and validate ${business} ${width}`,async({page})=>{
   const data=structuredClone(fixture);
   data.batches.push({id:"discount-po",name:"PO Diskon",type:"po",origin:"",closeDate:"2026-12-01",status:"open",directCosts:0});
   data.products.push({id:"discount-product",name:"Roti Diskon",variant:"",sku:"DIS",unitPrice:25000,unitCost:12000,active:true});
@@ -662,6 +662,23 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Open PO",390]
   await expect(form.locator(".payment-total")).toContainText("50.000");
   await form.getByRole("button",{name:"Lunas",exact:true}).click();
   await expect(form.locator('input[name="paid"]')).toHaveValue("50.000");
+  if(width<600) {
+    const layout=await form.evaluate(element=>{
+      const paid=element.querySelector('input[name="paid"]')!.getBoundingClientRect();
+      const field=element.querySelector('.payment-field')!.getBoundingClientRect();
+      const buttons=Array.from(element.querySelectorAll('.payment-shortcuts button')).map(button=>button.getBoundingClientRect());
+      const date=element.querySelector('input[type="date"]')!.getBoundingClientRect();
+      const dateField=element.querySelector('input[type="date"]')!.closest('.field')!.getBoundingClientRect();
+      const cells=element.querySelectorAll('.summary-strip .summary-cell');
+      return {paidWidth:paid.width,fieldWidth:field.width,buttonWidths:buttons.map(b=>b.width),below:buttons[0].top>=paid.bottom,stacked:buttons[1].top>=buttons[0].bottom,dateFits:date.right<=dateField.right+1&&date.left>=dateField.left-1,hppAbove:cells[1].getBoundingClientRect().top<cells[0].getBoundingClientRect().top};
+    });
+    expect(Math.abs(layout.paidWidth-layout.fieldWidth)).toBeLessThan(1);
+    for(const buttonWidth of layout.buttonWidths) expect(Math.abs(buttonWidth-layout.fieldWidth)).toBeLessThan(1);
+    expect(layout.below&&layout.stacked&&layout.dateFits&&layout.hppAbove).toBe(true);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+    await form.locator('.order-payment').screenshot({path:`docs/preview-mobile-payment-${business==="Jastip"?"jastip":"po"}-${width}.png`});
+    await form.locator('.order-context').screenshot({path:`docs/preview-mobile-order-context-${business==="Jastip"?"jastip":"po"}-${width}.png`});
+  }
   await form.locator(".order-discount-fields").locator("..").screenshot({path:`docs/preview-discount-${business==="Jastip"?"jastip":"po"}-${width}.png`});
   await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click(); await expect(form).toHaveCount(0);
   expect(requests[0].p_data.orders[0].discount).toEqual({type:"percent",value:10}); expect(requests[0].p_data.orders[0].paid).toBe(50000);
