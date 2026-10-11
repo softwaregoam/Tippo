@@ -1,6 +1,6 @@
 # Sidebar organization
 
-The Jastip / Open PO switch lives below the sidebar brand. The main-content switch is removed. Business menus appear in this order: Ringkasan, Pesanan, Produk (PO only), Batch PO / Perjalanan, Pelanggan, HPP & Margin. A divider separates Pengaturan data, Panduan & FAQ, and Kritik & saran. Paket & langganan remains at the bottom.
+The Jastip / Open PO switch lives below the sidebar brand with equal-width choices. Business menus appear in this order: Ringkasan, Pesanan, Produk (PO only), Batch PO / Perjalanan, Pelanggan, HPP & Margin. The smaller support menus sit under Bantuan & pengaturan: Pengaturan data, Panduan & FAQ, and Kritik & saran. Paket & langganan remains at the bottom with a Gratis / Pro badge, hidden when collapsed. Mobile opening focus respects a control the user has already focused inside the sidebar.
 
 Both businesses use a neutral sidebar: warm cream in light mode and charcoal in dark mode. Mint/apricot accents identify the selected business, current menu and active left border. Menu controls have at least 44 px height. Collapsed desktop navigation keeps icon-only business choices and menu names through title tooltips. Mobile users can switch businesses inside the navigation panel; choosing a business or page closes it. Escape restores focus to the menu opener.
 

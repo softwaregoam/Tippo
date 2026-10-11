@@ -130,7 +130,9 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     if (!mobileOpen) return;
     const sidebar = navigationRef.current;
     const opener = menuRef.current;
-    const focusFrame = requestAnimationFrame(() => sidebar?.querySelector<HTMLButtonElement>("button")?.focus());
+    const focusFrame = requestAnimationFrame(() => {
+      if (!sidebar?.contains(document.activeElement)) sidebar?.querySelector<HTMLButtonElement>("button")?.focus();
+    });
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); setMobileOpen(false); }
       if (event.key !== "Tab" || !sidebar) return;
@@ -193,8 +195,8 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     if (await persist(next, !orderModal?.order ? "Pesanan baru berhasil dicatat" : "Pesanan berhasil diperbarui")) setOrderModal(null);
   }
   function updateStatus(order: Order, status: Order["status"]) {
-    if (status === "cancelled" && order.paid > 0) { notify("Pesanan yang sudah dibayar belum dapat dibatalkan. Catat refund seluruh pembayaran sebelum membatalkan."); return; }
-    persist({ ...data, orders: data.orders.map((o) => o.id === order.id ? { ...o, status } : o) }, "Status pesanan diperbarui");
+    if (status === "cancelled" && order.paid > 0) { notify("Pesanan yang sudah dibayar belum dapat dibatalkan. Catat refund seluruh pembayaran sebelum membatalkan."); return false; }
+    return persist({ ...data, orders: data.orders.map((o) => o.id === order.id ? { ...o, status } : o) }, "Status pesanan diperbarui");
   }
   const modeBatches = data.batches.filter(batch => batch.type === mode);
   const modeBatchIds = new Set(modeBatches.map(batch => batch.id));
@@ -291,10 +293,11 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
           {navigation.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} title={sidebarCollapsed ? label : undefined} aria-current={page === id ? "page" : undefined} className={`nav-item ${page === id ? "active" : ""}`} onClick={() => go(id)}><Icon size={19} /><span>{label}</span></button>)}
           </div>
           <div className="sidebar-menu-group sidebar-support" role="group" aria-label="Menu pendukung">
+            <div className="workspace-label">Bantuan & pengaturan</div>
             {supportNavigation.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} title={sidebarCollapsed ? label : undefined} aria-current={page === id ? "page" : undefined} className={`nav-item ${page === id ? "active" : ""}`} onClick={() => go(id)}><Icon size={19} /><span>{label}</span></button>)}
           </div>
         </nav>
-        <div className="sidebar-bottom"><button aria-label="Paket & langganan" title={sidebarCollapsed ? "Paket & langganan" : undefined} className={`nav-item ${page === "subscription" ? "active" : ""}`} aria-current={page === "subscription" ? "page" : undefined} onClick={() => go("subscription")}><Crown size={19} /><span>Paket & langganan</span></button>
+        <div className="sidebar-bottom"><button aria-label="Paket & langganan" title={sidebarCollapsed ? "Paket & langganan" : undefined} className={`nav-item subscription-nav ${page === "subscription" ? "active" : ""}`} aria-current={page === "subscription" ? "page" : undefined} onClick={() => go("subscription")}><Crown size={19} /><span>Paket & langganan</span><small className="sidebar-plan-badge">{isPro ? "Pro" : "Gratis"}</small></button>
         </div>
       </aside>
 

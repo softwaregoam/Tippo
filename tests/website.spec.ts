@@ -428,6 +428,8 @@ for(const width of [390,1440]) for(const theme of ["light","dark"]) test(`sideba
  await openNavigation(page);
  const sidebar=page.locator(".sidebar");
  await expect(sidebar.getByRole("group",{name:"Pilih usaha"})).toBeVisible();
+ await expect(sidebar.locator(".sidebar-plan-badge")).toHaveText("Gratis");await expect(sidebar.getByText("Bantuan & pengaturan",{exact:true})).toBeVisible();
+ const switchWidths=await sidebar.locator(".business-switch button").evaluateAll(buttons=>buttons.map(b=>b.getBoundingClientRect().width));expect(Math.abs(switchWidths[0]-switchWidths[1])).toBeLessThan(1);
  await expect(page.locator("main .business-switch")).toHaveCount(0);
  await expect(sidebar.locator(".sidebar-menu-group").first().getByRole("button")).toHaveText(["Ringkasan","Pesanan","Perjalanan","Pelanggan","HPP & Margin"]);
  await sidebar.getByRole("button",{name:"Open PO",exact:true}).click();
@@ -654,7 +656,7 @@ test("dashboard recent orders are read only while Jastip retains actions",async(
  expect(alignment).toBeLessThan(1); await recent.screenshot({path:"docs/preview-dashboard-orders-readonly.png"});
  await openBusiness(page,"Jastip"); await openSection(page,"Pesanan");
  await expect(page.getByRole("button",{name:"Edit pesanan Barang Ringkasan"})).toBeVisible();
- await expect(page.getByLabel("Status pesanan Barang Ringkasan untuk Alya")).toBeVisible();
+ await expect(page.getByRole("button",{name:"Ubah status pesanan Barang Ringkasan untuk Alya"})).toBeVisible();
 });
 
 test("product status actions confirm archive and restore and preserve status on cancel",async({page})=>{
@@ -695,6 +697,21 @@ for(const paid of [false,true])test(`unpaid dashboard distinguishes ${paid?"sett
  const data=structuredClone(fixture);
  if(paid)data.orders.push({id:"paid-order",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"done",paid:25000,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"paid-item",product:"Produk lunas",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});
  await authenticate(page,{workspace:data});await page.goto("/app");const card=page.getByRole("region",{name:"Tagihan belum lunas"});await expect(card).toContainText(paid?"Semua tagihan bulan ini sudah lunas.":"Belum ada tagihan bulan ini.");await expect(card.locator("li")).toHaveCount(0);
+});
+
+for(const mode of ["Jastip","Open PO"])for(const width of [390,1440])for(const theme of ["light","dark"])test(`order status dialog ${mode} ${width} ${theme} saves explicitly and keeps cancellation guard`,async({page})=>{
+ await page.setViewportSize({width,height:1000});await page.addInitScript(t=>localStorage.setItem("tippo.theme.v1",t),theme);const requests=await authenticate(page,{workspace:twoBusinessWorkspace()});await page.goto("/app");await expect(page.locator(".recent-card").getByRole("button",{name:/Ubah status/})).toHaveCount(0);await openBusiness(page,mode);await openSection(page,"Pesanan");
+ const customer=mode==="Jastip"?"Alya":"Bima PO";
+ async function openStatus(){if(width<760){await page.getByRole("button",{name:`Detail ${customer}`,exact:true}).click();await page.getByRole("dialog",{name:`Detail ${customer}`,exact:true}).getByRole("button",{name:"Ubah status",exact:true}).click();await expect(page.getByRole("dialog",{name:`Detail ${customer}`,exact:true})).toHaveCount(0);}else await page.getByRole("button",{name:/Ubah status pesanan/}).click();return page.getByRole("dialog",{name:"Ubah status pesanan",exact:true});}
+ let dialog=await openStatus();await expect(dialog.getByRole("button",{name:"Simpan status"})).toBeDisabled();await dialog.getByRole("radio",{name:"Dikirim",exact:true}).check();expect(requests).toHaveLength(0);await dialog.getByRole("button",{name:"Batal",exact:true}).click();expect(requests).toHaveLength(0);dialog=await openStatus();await expect(dialog.getByRole("radio",{name:"Tercatat",exact:true})).toBeChecked();await dialog.getByRole("radio",{name:"Dibatalkan",exact:true}).check();await expect(dialog).toContainText("Catat refund seluruh pembayaran");await expect(dialog.getByRole("button",{name:"Simpan status"})).toBeDisabled();await dialog.getByRole("radio",{name:"Dikirim",exact:true}).check();await dialog.screenshot({path:`docs/preview-order-status-${mode==="Jastip"?"jastip":"po"}-${width}-${theme}.png`});await dialog.getByRole("button",{name:"Simpan status"}).click();await expect(dialog).toHaveCount(0);expect(requests).toHaveLength(1);expect(requests[0].p_data.orders.find(o=>o.id===(mode==="Jastip"?"jastip-business-order":"po-business-order"))?.status).toBe("shipped");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+});
+
+test("order status save failure keeps dialog and draft selection open",async({page})=>{
+ await authenticate(page,{workspace:twoBusinessWorkspace(),failSave:true});await page.goto("/app");await openBusiness(page,"Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:/Ubah status pesanan/}).click();const dialog=page.getByRole("dialog",{name:"Ubah status pesanan",exact:true});await dialog.getByRole("radio",{name:"Dikirim",exact:true}).check();await dialog.getByRole("button",{name:"Simpan status"}).click();await expect(dialog.getByRole("alert")).toContainText("Status belum tersimpan");await expect(dialog.getByRole("radio",{name:"Dikirim",exact:true})).toBeChecked();await expect(page.locator(".orders-table .order-status-new")).toHaveText("Tercatat");
+});
+
+test("unpaid order can be cancelled without changing its products or payments",async({page})=>{
+ const data=twoBusinessWorkspace();data.orders[0].paid=0;data.orders[0].refunds=[];const requests=await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,"Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:/Ubah status pesanan/}).click();const dialog=page.getByRole("dialog",{name:"Ubah status pesanan",exact:true});await dialog.getByRole("radio",{name:"Dibatalkan",exact:true}).check();await dialog.getByRole("button",{name:"Simpan status"}).click();await expect(dialog).toHaveCount(0);expect(requests[0].p_data.orders[0]).toEqual({...data.orders[0],status:"cancelled"});await expect(page.locator(".orders-table .order-status-cancelled")).toHaveText("Dibatalkan");
 });
 
 function twoBusinessWorkspace():AppData {
