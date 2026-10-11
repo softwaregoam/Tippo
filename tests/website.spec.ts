@@ -644,6 +644,29 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   await page.setViewportSize({width,height:1000}); await page.goto("/app"); await openBusiness(page,business); await openSection(page,"Pesanan");
   await page.getByRole("button",{name:business==="Jastip"?"Pesanan jastip baru":"Pesanan PO baru",exact:true}).click();
   let form=page.getByRole("dialog",{name:business==="Jastip"?"Pesanan jastip baru":"Pesanan PO baru",exact:true});
+  const date=form.locator('input[type="date"]');
+  await date.fill(""); await expect(form.locator('.date-picker-display')).toHaveText("Pilih tanggal");
+  if(width===1440) {
+    await date.click({position:{x:8,y:20}});
+    await page.keyboard.press("Escape");
+    await expect(form).toBeVisible();
+  }
+  await date.evaluate(element=>{Object.defineProperty(element,"showPicker",{value:()=>{element.setAttribute("data-picker-calls",String(Number(element.getAttribute("data-picker-calls")??0)+1));}});});
+  await date.click({position:{x:8,y:20}}); await expect(date).toHaveAttribute("data-picker-calls","1");
+  await date.press("Enter"); await expect(date).toHaveAttribute("data-picker-calls","2");
+  await date.press("Backspace"); await page.keyboard.type("20261011"); await expect(date).toHaveValue("");
+  await date.fill("2026-10-11"); await expect(form.locator('.date-picker-display')).toHaveText("11/10/2026");
+  await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"new");
+  await expect(form.getByLabel("Alamat (opsional)",{exact:true})).toHaveAttribute("placeholder","Alamat lengkap pelanggan");
+  await expect(form.getByLabel("Jumlah barang",{exact:true})).toHaveAttribute("placeholder","Contoh: 2");
+  if(width<600) {
+    await date.fill("");
+    const placeholderFits=await form.locator('.date-picker-display > span').evaluate(element=>element.scrollWidth<=element.clientWidth+1);
+    expect(placeholderFits).toBe(true);
+    await form.locator('.order-context').screenshot({path:`docs/preview-mobile-placeholders-${business==="Jastip"?"jastip":"po"}-${width}.png`});
+    await date.fill("2026-10-11");
+  }
+  await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");
   if(business==="Jastip") {
     await form.getByLabel("Nama barang",{exact:true}).fill("Roti Diskon");
     await form.getByLabel("Harga jual / barang",{exact:true}).fill("25000");

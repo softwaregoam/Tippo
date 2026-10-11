@@ -1,6 +1,7 @@
 "use client";
 
 import { NumberInput } from "@/components/ui/number-input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { OrderDiscountFields } from "@/components/order-discount-fields";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -265,11 +266,11 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               </Select>
               {errors.customerId && <span id="po-error-customerId" className="error-message">{errors.customerId}</span>}
             </div>
-            <div className="field"><label className="field-label" htmlFor="po-order-date">Tanggal pesanan<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Tanggal pesanan" required id="po-order-date" name="date" className="input" type="date" value={fields.date} onChange={(event) => update("date", event.target.value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? "po-error-date" : undefined} />{errors.date && <span id="po-error-date" className="error-message">{errors.date}</span>}</div>
+            <div className="field"><label className="field-label" htmlFor="po-order-date">Tanggal pesanan<span className="required-mark" aria-hidden="true"> *</span></label><DatePicker aria-label="Tanggal pesanan" required id="po-order-date" name="date" value={fields.date} onValueChange={value => update("date", value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? "po-error-date" : undefined} />{errors.date && <span id="po-error-date" className="error-message">{errors.date}</span>}</div>
             {fields.customerId === "new" && <>
               <div className="field"><label className="field-label" htmlFor="po-order-customerName">Nama pelanggan<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama pelanggan" required id="po-order-customerName" name="customerName" className="input" value={fields.customerName} maxLength={textLimits.customerName} autoComplete="name" placeholder="Contoh: Alya Putri" onChange={(event) => update("customerName", event.target.value)} aria-invalid={Boolean(errors.customerName)} aria-describedby={errors.customerName ? "po-error-customerName" : undefined} />{errors.customerName && <span id="po-error-customerName" className="error-message">{errors.customerName}</span>}</div>
               <div className="field"><label className="field-label" htmlFor="po-order-customerPhone">WhatsApp <span>(opsional)</span></label><input id="po-order-customerPhone" name="customerPhone" className="input" type="tel" value={fields.customerPhone} maxLength={textLimits.customerPhone} autoComplete="tel" placeholder="08xxxxxxxxxx" onChange={(event) => update("customerPhone", event.target.value)} aria-invalid={Boolean(errors.customerPhone)} aria-describedby={errors.customerPhone ? "po-error-customerPhone" : undefined} />{errors.customerPhone && <span id="po-error-customerPhone" className="error-message">{errors.customerPhone}</span>}</div>
-              <div className="field"><label className="field-label" htmlFor="po-order-customerAddress">Alamat (opsional)</label><textarea id="po-order-customerAddress" name="customerAddress" className="input" rows={3} maxLength={textLimits.customerAddress} autoComplete="street-address" value={fields.customerAddress} onChange={(event) => update("customerAddress", event.target.value)} /></div>
+              <div className="field"><label className="field-label" htmlFor="po-order-customerAddress">Alamat (opsional)</label><textarea id="po-order-customerAddress" name="customerAddress" className="input" rows={3} placeholder="Alamat lengkap pelanggan" maxLength={textLimits.customerAddress} autoComplete="street-address" value={fields.customerAddress} onChange={(event) => update("customerAddress", event.target.value)} /></div>
             </>}
           </div></section>
           <div className="form-section order-section">
@@ -302,7 +303,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
                   </div>
                   <div className="field">
                     <label className="field-label" htmlFor={quantityId}>Jumlah barang<span className="required-mark" aria-hidden="true"> *</span></label>
-                    <NumberInput aria-label="Jumlah barang" required id={quantityId} name={`item-${item.id}-quantity`} className="input" inputMode="numeric" min="1" step="1" value={item.quantity} onValueChange={(value) => updateItem(item.id, "quantity", value)} aria-invalid={Boolean(rowErrors?.quantity)} aria-describedby={rowErrors?.quantity ? `${quantityId}-error` : undefined} />
+                    <NumberInput aria-label="Jumlah barang" required id={quantityId} name={`item-${item.id}-quantity`} className="input" inputMode="numeric" min="1" step="1" placeholder="Contoh: 2" value={item.quantity} onValueChange={(value) => updateItem(item.id, "quantity", value)} aria-invalid={Boolean(rowErrors?.quantity)} aria-describedby={rowErrors?.quantity ? `${quantityId}-error` : undefined} />
                     {rowErrors?.quantity && <span id={`${quantityId}-error`} className="error-message">{rowErrors.quantity}</span>}
                   </div>
                     <dl id={pricesId} className="po-product-prices order-full-width" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, padding: "10px 12px", borderRadius: 6 }}>

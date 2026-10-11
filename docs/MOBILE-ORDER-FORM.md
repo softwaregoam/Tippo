@@ -1,5 +1,11 @@
 # Form pesanan ponsel
 
+## Placeholder dan kalender
+
+Tanggal kosong menampilkan “Pilih tanggal”, alamat pelanggan baru “Alamat lengkap pelanggan”, dan jumlah barang “Contoh: 2”. Placeholder berlaku saat kolom kosong; nilai pesanan/default yang ada tetap ditampilkan. Kedua form memakai DatePicker dengan tampilan tanggal Indonesia dan input date native yang menutupi seluruh area kontrol. Klik area mana pun membuka showPicker; indikator native full-area menjadi fallback. Enter/Space/ArrowDown membuka kalender, sementara pengetikan manual, paste dan drop diblokir. Fokus tetap terlihat. Pemilihan tanggal memakai event change native dan menyimpan YYYY-MM-DD seperti sebelumnya.
+
+Lint dan build berhasil. Lima tes browser form Jastip/PO pada desktop dan 320/390px lulus. Tes desktop memeriksa popup kalender native saat klik sisi kiri dan menutupnya dengan Escape tanpa menutup form. Tes instrumentasi API memeriksa klik, Enter, pemblokiran pengetikan, perubahan nilai serta placeholder alamat/jumlah. Pada ponsel, placeholder tanggal tidak terpotong dan field tidak overflow. Screenshot PO 320px ditinjau visual; penyesuaian spesifisitas CSS memperbaiki ukuran placeholder awal yang terpotong. Pengujian perangkat iOS fisik belum dilakukan.
+
 Pada lebar hingga 600px, field Sudah dibayar memakai satu kolom penuh. Tombol Lunas dan Bayar sebagian bertumpuk di bawahnya, masing-masing full width. Input tanggal tetap sejajar pelanggan, dengan min-width 0, batas lebar dan padding/font lebih ringkas untuk mencegah kontrol tanggal melebar. Ringkasan form memakai satu kolom dan estimasi HPP ditempatkan sebelum total tagihan. Layout desktop dipertahankan.
 
 Validasi: lint dan production build berhasil. Lima skenario browser diskon/form berhasil: Jastip dan PO desktop, Jastip 390px, PO 390px dan PO 320px. Pada ponsel tes memeriksa lebar pembayaran/tombol, posisi tombol di bawah field, batas input tanggal, urutan visual HPP sebelum total, dan tidak ada overflow horizontal. Alur simpan, reload, edit, pembatasan diskon dan pembayaran juga lulus. Screenshot pembayaran dan konteks tanggal PO 320px ditinjau visual. Pengujian memakai Chromium dan mock Supabase; perangkat iOS fisik dan deployment Vercel belum diverifikasi.
