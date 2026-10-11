@@ -429,11 +429,39 @@ for(const failSave of [false,true])test(`account refund ${failSave?"retains form
  });
 
 test("customers use a searchable table with address and edit action",async({page})=>{
- const data=structuredClone(fixture);data.customers[0].phone="08123456789";data.customers[0].address="Jalan Mawar 12, Jakarta";await authenticate(page,{workspace:data});await page.goto("/app");await page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name:"Pelanggan",exact:true}).click();const table=page.getByRole("table",{name:"Daftar pelanggan"});await expect(table).toContainText("Jalan Mawar 12, Jakarta");await expect(table).toContainText("08123456789");await table.screenshot({path:"docs/preview-customer-table-desktop.png"});await page.getByLabel("Cari pelanggan").fill("Tidak ada");await expect(page.getByText("Pelanggan tidak ditemukan",{exact:true})).toBeVisible();await page.getByRole("button",{name:"Reset pencarian"}).click();await table.getByRole("button",{name:"Edit pelanggan Alya"}).click();await expect(page.getByRole("dialog",{name:"Edit pelanggan"}).getByLabel("Alamat (opsional)")).toHaveValue("Jalan Mawar 12, Jakarta");await page.keyboard.press("Escape");await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);await table.screenshot({path:"docs/preview-customer-table-mobile.png"});
+ const data=structuredClone(fixture);
+ data.customers[0].phone="08123456789"; data.customers[0].address="Jalan Mawar 12, Jakarta";
+ await authenticate(page,{workspace:data}); await page.goto("/app"); await openSection(page,"Pelanggan");
+ const table=page.getByRole("table",{name:"Daftar pelanggan"});
+ await expect(table).toContainText("Jalan Mawar 12, Jakarta"); await expect(table).toContainText("08123456789");
+ await expect(table.getByRole("columnheader",{name:"Jumlah pesanan"})).toHaveCSS("text-align","center");
+ await expect(table.locator('td[data-label="Jumlah pesanan"]')).toHaveCSS("text-align","center");
+ await expect(table.getByRole("columnheader",{name:"Aksi"})).toHaveCSS("text-align","center");
+ await table.screenshot({path:"docs/preview-customer-table-desktop.png"});
+ await page.getByLabel("Cari pelanggan").fill("Tidak ada"); await expect(page.getByText("Pelanggan tidak ditemukan",{exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Reset pencarian"}).click(); await table.getByRole("button",{name:"Edit pelanggan Alya"}).click();
+ await expect(page.getByRole("dialog",{name:"Edit pelanggan"}).getByLabel("Alamat (opsional)")).toHaveValue("Jalan Mawar 12, Jakarta");
+ await page.keyboard.press("Escape"); await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
+ await expect(table).not.toBeVisible(); await page.locator(".mobile-data-list").screenshot({path:"docs/preview-customer-table-mobile.png"});
 });
 
 test("dashboard recent orders are read only while Jastip retains actions",async({page})=>{
- const data=structuredClone(fixture);data.orders.push({id:"recent-test",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"new",paid:0,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"recent-item",product:"Barang Ringkasan",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});await authenticate(page,{workspace:data});await page.goto("/app");const recent=page.locator(".recent-card");await expect(recent).toContainText("Barang Ringkasan");await expect(recent).toContainText("Tercatat");await expect(recent.getByRole("button")).toHaveCount(0);await expect(recent.getByRole("combobox")).toHaveCount(0);await expect(recent.getByRole("columnheader",{name:"Tindakan"})).toHaveCount(0);const alignment=await recent.locator("table").evaluate(t=>{const h=t.querySelector(".status-column-title")!,v=t.querySelector("tbody .status-tag")!;const hr=document.createRange();hr.selectNodeContents(h);const vr=document.createRange();vr.selectNodeContents(v);return Math.abs(hr.getBoundingClientRect().x-vr.getBoundingClientRect().x);});expect(alignment).toBeLessThan(1);await recent.screenshot({path:"docs/preview-dashboard-orders-readonly.png"});await openBusiness(page,"Jastip");await openSection(page,"Pesanan");await expect(page.getByRole("button",{name:"Edit pesanan Barang Ringkasan"})).toBeVisible();await expect(page.getByLabel("Status pesanan Barang Ringkasan untuk Alya")).toBeVisible();
+ const data=structuredClone(fixture);
+ data.orders.push({id:"recent-test",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"new",paid:0,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"recent-item",product:"Barang Ringkasan",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});
+ await authenticate(page,{workspace:data}); await page.goto("/app"); const recent=page.locator(".recent-card");
+ await expect(recent).toContainText("Barang Ringkasan"); await expect(recent).toContainText("Tercatat");
+ await expect(recent.getByRole("button")).toHaveCount(0); await expect(recent.getByRole("combobox")).toHaveCount(0);
+ await expect(recent.getByRole("columnheader",{name:"Tindakan"})).toHaveCount(0);
+ const alignment=await recent.locator("table").evaluate(t=>{
+   const h=t.querySelector(".status-column-title")!,v=t.querySelector("tbody .status-tag")!;
+   const hr=h.getBoundingClientRect(),vr=v.getBoundingClientRect();
+   return Math.abs((hr.x+hr.width/2)-(vr.x+vr.width/2));
+ });
+ expect(alignment).toBeLessThan(1); await recent.screenshot({path:"docs/preview-dashboard-orders-readonly.png"});
+ await openBusiness(page,"Jastip"); await openSection(page,"Pesanan");
+ await expect(page.getByRole("button",{name:"Edit pesanan Barang Ringkasan"})).toBeVisible();
+ await expect(page.getByLabel("Status pesanan Barang Ringkasan untuk Alya")).toBeVisible();
 });
 
 test("product status dropdown confirms archive and preserves status on cancel",async({page})=>{

@@ -61,7 +61,7 @@ export function OrdersTable({ data, orders, onEdit, onStatus, onRefund, compact 
             <th scope="col" className="numeric-cell">Total tagihan</th>
             {!compact && <th scope="col" className="numeric-cell">HPP</th>}
             <th scope="col">Pembayaran</th>
-            <th scope="col"><span className="status-column-title">Status</span></th>
+            <th scope="col" className="center-cell"><span className="status-column-title">Status</span></th>
             {!readOnly && <th scope="col" className="actions-cell">Tindakan</th>}
           </tr>
         </thead>
@@ -99,7 +99,7 @@ export function OrdersTable({ data, orders, onEdit, onStatus, onRefund, compact 
                     <div className="row-subtitle">Sisa {formatCurrency(remaining)}</div>
                   </>}
                 </td>
-                <td>
+                <td className="center-cell">
                   {readOnly ? <span className={`status-tag status-${visibleOrderStatus(order.status)}`}>{statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label}</span> : <Select className={`tiny-select status-tag status-${visibleOrderStatus(order.status)}`} value={visibleOrderStatus(order.status)} onValueChange={(value) => onStatus(order, value as Order["status"])} aria-label={`Status pesanan ${label} untuk ${customer?.name ?? "pelanggan"}`}>
                     {statuses.map((status) => <SelectOption key={status.value} value={status.value}>{status.label}</SelectOption>)}
                   </Select>}

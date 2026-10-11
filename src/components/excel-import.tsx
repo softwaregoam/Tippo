@@ -219,12 +219,12 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
             <div className="table-wrap" style={{ maxHeight: 320, overflowY: "auto" }} tabIndex={0} role="region" aria-label="Pratinjau baris Excel">
               <table className="orders-table">
                 <caption className="sr-only">Pesanan dari Excel yang akan ditambahkan; baris bermasalah perlu diperbaiki di file.</caption>
-                <thead><tr><th scope="col">Baris / nomor</th><th scope="col">Pelanggan</th><th scope="col">{type === "po" ? "Produk" : "Barang"}</th><th scope="col" className="numeric-cell">Jumlah</th><th scope="col" className="numeric-cell">Tagihan</th><th scope="col">Validasi</th></tr></thead>
+                <thead><tr><th scope="col">Baris / nomor</th><th scope="col">Pelanggan</th><th scope="col">{type === "po" ? "Produk" : "Barang"}</th><th scope="col" className="numeric-cell center-cell">Jumlah</th><th scope="col" className="numeric-cell">Tagihan</th><th scope="col">Validasi</th></tr></thead>
                 <tbody>{preview.rows.map((row) => <tr key={row.rowNumber}>
                   <td style={{ whiteSpace: "normal", minWidth: 100 }}>{row.rowNumbers.join(", ")}{row.orderNumber && <div className="field-hint" style={{ overflowWrap: "anywhere" }}>{row.orderNumber}</div>}</td>
                   <td style={{ whiteSpace: "normal", minWidth: 120 }}>{row.customer || "Belum terisi"}</td>
                   <td style={{ whiteSpace: "normal", minWidth: 150 }}>{row.product || "Belum terisi"}</td>
-                  <td className="numeric-cell">{row.quantity ?? "Belum terisi"}</td>
+                  <td className="numeric-cell center-cell">{row.quantity ?? "Belum terisi"}</td>
                   <td className="numeric-cell">{row.total === null ? "Belum lengkap" : formatCurrency(row.total)}</td>
                   <td style={{ whiteSpace: "normal", minWidth: row.errors.length ? 230 : 70 }}>
                     {row.errors.length

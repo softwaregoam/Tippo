@@ -1,0 +1,5 @@
+# Perataan tabel
+
+Nama, deskripsi, tanggal, pembayaran dan nominal uang tetap rata kiri. Jumlah pesanan/barang, status dan tindakan rata tengah; judul mengikuti perataan sel. Berlaku pada tabel batch PO/perjalanan, produk, pelanggan, pesanan/ringkasan, jumlah barang pada HPP dan pratinjau impor pesanan. Tabel manajemen memakai dua kolom terakhir untuk status/jumlah pesanan dan aksi; kolom Pesanan pada batch diberi kelas center-cell eksplisit. Layout berlabel pada tablet dan daftar detail ponsel dipertahankan.
+
+Validasi: lint dan production build berhasil. Lima skenario browser lokal unik berhasil: pelanggan desktop/mobile, ringkasan readonly dengan pemeriksaan pusat judul/status, daftar detail mobile 390px, dan perubahan status batch desktop pada kedua mode. Tes pelanggan diperbarui untuk memotret daftar mobile yang terlihat; sebelumnya mencoba tabel desktop tersembunyi. Tes ringkasan diperbarui dari posisi kiri teks ke pusat judul/status sesuai perubahan desain. Kedua tes sempat gagal pada ekspektasi lama dan lulus setelah revisi. Screenshot batch, pelanggan desktop dan ringkasan ditinjau visual. Supabase dimock; deployment Vercel belum diverifikasi.

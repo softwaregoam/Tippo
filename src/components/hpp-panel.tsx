@@ -68,13 +68,13 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
     {hasLegacyCosts && <p className="field-hint" style={{ marginBottom: 20 }}>Batch ini memiliki biaya lama {formatCurrency(batch.directCosts)} yang tetap diperhitungkan dalam HPP agar histori tidak berubah.</p>}
     <section className="card">
       <div className="card-header"><div><h2>Rincian harga beli</h2><p>HPP dihitung dari harga beli per barang × jumlah.</p></div><span className="type-badge">{orders.reduce((sum, order) => sum + orderQuantity(order), 0)} UNIT</span></div>
-      <div className="table-wrap"><table className="orders-table hpp-table"><thead><tr><th scope="col">Barang</th><th scope="col" className="numeric-cell">Jumlah</th><th scope="col">Harga beli / unit</th>{hasLegacyCosts && <th scope="col" className="numeric-cell">Biaya lama</th>}<th scope="col" className="numeric-cell">HPP pesanan</th><th scope="col" className="numeric-cell">Margin pesanan</th></tr></thead>
+      <div className="table-wrap"><table className="orders-table hpp-table"><thead><tr><th scope="col">Barang</th><th scope="col" className="numeric-cell center-cell">Jumlah</th><th scope="col">Harga beli / unit</th>{hasLegacyCosts && <th scope="col" className="numeric-cell">Biaya lama</th>}<th scope="col" className="numeric-cell">HPP pesanan</th><th scope="col" className="numeric-cell">Margin pesanan</th></tr></thead>
         <tbody>{orders.flatMap((order) => {
           const preview = previewOrders.find((entry) => entry.id === order.id)!;
           const cost = orderHpp(preview, previewOrders, data.batches);
           return order.items.map((item, index) => <tr key={fieldKey(order.id, item.id)}>
             <td><div className="row-title">{itemLabel(item)}</div><div className="row-subtitle">{data.customers.find((customer) => customer.id === order.customerId)?.name}{order.items.length > 1 ? ` · Barang ${index + 1}/${order.items.length}` : ""}</div></td>
-            <td className="numeric-cell">{item.quantity} pcs</td>
+            <td className="numeric-cell center-cell">{item.quantity} pcs</td>
             <td><div className="cost-input small"><span>Rp</span><NumberInput className="input" aria-label={inputLabel(order.id, item, order.items.length)} min="0" step="1" placeholder="Belum diisi" value={costs[fieldKey(order.id, item.id)] ?? ""} onValueChange={(value) => setCosts({ ...costs, [fieldKey(order.id, item.id)]: value })} /></div></td>
             {index === 0 && <>{hasLegacyCosts && <td className="numeric-cell" rowSpan={order.items.length}>{formatCurrency(allocated[order.id] ?? 0)}</td>}<td className="numeric-cell" rowSpan={order.items.length}>{cost === null ? <span className="status-tag status-new">Belum lengkap</span> : formatCurrency(cost)}</td><td rowSpan={order.items.length} className={`numeric-cell ${cost !== null && orderRevenue(order) - cost < 0 ? "negative" : "positive"}`}>{cost === null ? "Belum lengkap" : formatCurrency(orderRevenue(order) - cost)}</td></>}
           </tr>);

@@ -29,12 +29,12 @@ export function BatchesTable({ title, batches, orders, onEdit, onStatus }: {
      details: <><dl className="mobile-detail-fields"><dt>Lokasi / supplier</dt><dd>{batch.origin || "Belum diisi"}</dd><dt>Tutup pesanan</dt><dd>{batch.closeDate}</dd><dt>Jumlah pesanan</dt><dd>{count(batch)}</dd><dt>Status</dt><dd>{badge(batch)}</dd></dl>{statusAction(batch)}<button className="btn btn-primary" data-close-detail onClick={() => onEdit(batch)}>Edit batch</button></>,
    }))} />
    <div className="card management-table-wrap desktop-data-table"><table className="management-table" aria-label={title}>
-     <thead><tr>{["Nama batch", "Lokasi / supplier", "Tutup pesanan", "Pesanan", "Status", "Aksi"].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead>
+     <thead><tr>{["Nama batch", "Lokasi / supplier", "Tutup pesanan", "Pesanan", "Status", "Aksi"].map(label => <th scope="col" key={label} className={label === "Pesanan" ? "center-cell" : undefined}>{label}</th>)}</tr></thead>
      <tbody>{batches.map(batch => <tr key={batch.id}>
        <td data-label="Nama batch"><h3>{batch.name}</h3></td>
        <td data-label="Lokasi / supplier">{batch.origin || "Belum diisi"}</td>
        <td data-label="Tutup pesanan">{new Date(`${batch.closeDate}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</td>
-       <td data-label="Pesanan">{count(batch)}</td><td data-label="Status">{badge(batch)}</td>
+       <td data-label="Pesanan" className="center-cell">{count(batch)}</td><td data-label="Status">{badge(batch)}</td>
        <td data-label="Aksi"><div className="management-actions">{statusAction(batch)}<button className="icon-button" aria-label={`Edit batch ${batch.name}`} onClick={() => onEdit(batch)}><Pencil size={16} /></button></div></td>
      </tr>)}</tbody>
    </table></div>
