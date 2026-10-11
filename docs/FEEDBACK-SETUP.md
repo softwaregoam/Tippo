@@ -9,3 +9,9 @@ Jalankan seluruh isi `supabase/migrations/202610110001_tippo_feedback.sql` di SQ
 RPC submit_tippo_feedback menetapkan owner dari auth.uid() dan timestamp dari server; pengguna tidak dapat menentukan pemilik atau waktu pengiriman. Tabel memakai RLS: pengguna hanya dapat membaca masukan sendiri, tanpa hak update/delete/insert langsung. Pengelola melalui akses admin Supabase dapat membaca seluruh masukan. UUID permintaan dipakai untuk retry idempotent; isi/pemilik berbeda dengan ID sama ditolak. Payload yang diedit setelah gagal memakai ID baru. API menerima kategori/bagian terbatas dan memeriksa panjang teks di server.
 
 Jika migration belum aktif, UI menampilkan error pengiriman, tidak menyatakan sukses, dan mempertahankan isi form selama halaman masih terbuka. Data yang belum dikirim tidak disimpan sebagai draf saat pengguna meninggalkan halaman. Email/notifikasi eksternal, lampiran, panel moderasi, dan riwayat masukan pengguna belum ditambahkan.
+
+## Masukan publik di beranda
+
+Jalankan juga `supabase/migrations/202610110002_public_feedback.sql` setelah migrasi awal. Pengiriman biasa tetap privat. Pengguna harus mencentang izin publikasi; email diambil dari akun oleh server dan disamarkan. Masukan lama tidak otomatis diberi izin publikasi.
+
+Untuk menampilkan masukan, tinjau isi di Supabase Table Editor pada `tippo_feedback`, lalu ubah `published` menjadi `true` hanya pada baris dengan `public_consent=true`. Pastikan pesan tidak berisi data pribadi. Ubah kembali ke `false` untuk menarik publikasi. Pengguna biasa tidak dapat mengubah persetujuan pengelola. Beranda menampilkan enam masukan terbaru yang diizinkan dan dipublikasikan melalui RPC terbatas, tanpa akses publik ke tabel atau akun.

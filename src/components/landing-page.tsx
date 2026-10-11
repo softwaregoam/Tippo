@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PublicFeedback } from "@/components/public-feedback";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -170,6 +171,7 @@ export function LandingPage() {
           </div>
         </section>
 
+        <PublicFeedback />
         <section className="testimonials-section landing-container" aria-labelledby="testimonials-title">
           <div className="testimonials-heading"><p className="section-label">Contoh testimoni</p><h2 id="testimonials-title">Catatan rapi itu<br />bikin kerja lebih ringan.</h2><p>Contoh tulisan dengan bahasa sehari-hari. Belum merupakan ulasan pelanggan asli.</p></div>
           <div className="testimonials-list">{testimonials.map(item => <figure className={item.mode === "Open PO" ? "testimonial-po" : ""} key={item.mode}><blockquote><p>“{item.quote}”</p></blockquote><figcaption><strong>{item.mode}</strong><span>{item.context}</span></figcaption></figure>)}</div>

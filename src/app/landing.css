@@ -111,6 +111,7 @@
 .testimonials-list blockquote p { font-size: 1rem; line-height: 1.85; }
 .testimonials-list figcaption { display: grid; gap: .25rem; margin-top: .9rem; font-size: .8125rem; }
 .testimonials-list figcaption span { color: var(--muted); }
+.public-feedback-message { white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (min-width: 940px) { .testimonials-section { grid-template-columns: .85fr 1.2fr; gap: 6rem; padding-block: 4.5rem; } }
 .pricing-heading { display:flex; align-items:flex-start; gap:1.5rem; flex-direction:column; }
 .pricing-heading p:not(.section-label) { max-width:530px; margin-top:1rem; color:var(--tone-text-53675f); font-size:.875rem; }
