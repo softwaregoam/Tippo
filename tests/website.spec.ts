@@ -384,6 +384,39 @@ for(const width of [390,1440]) test(`product categories are selected or added on
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
 });
 
+for(const width of [320,1440]) for(const theme of ["light","dark"]) test(`help opens guides and FAQ with working navigation ${width} ${theme}`,async({page})=>{
+  const saves=await authenticate(page);
+  await page.setViewportSize({width,height:1000});
+  await page.addInitScript(theme=>localStorage.setItem("tippo.theme.v1",theme),theme);
+  await page.goto("/app");
+  async function openHelp() {
+    await page.locator(".page-heading h1").waitFor();
+    const menu=page.getByRole("button",{name:"Buka navigasi",exact:true});
+    if(await menu.isVisible()) await menu.click();
+    await page.getByRole("button",{name:"Butuh panduan?",exact:true}).click();
+    await expect(page.getByRole("heading",{level:1})).toHaveText("Panduan & FAQ.");
+    await expect(page.locator(".toast")).toHaveCount(0);
+    if(width<600) await expect(page.locator(".sidebar")).not.toBeVisible();
+  }
+  await openHelp();
+  await expect(page.getByRole("region",{name:"Panduan Jastip",exact:true})).toContainText("Nama barang, varian, warna, ukuran");
+  await page.getByRole("navigation",{name:"Daftar isi panduan"}).getByRole("link",{name:"Pertanyaan umum",exact:true}).click();
+  const question=page.locator("summary").filter({hasText:"Bagaimana batas diskon dihitung?"});
+  await question.focus();await page.keyboard.press("Enter");
+  await expect(page.locator(".help-faq details[open]")).toContainText("tidak termasuk ongkir");
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+  await page.screenshot({path:`docs/preview-help-${width}-${theme}.png`,fullPage:true});
+  await page.getByRole("button",{name:"Buka Perjalanan",exact:true}).click();
+  await expect(page.getByRole("heading",{level:1})).toHaveText("Perjalanan Jastip.");
+  await openBusiness(page,"Open PO");await openHelp();
+  await expect(page.getByRole("region",{name:"Panduan Open PO",exact:true})).toContainText("Buka Produk");
+  await page.getByRole("button",{name:"Buka Produk",exact:true}).click();
+  await expect(page.getByRole("heading",{level:1})).toHaveText("Produk Open PO.");
+  await openHelp();await page.getByRole("button",{name:"Buka Kritik & saran",exact:true}).click();
+  await expect(page.getByRole("heading",{level:1})).toHaveText("Kritik & saran.");
+  expect(saves).toHaveLength(0);
+});
+
 test("custom selections support keyboard, touch and Escape without closing the order", async ({page}) => {
   await page.goto("/demo");
   await expect(page.locator(".top-avatar")).toHaveText("Akun");

@@ -3,6 +3,7 @@
 import { canChangeBatchStatus } from "@/lib/batch-status";
 import { isAppData } from "@/lib/validation";
 import { FeedbackPanel } from "@/components/feedback-panel";
+import { HelpPanel } from "@/components/help-panel";
 import { applyRefund, refundedTotal } from "@/lib/refund";
 import { BusinessProfilePanel } from "@/components/business-profile";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -32,7 +33,7 @@ import type { AppData, Batch, Customer, Order, Product } from "@/lib/types";
 import type { AccountWorkspace } from "./cloud-workspace";
 import Link from "next/link";
 
-type Page = "dashboard" | "orders" | "products" | "batches" | "hpp" | "customers" | "settings" | "profile" | "subscription" | "feedback";
+type Page = "dashboard" | "orders" | "products" | "batches" | "hpp" | "customers" | "settings" | "profile" | "subscription" | "feedback" | "help";
 const businessModeKey = "tippo.business-mode.v1";
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const subtitles = {
@@ -46,6 +47,7 @@ const subtitles = {
   settings: "Simpan cadangan data Jastip dan Open PO dalam akun ini.",
   subscription: "Pilih ruang yang sesuai untuk usaha yang terus tumbuh.",
   feedback: "Bagikan pengalaman dan idemu untuk Tippo.",
+  help: "Langkah penggunaan dan jawaban untuk pertanyaan sehari-hari.",
 };
 const shortMoney = (n: number) => n >= 1000000 ? `${(n / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} jt` : n >= 1000 ? `${Math.round(n / 1000)} rb` : `${n}`;
 const monthLabel = (month: string) => `${monthNames[Number(month.slice(5)) - 1]} ${month.slice(0, 4)}`;
@@ -68,7 +70,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     catch { return "jastip"; }
   });
   const modeLabel = mode === "po" ? "Open PO" : "Jastip";
-  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran" };
+  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
   const navigation = [
     { id: "dashboard" as Page, label: "Ringkasan", icon: LayoutDashboard },
     ...(mode === "po" ? [{ id: "products" as Page, label: "Produk", icon: Package }] : []),
@@ -281,7 +283,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
           {navigation.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} title={sidebarCollapsed ? label : undefined} aria-current={page === id ? "page" : undefined} className={`nav-item ${page === id ? "active" : ""}`} onClick={() => go(id)}><Icon size={19} /><span>{label}</span></button>)}
         </nav>
         <div className="sidebar-bottom"><button aria-label="Paket & langganan" title={sidebarCollapsed ? "Paket & langganan" : undefined} className={`nav-item ${page === "subscription" ? "active" : ""}`} aria-current={page === "subscription" ? "page" : undefined} onClick={() => go("subscription")}><Crown size={19} /><span>Paket & langganan</span></button>
-          <button className="help-link" aria-label="Butuh panduan?" title={sidebarCollapsed ? "Butuh panduan?" : undefined} onClick={() => { go("settings"); notify("Panduan: buat batch → catat pesanan → lengkapi HPP → ekspor data secara rutin."); }}><CircleHelp size={17} /><span>Butuh panduan?</span></button>
+          <button className="help-link" aria-label="Butuh panduan?" aria-current={page === "help" ? "page" : undefined} title={sidebarCollapsed ? "Butuh panduan?" : undefined} onClick={() => go("help")}><CircleHelp size={17} /><span>Butuh panduan?</span></button>
         </div>
       </aside>
 
@@ -364,6 +366,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
 
               {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} />}
               {page === "feedback" && <FeedbackPanel key={cloud?.ownerId ?? "local"} onNotify={notify} />}
+              {page === "help" && <HelpPanel mode={mode} onNavigate={go} />}
               {page === "settings" && <DataSettings data={data} cloud={!!cloud} onUpdate={replaceData} onNotify={notify} />}
             </div>
         </main>
