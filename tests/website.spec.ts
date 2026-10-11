@@ -258,6 +258,50 @@ test("sidebar minimizes on desktop and keeps mobile navigation usable", async ({
   await expect(page.locator(".sidebar")).not.toBeVisible();
 });
 
+test.describe("selection toggle", () => {
+  test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+  test("repeated touch closes the selection without changing its value", async ({page}) => {
+    await authenticate(page);
+    await page.goto("/app");
+    await openBusiness(page, "Open PO");
+    const filter = page.locator('button[aria-label="Filter produk"]');
+    const initial = await filter.getAttribute("data-value");
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await filter.tap();
+      await expect(page.getByRole("listbox")).toBeVisible();
+      await filter.tap();
+      await expect(page.getByRole("listbox")).toHaveCount(0);
+      await expect(filter).toHaveAttribute("data-value", initial!);
+    }
+    await filter.tap();
+    await page.getByRole("option", { name: "Semua produk", exact: true }).tap();
+    await expect(filter).toHaveText("Semua produk");
+    await filter.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("listbox")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await expect(filter).toBeFocused();
+    await openBusiness(page, "Jastip");
+    await openSection(page, "Pesanan");
+    await page.getByRole("button", { name: "Pesanan jastip baru", exact: true }).click();
+    const form = page.getByRole("dialog", { name: "Pesanan jastip baru", exact: true });
+    const customer = form.locator('button[aria-label="Pelanggan"]');
+    await customer.tap();
+    await expect(page.getByRole("listbox")).toBeVisible();
+    await customer.tap();
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await expect(form).toBeVisible();
+    await customer.tap();
+    await page.getByRole("option", { name: "Alya", exact: true }).tap();
+    await expect(customer).toContainText("Alya");
+    await customer.tap();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await expect(form).toBeVisible();
+  });
+});
+
 test("custom selections support keyboard, touch and Escape without closing the order", async ({page}) => {
   await page.goto("/demo");
   await expect(page.locator(".top-avatar")).toHaveText("Akun");
