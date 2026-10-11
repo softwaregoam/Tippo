@@ -4,6 +4,8 @@ Form Jastip dan Open PO menyediakan diskon opsional berupa rupiah atau persen pa
 
 Pesanan menyimpan `discount: { type: "amount" | "percent", value: number }`. Pesanan lama tanpa properti ini tetap memiliki total yang sama. Pembayaran tidak boleh melebihi tagihan setelah diskon. Total, sisa tagihan, ringkasan, grafik, margin, invoice WhatsApp dan detail ponsel memakai perhitungan yang sama. HPP tidak dipotong. Saat mengedit pesanan, riwayat refund dipertahankan. Impor Excel tetap memakai template saat ini tanpa kolom diskon; diskon dapat ditambahkan setelah impor.
 
+Input frontend membatasi angka saat diketik/ditempel: lebih dari 100 persen menjadi 100; nominal rupiah melebihi tagihan sebelum diskon menjadi nominal maksimalnya. Hanya bilangan bulat nonnegatif diterima, dan kolom dapat dikosongkan. Ketika harga, jumlah atau ongkir berubah sehingga batas rupiah turun, nilai diskon ikut diturunkan. Jika total belum valid, batas rupiah sementara 0. Pengaturan max pada input teks format ribuan dilengkapi handler agar benar-benar membatasi nilai. Validasi penyimpanan/server tetap berlaku.
+
 ## Aktivasi Supabase
 
 Jalankan `supabase/migrations/202610110004_order_discount.sql` di SQL Editor, setelah migrasi workspace awal. Migrasi tidak mengubah data atau kuota: validator sebelumnya dipertahankan dan validator baru memeriksa diskon serta pembayaran bersih. Migrasi dapat dijalankan ulang. Lingkungan ini hanya memiliki publishable key; SQL belum dijalankan di produksi.
@@ -11,6 +13,8 @@ Jalankan `supabase/migrations/202610110004_order_discount.sql` di SQL Editor, se
 Kemudian jalankan `supabase/migrations/202610110005_discount_limits.sql` untuk batas rupiah yang mencakup ongkir. Migrasi sebelumnya membatasi rupiah pada subtotal barang dan fee. Urutan ini berlaku untuk instalasi baru maupun proyek yang sudah menjalankan migrasi 004.
 
 ## Validasi
+
+Revisi pembatasan input: lint dan build lulus, serta tiga tes browser Jastip desktop, PO desktop, dan PO mobile lulus. Pemeriksaan mencakup clamp 101 persen, nominal melebihi tagihan, penyesuaian otomatis saat ongkir dan jumlah berkurang, serta penyimpanan/reload dan batas pembayaran. Perubahan ini hanya frontend dan tidak memerlukan migrasi SQL tambahan.
 
 Revisi batas rupiah: sembilan tes diskon/database serta tiga skenario browser di bawah lulus. Pemeriksaan tambahan mencakup diskon tepat sebesar total beserta ongkir, kelebihan satu rupiah, dan penonaktifan tombol bantuan pembayaran pada tagihan Rp0. Lint dan build lulus. SQL 005 dijalankan dua kali di database tes; belum diterapkan ke produksi.
 

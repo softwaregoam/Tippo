@@ -321,7 +321,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
           </div>
           <div className="form-section order-section">
             <h3><span className="order-section-number">3</span>Diskon, ongkir & catatan</h3>
-            <OrderDiscountFields id="order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />
+            <OrderDiscountFields id="order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} total={orderSubtotal(draft) + draft.shippingCharge} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />
             <div className="form-grid" style={{ marginTop: 12 }}>
               {amountField("serviceFee", "Fee jastip / pesanan", "Total fee untuk semua barang pada pesanan ini.")}
               {amountField("shippingCharge", "Ongkir yang ditagihkan")}

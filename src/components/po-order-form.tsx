@@ -317,7 +317,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
           </div>
           <section className="order-section">
             <h3><span className="order-section-number">3</span>Diskon, ongkir & catatan</h3>
-            <OrderDiscountFields id="po-order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />
+            <OrderDiscountFields id="po-order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} total={orderSubtotal(draft) + draft.shippingCharge} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />
             <div className="form-grid" style={{ marginTop: 14 }}>
               {amountField("shippingCharge", "Ongkir yang ditagihkan")}
 
