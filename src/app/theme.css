@@ -208,3 +208,31 @@
 :root[data-theme="dark"] .status-done,
 :root[data-theme="dark"] .select-trigger.status-done,
 :root[data-theme="dark"] .mobile-row-heading small { color: #91c9b1; }
+
+:root { --sidebar-background:#f1eee5; --sidebar-active:#e2ece5; }
+:root[data-theme="dark"] { --sidebar-background:#1e2220; --sidebar-active:#293a32; }
+:root[data-business-mode="po"] { --sidebar-active:var(--business-soft); }
+:root .app-shell .sidebar { background:var(--sidebar-background); color:var(--ink); border-right-color:var(--border); padding-top:24px; }
+.sidebar .brand { color:var(--ink); font-size:32px; }
+.sidebar .brand-dot { color:var(--primary); }
+.sidebar .brand-caption { color:var(--muted); font-size:11px; }
+.sidebar .workspace-label { color:var(--muted); margin:0 12px 8px; font-size:10px; }
+.sidebar .sidebar-toggle,.sidebar .sidebar-close { color:var(--ink); }
+.sidebar .sidebar-toggle:hover,.sidebar .sidebar-close:hover { background:var(--tone-surface-eaf0e8); color:var(--primary); }
+.sidebar .nav-item { color:var(--ink); min-height:44px; padding:10px 9px; border-left:3px solid transparent; border-radius:6px; }
+:root .sidebar .nav-item:hover { background:var(--tone-surface-eaf0e8); color:var(--primary); }
+:root .sidebar .nav-item.active,:root .sidebar .nav-item.active:hover { background:var(--sidebar-active); color:var(--primary); border-left-color:var(--primary); }
+.sidebar-menu-group { display:flex; flex-direction:column; gap:4px; }
+.sidebar-support { margin-top:16px; padding-top:16px; border-top:1px solid var(--border); }
+.sidebar .business-switch { width:100%; margin:20px 0 16px; padding:3px; gap:3px; }
+.sidebar .business-switch button { gap:5px; padding:6px; font-size:12px; }
+.sidebar .business-switch button > span { white-space:nowrap; }
+.sidebar-bottom { padding-top:24px; }
+@media(min-width:761px) {
+ .sidebar-collapsed .sidebar .business-switch { flex-direction:column; margin-bottom:12px; padding:3px; }
+ .sidebar-collapsed .business-switch button > span { display:none; }
+ .sidebar-collapsed .sidebar nav { margin-top:0; }
+ .sidebar-collapsed .sidebar .nav-item { padding:10px 6px; }
+ .sidebar-collapsed .sidebar-support { margin-top:10px; padding-top:10px; }
+}
+@media(max-width:760px) { .sidebar .business-switch button { font-size:13px; } .sidebar .brand { padding-right:44px; } }

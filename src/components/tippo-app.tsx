@@ -73,12 +73,15 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
   const navigation = [
     { id: "dashboard" as Page, label: "Ringkasan", icon: LayoutDashboard },
+    { id: "orders" as Page, label: "Pesanan", icon: ReceiptText },
     ...(mode === "po" ? [{ id: "products" as Page, label: "Produk", icon: Package }] : []),
     { id: "batches" as Page, label: mode === "po" ? "Batch PO" : "Perjalanan", icon: Layers3 },
-    { id: "orders" as Page, label: "Pesanan", icon: ReceiptText },
-    { id: "hpp" as Page, label: "HPP & Margin", icon: Wallet },
     { id: "customers" as Page, label: "Pelanggan", icon: UsersRound },
+    { id: "hpp" as Page, label: "HPP & Margin", icon: Wallet },
+  ];
+  const supportNavigation = [
     { id: "settings" as Page, label: "Pengaturan data", icon: Settings2 },
+    { id: "help" as Page, label: "Panduan & FAQ", icon: CircleHelp },
     { id: "feedback" as Page, label: "Kritik & saran", icon: MessageSquare },
   ];
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -278,12 +281,20 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
         <button className="icon-button sidebar-close" aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)}><X size={20} /></button>
         <div className="sidebar-heading"><button className="brand" onClick={() => go("dashboard")} aria-label="Tippo, halaman ringkasan"><span>Tippo<span className="brand-dot">.</span></span></button><button className="icon-button sidebar-toggle" aria-label={sidebarCollapsed ? "Perluas sidebar" : "Minimalkan sidebar"} aria-expanded={!sidebarCollapsed} aria-controls="workspace-navigation" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><Menu size={20} aria-hidden="true" /></button></div>
         <p className="brand-caption">Titip &amp; Pesan, Beres di Tippo.</p>
-        <div className="workspace-label">Menu {modeLabel}</div>
+        <div className="business-switch" role="group" aria-label="Pilih usaha">
+          <button type="button" aria-label="Jastip" title={sidebarCollapsed ? "Jastip" : undefined} aria-pressed={mode === "jastip"} onClick={() => switchMode("jastip")}><ShoppingBag size={18} aria-hidden="true" /><span>Jastip</span></button>
+          <button type="button" aria-label="Open PO" title={sidebarCollapsed ? "Open PO" : undefined} aria-pressed={mode === "po"} onClick={() => switchMode("po")}><Package size={18} aria-hidden="true" /><span>Open PO</span></button>
+        </div>
+        <div className="workspace-label">Menu usaha</div>
         <nav aria-label="Navigasi utama">
+          <div className="sidebar-menu-group">
           {navigation.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} title={sidebarCollapsed ? label : undefined} aria-current={page === id ? "page" : undefined} className={`nav-item ${page === id ? "active" : ""}`} onClick={() => go(id)}><Icon size={19} /><span>{label}</span></button>)}
+          </div>
+          <div className="sidebar-menu-group sidebar-support" role="group" aria-label="Menu pendukung">
+            {supportNavigation.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} title={sidebarCollapsed ? label : undefined} aria-current={page === id ? "page" : undefined} className={`nav-item ${page === id ? "active" : ""}`} onClick={() => go(id)}><Icon size={19} /><span>{label}</span></button>)}
+          </div>
         </nav>
         <div className="sidebar-bottom"><button aria-label="Paket & langganan" title={sidebarCollapsed ? "Paket & langganan" : undefined} className={`nav-item ${page === "subscription" ? "active" : ""}`} aria-current={page === "subscription" ? "page" : undefined} onClick={() => go("subscription")}><Crown size={19} /><span>Paket & langganan</span></button>
-          <button className="help-link" aria-label="Butuh panduan?" aria-current={page === "help" ? "page" : undefined} title={sidebarCollapsed ? "Butuh panduan?" : undefined} onClick={() => go("help")}><CircleHelp size={17} /><span>Butuh panduan?</span></button>
         </div>
       </aside>
 
@@ -309,10 +320,6 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
           </div>
         </header>
         <main className="main-content">
-          <div className="business-switch" role="group" aria-label="Pilih usaha">
-            <button type="button" aria-pressed={mode === "jastip"} onClick={() => switchMode("jastip")}><ShoppingBag size={18} aria-hidden="true" />Jastip</button>
-            <button type="button" aria-pressed={mode === "po"} onClick={() => switchMode("po")}><Package size={18} aria-hidden="true" />Open PO</button>
-          </div>
           <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary" onClick={() => startOrder()}><Plus size={17} />{mode === "po" ? "Pesanan PO baru" : "Pesanan jastip baru"}</Button>}</div>}</div>
 
           {!isPro && <div className="quota-banner"><div><strong>{modeLabel} {monthlyOrderUsage(data, new Date(), mode)} / 5 pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak barang</span></div><Button className="btn btn-secondary" onClick={() => go("subscription")}><Crown size={15} />Upgrade Pro</Button></div>}

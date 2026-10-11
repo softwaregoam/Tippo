@@ -61,7 +61,13 @@ async function openSection(page:Page,name:string) {
  const target=name==="Paket & langganan"?page.getByRole("button",{name,exact:true}):page.getByRole("navigation",{name:"Navigasi utama"}).getByRole("button",{name,exact:true});
  await target.click();
 }
+async function openNavigation(page:Page) {
+ await page.locator(".page-heading h1").waitFor({state:"visible"});
+ const menu=page.getByRole("button",{name:"Buka navigasi",exact:true});
+ if(await menu.isVisible()&&await menu.getAttribute("aria-expanded")==="false") await menu.click();
+}
 async function openBusiness(page:Page,name:string) {
+ await openNavigation(page);
  await page.getByRole("group",{name:"Pilih usaha"}).getByRole("button",{name,exact:true}).click();
  await openSection(page,name==="Open PO"?"Produk":"Perjalanan");
 }
@@ -116,7 +122,7 @@ test("mobile workspace navigation traps focus, closes with Escape and resets on 
   await expect(menu).toHaveAttribute("aria-expanded","true");
   await expect(sidebar.getByRole("button",{name:"Tutup navigasi",exact:true})).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(sidebar.getByRole("button",{name:"Butuh panduan?",exact:true})).toBeFocused();
+  await expect(sidebar.getByRole("button",{name:"Paket & langganan",exact:true})).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(sidebar.getByRole("button",{name:"Tutup navigasi",exact:true})).toBeFocused();
   await page.keyboard.press("Escape");
@@ -393,7 +399,7 @@ for(const width of [320,1440]) for(const theme of ["light","dark"]) test(`help o
     await page.locator(".page-heading h1").waitFor();
     const menu=page.getByRole("button",{name:"Buka navigasi",exact:true});
     if(await menu.isVisible()) await menu.click();
-    await page.getByRole("button",{name:"Butuh panduan?",exact:true}).click();
+    await page.getByRole("button",{name:"Panduan & FAQ",exact:true}).click();
     await expect(page.getByRole("heading",{level:1})).toHaveText("Panduan & FAQ.");
     await expect(page.locator(".toast")).toHaveCount(0);
     if(width<600) await expect(page.locator(".sidebar")).not.toBeVisible();
@@ -415,6 +421,34 @@ for(const width of [320,1440]) for(const theme of ["light","dark"]) test(`help o
   await openHelp();await page.getByRole("button",{name:"Buka Kritik & saran",exact:true}).click();
   await expect(page.getByRole("heading",{level:1})).toHaveText("Kritik & saran.");
   expect(saves).toHaveLength(0);
+});
+
+for(const width of [390,1440]) for(const theme of ["light","dark"]) test(`sidebar groups menus and switches businesses ${width} ${theme}`,async({page})=>{
+ await authenticate(page);await page.setViewportSize({width,height:900});await page.addInitScript(theme=>localStorage.setItem("tippo.theme.v1",theme),theme);await page.goto("/app");
+ await openNavigation(page);
+ const sidebar=page.locator(".sidebar");
+ await expect(sidebar.getByRole("group",{name:"Pilih usaha"})).toBeVisible();
+ await expect(page.locator("main .business-switch")).toHaveCount(0);
+ await expect(sidebar.locator(".sidebar-menu-group").first().getByRole("button")).toHaveText(["Ringkasan","Pesanan","Perjalanan","Pelanggan","HPP & Margin"]);
+ await sidebar.getByRole("button",{name:"Open PO",exact:true}).click();
+ await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");
+ if(width<760) await expect(sidebar).not.toBeVisible();
+ await openNavigation(page);
+ await expect(sidebar.locator(".sidebar-menu-group").first().getByRole("button")).toHaveText(["Ringkasan","Pesanan","Produk","Batch PO","Pelanggan","HPP & Margin"]);
+ await expect(sidebar.getByRole("group",{name:"Menu pendukung"}).getByRole("button")).toHaveText(["Pengaturan data","Panduan & FAQ","Kritik & saran"]);
+ await sidebar.screenshot({path:`docs/preview-sidebar-${width}-${theme}.png`});
+ if(width>=760) {
+  await sidebar.getByRole("button",{name:"Minimalkan sidebar"}).click();await expect(sidebar).toHaveCSS("width","76px");
+  await expect(sidebar.getByRole("button",{name:"Panduan & FAQ"})).toHaveAttribute("title","Panduan & FAQ");
+  await sidebar.getByRole("button",{name:"Jastip",exact:true}).click();await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Jastip.");
+  await sidebar.getByRole("button",{name:"Perluas sidebar"}).click();
+ } else {
+  await page.keyboard.press("Shift+Tab");await expect(sidebar.getByRole("button",{name:"Paket & langganan",exact:true})).toBeFocused();
+  await page.keyboard.press("Tab");await expect(sidebar.getByRole("button",{name:"Tutup navigasi",exact:true})).toBeFocused();
+  await page.keyboard.press("Escape");await expect(page.getByRole("button",{name:"Buka navigasi"})).toBeFocused();await openNavigation(page);
+ }
+ await sidebar.getByRole("button",{name:"Panduan & FAQ",exact:true}).click();await expect(page.getByRole("heading",{level:1})).toHaveText("Panduan & FAQ.");
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
 });
 
 test("custom selections support keyboard, touch and Escape without closing the order", async ({page}) => {
@@ -671,14 +705,16 @@ function twoBusinessWorkspace():AppData {
 for(const width of [320,768,1440])for(const theme of ["light","dark"])test(`business switch ${width} ${theme} scopes summaries navigation forms and remembers mode`,async({page})=>{
  await page.setViewportSize({width,height:1000});await page.addInitScript(t=>localStorage.setItem("tippo.theme.v1",t),theme);
  await authenticate(page,{workspace:twoBusinessWorkspace()});await page.goto("/app");
+ await openNavigation(page);
  const switcher=page.getByRole("group",{name:"Pilih usaha"});await expect(switcher.getByRole("button",{name:"Jastip",exact:true})).toHaveAttribute("aria-pressed","true");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Jastip.");await expect(page.locator(".stats-grid")).toContainText("Rp 25.000");await expect(page.locator(".payments-card")).toContainText("Rp 1.000");await expect(page.locator(".unpaid-card")).toContainText("Alya");await expect(page.locator(".recent-card")).not.toContainText("Produk PO");await expect(page.locator(".batch-preview")).not.toContainText("PO Mingguan");await expect(page.locator(".quota-banner")).toContainText("Jastip 1 / 5");
  await openSection(page,"HPP & Margin");const hpp=page.getByLabel("Pilih batch untuk HPP");await hpp.click();await expect(page.getByRole("option",{name:"Jastip Seoul",exact:true})).toBeVisible();await expect(page.getByRole("option",{name:"PO Mingguan",exact:true})).toHaveCount(0);await page.keyboard.press("Escape");
  const jastipAccent=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--primary"));
+ await openNavigation(page);
  await switcher.getByRole("button",{name:"Open PO",exact:true}).focus();await page.keyboard.press("Enter");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");await expect(page.locator(".stats-grid")).toContainText("Rp 100.000");await expect(page.locator(".payments-card")).not.toContainText("Refund pesanan bulan ini");await expect(page.locator(".unpaid-card")).toContainText("Bima PO");await expect(page.locator(".unpaid-card")).not.toContainText("Alya");await expect(page.locator(".recent-card")).not.toContainText("Titipan Jastip");await expect(page.locator(".quota-banner")).toContainText("Open PO 1 / 5");expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--primary"))).not.toBe(jastipAccent);await expect(page.locator(".current-month-chart")).toHaveAttribute("aria-label",/100\.000.*50\.000/);
  await page.screenshot({path:`docs/preview-business-po-${width}-${theme}.png`,fullPage:true});
  await openSection(page,"HPP & Margin");await hpp.click();await expect(page.getByRole("option",{name:"PO Mingguan",exact:true})).toBeVisible();await expect(page.getByRole("option",{name:"Jastip Seoul",exact:true})).toHaveCount(0);await page.keyboard.press("Escape");
  await openSection(page,"Pesanan");await page.getByRole("button",{name:"Pesanan PO baru",exact:true}).click();const form=page.getByRole("dialog",{name:"Pesanan PO baru",exact:true});await expect(form).toBeVisible();await expect(form.getByLabel("Batch PO",{exact:true})).toHaveAttribute("data-value","po-business");await page.keyboard.press("Escape");
- await page.reload();await expect(switcher.getByRole("button",{name:"Open PO",exact:true})).toHaveAttribute("aria-pressed","true");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");await switcher.getByRole("button",{name:"Jastip",exact:true}).click();await expect(page.locator(".recent-card")).toContainText("Titipan Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();await expect(page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true})).toBeVisible();await page.keyboard.press("Escape");await openSection(page,"Ringkasan");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+ await page.reload();await openNavigation(page);await expect(switcher.getByRole("button",{name:"Open PO",exact:true})).toHaveAttribute("aria-pressed","true");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");await switcher.getByRole("button",{name:"Jastip",exact:true}).click();await expect(page.locator(".recent-card")).toContainText("Titipan Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();await expect(page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true})).toBeVisible();await page.keyboard.press("Escape");await openSection(page,"Ringkasan");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
  await page.screenshot({path:`docs/preview-business-jastip-${width}-${theme}.png`,fullPage:true});
 });
 test("HPP save in one business preserves the other business transactions",async({page})=>{
