@@ -347,6 +347,39 @@ for (const width of [390,1440]) test(`data forms do not focus editable fields wh
   await checkCalendarOnly(page,form.getByLabel("Tutup pesanan",{exact:true}),form);
 });
 
+for(const width of [390,1440]) test(`product categories are selected or added on request ${width}`,async({page})=>{
+  const data=structuredClone(fixture);
+  data.products.push({id:"category-product",name:"Roti",category:"Makanan",variant:"",sku:"",unitPrice:25000,unitCost:12000,active:true});
+  const requests=await authenticate(page,{workspace:data});
+  await page.setViewportSize({width,height:844});
+  await page.goto("/app");await openBusiness(page,"Open PO");
+  await page.getByRole("button",{name:"Produk baru",exact:true}).click();
+  let form=page.getByRole("dialog",{name:"Produk baru",exact:true});
+  await expect(form.getByLabel("Kategori baru",{exact:true})).toHaveCount(0);
+  const category=form.getByRole("combobox",{name:"Kategori (opsional)",exact:true});
+  await expect(category).toHaveText("Pilih kategori");
+  await chooseOption(category,"Makanan");await expect(category).toHaveText("Makanan");
+  await category.click();await expect(page.getByRole("option",{name:"Pilih kategori tersimpan",exact:true})).toHaveCount(0);await page.keyboard.press("Escape");
+  await form.getByRole("button",{name:"Tambah kategori",exact:true}).click();
+  await form.getByLabel("Kategori baru",{exact:true}).fill("Draf kategori");
+  await form.getByRole("button",{name:"Batal tambah kategori",exact:true}).click();
+  await expect(category).toHaveText("Makanan");
+  await expect(form.getByLabel("Kategori baru",{exact:true})).toHaveCount(0);
+  await form.getByRole("button",{name:"Tambah kategori",exact:true}).click();
+  await expect(form.getByLabel("Kategori baru",{exact:true})).toHaveValue("");
+  await form.getByLabel("Kategori baru",{exact:true}).fill("Pakaian");
+  await form.getByLabel("Nama produk",{exact:true}).fill("Kaos baru");
+  await form.getByLabel("Harga jual / unit",{exact:true}).fill("50000");
+  await form.getByRole("button",{name:"Simpan produk",exact:false}).click();
+  await expect(form).toHaveCount(0);expect(requests[0].p_data.products[0]).toMatchObject({name:"Kaos baru",category:"Pakaian"});
+  await page.getByRole("button",{name:"Produk baru",exact:true}).click();
+  form=page.getByRole("dialog",{name:"Produk baru",exact:true});
+  await expect(form.getByLabel("Kategori baru",{exact:true})).toHaveCount(0);
+  await chooseOption(form.getByRole("combobox",{name:"Kategori (opsional)",exact:true}),"Pakaian");
+  await expect(form.getByRole("combobox",{name:"Kategori (opsional)",exact:true})).toHaveText("Pakaian");
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+});
+
 test("custom selections support keyboard, touch and Escape without closing the order", async ({page}) => {
   await page.goto("/demo");
   await expect(page.locator(".top-avatar")).toHaveText("Akun");
