@@ -175,9 +175,6 @@
 :root[data-theme="dark"] .btn-primary:hover { background: var(--business-hover) !important; }
 :root[data-theme="dark"] .native-dialog,
 :root[data-theme="dark"] .modal { background: #1e2220; }
-:root[data-theme="dark"] .toast { background: #262c28; color: #f2f0e9; border: 1px solid #7b8980; }
-:root[data-theme="dark"] .toast > svg,
-:root[data-theme="dark"] .toast button { color: #f2f0e9; }
 
 :root[data-business-mode="po"] {
   --primary: #94501f;

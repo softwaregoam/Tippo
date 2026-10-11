@@ -325,7 +325,7 @@ svg { flex-shrink: 0; }
 .empty-state .btn { margin-top: 8px; }
 .empty-state.compact { padding: 28px 16px; }
 .empty-icon { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 12px; background: var(--tone-surface-edf5f1); color: var(--primary); margin-bottom: 6px; }
-.toast { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 24px); left: calc(50% + 114px); transform: translateX(-50%) !important; display: flex; align-items: center; gap: 10px; background: var(--ink); color: var(--on-action); border-radius: 9px; padding: 8px 16px; font-size: 14px; z-index: 150; width: max-content; max-width: calc(100vw - 32px); }
+.toast { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 24px); left: calc(50% + 114px); transform: translateX(-50%) !important; display: flex; align-items: center; gap: 10px; background: var(--primary); border: 1px solid var(--primary); color: var(--on-action); border-radius: 9px; padding: 8px 16px; font-size: 14px; z-index: 150; width: max-content; max-width: calc(100vw - 32px); }
 .toast>svg { color: var(--on-action); }
 .toast button { border: none; background: transparent; color: var(--on-action); min-width: 44px; min-height: 44px; padding: 8px; margin-left: 4px; }
 .modal-backdrop { position: fixed; inset: 0; background: var(--tone-surface-18312880); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 100; }
