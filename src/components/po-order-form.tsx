@@ -88,7 +88,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    productRef.current?.focus();
+    modalRef.current?.querySelector<HTMLButtonElement>(".modal-header button")?.focus({ preventScroll: true });
     function handleKey(event: KeyboardEvent) {
       if (event.defaultPrevented || document.querySelector(".select-content")) return;
       if (event.key === "Escape") { event.preventDefault(); closeRef.current(); }

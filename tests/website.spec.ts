@@ -302,6 +302,33 @@ test.describe("selection toggle", () => {
   });
 });
 
+for (const width of [390,1440]) test(`data forms do not focus editable fields when opened ${width}`, async ({page}) => {
+  await authenticate(page);
+  await page.setViewportSize({width,height:844});
+  await page.goto("/app");
+  await openSection(page,"Pelanggan");
+  await page.getByRole("button",{name:"Tambah pelanggan",exact:true}).click();
+  let form=page.getByRole("dialog",{name:"Tambah pelanggan",exact:true});
+  await expect(form.getByRole("button",{name:"Tutup",exact:true})).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(form.getByLabel("Nama pelanggan",{exact:true})).toBeFocused();
+  await page.keyboard.press("Escape");
+  await openBusiness(page,"Jastip");
+  await page.getByRole("button",{name:"Batch jastip baru",exact:true}).click();
+  form=page.getByRole("dialog",{name:"Batch jastip baru",exact:true});
+  await expect(form.getByRole("button",{name:"Tutup",exact:true})).toBeFocused();
+  await page.keyboard.press("Escape");
+  await openBusiness(page,"Open PO");
+  await page.getByRole("button",{name:"Produk baru",exact:true}).click();
+  form=page.getByRole("dialog",{name:"Produk baru",exact:true});
+  await expect(form.getByRole("button",{name:"Tutup produk",exact:true})).toBeFocused();
+  await page.keyboard.press("Escape");
+  await openSection(page,"Batch PO");
+  await page.getByRole("button",{name:"Batch PO baru",exact:true}).first().click();
+  form=page.getByRole("dialog",{name:"Batch PO baru",exact:true});
+  await expect(form.getByRole("button",{name:"Tutup",exact:true})).toBeFocused();
+});
+
 test("custom selections support keyboard, touch and Escape without closing the order", async ({page}) => {
   await page.goto("/demo");
   await expect(page.locator(".top-avatar")).toHaveText("Akun");
@@ -680,7 +707,7 @@ for (const width of [1440,390]) {
   await page.getByRole("button",{name:"Kirim masukan lain",exact:true}).click();await expect(page.getByLabel("Judul",{exact:true})).toBeFocused();await expect(page.getByLabel("Pesan",{exact:true})).toHaveValue("");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
  });
 }
-for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],["Open PO",390],["Open PO",320]] as const) test(`order discounts persist and validate ${business} ${width}`,async({page})=>{
+for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],["Open PO",390],["Jastip",320],["Open PO",320]] as const) test(`order discounts persist and validate ${business} ${width}`,async({page})=>{
   const data=structuredClone(fixture);
   data.batches.push({id:"discount-po",name:"PO Diskon",type:"po",origin:"",closeDate:"2026-12-01",status:"open",directCosts:0});
   data.products.push({id:"discount-product",name:"Roti Diskon",variant:"",sku:"DIS",unitPrice:25000,unitCost:12000,active:true});
@@ -693,6 +720,14 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   await expect(form.getByLabel("Pelanggan",{exact:true})).toHaveAttribute("data-value", "");
   await expect(form.getByLabel("Pelanggan",{exact:true})).toHaveText("Pilih pelanggan");
   await expect(form.getByLabel("Jumlah barang",{exact:true})).toHaveValue("");
+  await expect(form.getByRole("button",{name:/^Tutup formulir pesanan/})).toBeFocused();
+  await expect(page.getByRole("listbox")).toHaveCount(0);
+  if(width<600) {
+    const customerPlaceholder=form.getByLabel("Pelanggan",{exact:true}).locator('span').first();
+    expect(await customerPlaceholder.evaluate(element=>element.scrollWidth<=element.clientWidth+1)).toBe(true);
+    await form.locator('.order-context').screenshot({path:`docs/preview-empty-order-context-${business==="Jastip"?"jastip":"po"}-${width}.png`});
+    await expect(form.getByLabel("Jumlah barang",{exact:true})).toHaveAttribute("placeholder","Contoh: 2");
+  }
   await date.fill(""); await expect(form.locator('.date-picker-display')).toHaveText("Pilih tanggal");
   if(width===1440) {
     await date.click({position:{x:8,y:20}});
