@@ -51,21 +51,13 @@ type ItemErrors = Record<string, Partial<Record<ItemField, string>>>;
 const textLimits = { customerName: 120, customerPhone: 30, customerAddress: 1000, notes: 1000 };
 const itemTextLimits = { product: 120, variant: 80, color: 80, size: 80 };
 
-function jakartaToday() {
-  const parts = new Intl.DateTimeFormat("en", {
-    timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(new Date());
-  const part = (name: Intl.DateTimeFormatPartTypes) => parts.find((entry) => entry.type === name)?.value;
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
-
 function previewAmount(value: string) {
   const amount = Number(value);
   return Number.isSafeInteger(amount) && amount >= 0 ? amount : 0;
 }
 
 function newItem(): ItemFields {
-  return { id: crypto.randomUUID(), product: "", variant: "", color: "", size: "", quantity: "1", unitPrice: "", unitCost: "" };
+  return { id: crypto.randomUUID(), product: "", variant: "", color: "", size: "", quantity: "", unitPrice: "", unitCost: "" };
 }
 
 export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveError, saving }: OrderFormProps) {
@@ -74,13 +66,13 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     batchId: order?.batchId
       ?? jastipBatches.find((batch) => batch.id === defaultBatchId && batch.status === "open")?.id
       ?? (jastipBatches.filter(batch=>batch.status === "open").length === 1 ? jastipBatches.find(batch=>batch.status === "open")?.id : "") ?? "",
-    customerId: order?.customerId ?? data.customers[0]?.id ?? "new",
+    customerId: order?.customerId ?? "",
     customerName: "", customerPhone: "", customerAddress: "",
     serviceFee: String(order?.serviceFee ?? 0),
     shippingCharge: String(order?.shippingCharge ?? 0),
     discountType: order?.discount?.type ?? "amount", discountValue: order?.discount ? String(order.discount.value) : "",
     paid: String(order?.paid ?? 0),
-    date: order?.date ?? jakartaToday(), notes: order?.notes ?? "",
+    date: order?.date ?? "", notes: order?.notes ?? "",
   }));
   const [items, setItems] = useState<ItemFields[]>(() => order?.items.map((item) => ({
     id: item.id, product: item.product, variant: item.variant, color: item.color, size: item.size,

@@ -689,6 +689,10 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   await page.getByRole("button",{name:business==="Jastip"?"Pesanan jastip baru":"Pesanan PO baru",exact:true}).click();
   let form=page.getByRole("dialog",{name:business==="Jastip"?"Pesanan jastip baru":"Pesanan PO baru",exact:true});
   const date=form.locator('input[type="date"]');
+  await expect(date).toHaveValue("");
+  await expect(form.getByLabel("Pelanggan",{exact:true})).toHaveAttribute("data-value", "");
+  await expect(form.getByLabel("Pelanggan",{exact:true})).toHaveText("Pilih pelanggan");
+  await expect(form.getByLabel("Jumlah barang",{exact:true})).toHaveValue("");
   await date.fill(""); await expect(form.locator('.date-picker-display')).toHaveText("Pilih tanggal");
   if(width===1440) {
     await date.click({position:{x:8,y:20}});
