@@ -285,7 +285,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
             </div>
             <div className="field">
               <label className="field-label" htmlFor="order-customerId">Pelanggan<span className="required-mark" aria-hidden="true"> *</span></label>
-              <Select aria-label="Pelanggan" aria-required="true" id="order-customerId" name="customerId" className="input" value={fields.customerId} onValueChange={(value) => update("customerId", value)} aria-invalid={Boolean(errors.customerId)} aria-describedby={errors.customerId ? "error-customerId" : undefined}>
+              <Select placeholder="Pilih pelanggan" aria-label="Pelanggan" aria-required="true" id="order-customerId" name="customerId" className="input" value={fields.customerId} onValueChange={(value) => update("customerId", value)} aria-invalid={Boolean(errors.customerId)} aria-describedby={errors.customerId ? "error-customerId" : undefined}>
                 {data.customers.map((customer) => <SelectOption key={customer.id} value={customer.id}>{customer.name}</SelectOption>)}<SelectOption value="new">+ Pelanggan baru</SelectOption>
               </Select>
               {errors.customerId && <span id="error-customerId" className="error-message">{errors.customerId}</span>}

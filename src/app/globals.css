@@ -765,13 +765,13 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .order-dialog .delete-item { color:var(--danger); }
 .order-dialog .delete-item:disabled { color:var(--danger); opacity:.45; }
 .order-dialog .order-full-width { grid-column:1 / -1; }
-.order-dialog .order-context .field:has(input[type="date"]) { max-width:240px; }
+.order-dialog .order-context .field:has(input[type="date"]) { min-width:0; }
 .payment-total { display:flex; justify-content:space-between; gap:12px; margin-bottom:18px; color:var(--ink); }
 .payment-total strong { color:var(--primary); }
 @media(max-width:600px) { .order-dialog .jastip-item-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .order-dialog .jastip-item-grid > .field:nth-child(n+3) { grid-column:1 / -1; } .order-dialog .order-item-card .form-grid:not(.jastip-item-grid) { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 /* Batch and customer address span the context; customer sits beside the date. */
-.order-dialog .order-context .form-grid { grid-template-columns:minmax(0,1fr) minmax(0,240px); }
+.order-dialog .order-context .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .order-dialog .order-context .field:has([name="batchId"]),
 .order-dialog .order-context .field:has(textarea[name="customerAddress"]) { grid-column:1 / -1; }
 @media(max-width:600px) {
