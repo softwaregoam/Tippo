@@ -86,7 +86,7 @@ test(`homepage interactions and mobile navigation lead to real routes ${width} $
   await page.screenshot({path:`docs/preview-landing-po-${width}-${theme}.png`});
   await page.locator("summary").filter({hasText:"Apakah ringkasan Jastip dan Open PO digabung?"}).click();
   await expect(page.locator("details[open]")).toContainText("Tidak. Penjualan, HPP, pembayaran, tagihan, dan grafik bulanan hanya menampilkan usaha yang sedang dipilih.");
-  await expect(page.locator(".testimonials-section")).toContainText("Belum merupakan ulasan pelanggan asli.");
+  await expect(page.locator('[aria-labelledby="testimonials-title"]')).toContainText("Belum merupakan ulasan pelanggan asli.");
   await expect(page.locator(".testimonials-list figure")).toHaveCount(2);
   await page.locator("summary").filter({hasText:"Satu pesanan bisa berisi beberapa barang?"}).click();
   await expect(page.getByText("Bisa. Tambahkan beberapa barang",{exact:false})).toBeVisible();

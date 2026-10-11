@@ -56,8 +56,8 @@
 .ledger-mode-context { color: var(--tone-text-d8e8df); padding: 0 .2rem 1rem; font-size: .75rem; }
 .ledger-mode-context strong { font-weight: 650; }
 .ledger-mode-context p { margin-top: .35rem; }
-:root[data-theme="dark"] .order-ledger.ledger-po { background: #241e18; }
-:root[data-theme="dark"] .ledger-po .ledger-tabs { background: #382d22; }
+:root[data-theme="dark"] .order-ledger.ledger-po { background: #1e2220; }
+:root[data-theme="dark"] .ledger-po .ledger-tabs { background: #3b3027; }
 .order-ledger :is(button,a):focus-visible { outline-color:var(--tone-text-fff2de); }
 .ledger-page { background:var(--tone-surface-fffdf8); border-radius:4px; padding:1.1rem; }
 .ledger-heading { border-bottom:1px solid var(--tone-line-dedcd3); padding-bottom:1.1rem; }
