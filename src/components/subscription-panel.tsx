@@ -4,7 +4,6 @@ import { Check, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProInvoicePanel } from "@/components/pro-invoice-panel";
 import { DokuSandboxPanel } from "@/components/doku-sandbox-panel";
-import { DokuSnapPanel } from "@/components/doku-snap-panel";
 import {
   effectivePlan, endProDemo, FREE_ORDER_LIMIT, FREE_PRODUCT_LIMIT, jakartaMonth,
   monthlyOrderUsage, PRO_MONTHLY_PRICE, startProDemo,
@@ -77,7 +76,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify }: Sub
         {live ? <a className="btn btn-secondary" href="#invoice-pro">{plan === "pro" ? "Invoice perpanjangan Pro" : "Lihat invoice Pro"}</a> : plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
       </section>
     </div>
-    {live && account && (process.env.NEXT_PUBLIC_DOKU_SNAP_TEST_ENABLED==="true" ? <DokuSnapPanel key={account.id+"-snap-test"} account={account}/> : process.env.NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED==="true" && <DokuSandboxPanel key={account.id+"-production-test"} account={account} mode="production-test"/>)}
+    {live && account && process.env.NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED==="true" && <DokuSandboxPanel key={account.id+"-production-test"} account={account} mode="production-test"/>}
     {live && account && (sandbox ? <DokuSandboxPanel key={account.id} account={account}/> : <ProInvoicePanel key={account.id} account={account} onNotify={onNotify} />)}
   </div>;
 }

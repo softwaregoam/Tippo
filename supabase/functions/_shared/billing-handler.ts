@@ -46,7 +46,8 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
         const invoice=payload?.order?.invoice_number, amount=payload?.order?.amount, status=payload?.transaction?.status;
         const original=payload?.transaction?.original_request_id;
         const currency=payload?.order?.currency;
-        if (typeof invoice!=="string" || !numberPattern.test(invoice) || !Number.isSafeInteger(amount) || amount!==price || (currency!==undefined && currency!=="IDR") || !["SUCCESS","FAILED","PENDING","EXPIRED"].includes(status) || (original!==undefined && typeof original!=="string") || (payload?.service?.id!=="QRIS" && payload?.channel?.id!=="QRIS_DOKU")) return json({error:"INVALID_PAYMENT"},400);
+        const validService=mode==="sandbox" ? payload?.service?.id==="QRIS" || payload?.channel?.id==="QRIS_DOKU" : ["VIRTUAL_ACCOUNT","CREDIT_CARD","EMONEY","ONLINE_TO_OFFLINE","DIRECT_DEBIT","PEER_TO_PEER","QRIS"].includes(payload?.service?.id);
+        if (typeof invoice!=="string" || !numberPattern.test(invoice) || !Number.isSafeInteger(amount) || amount!==price || (currency!==undefined && currency!=="IDR") || !["SUCCESS","FAILED","PENDING","EXPIRED"].includes(status) || (original!==undefined && typeof original!=="string") || !validService) return json({error:"INVALID_PAYMENT"},400);
         const accepted=await ports.rpc(`tippo_accept_${prefix}_notification`,{p_invoice:invoice,p_client_id:config.clientId,p_amount:amount,p_request_id:req.headers.get("Request-Id"),p_digest:await digest(raw),p_status:status,p_original_request:original??null});
         return json({received:true,matched:accepted===true});
       }

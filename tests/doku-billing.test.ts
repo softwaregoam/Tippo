@@ -8,12 +8,15 @@ import {signDoku,verifyDoku,parseDokuExpiry,safeCheckoutUrl,createDokuCheckout,t
 import {parseSandboxBilling,parseProductionTestBilling} from "../src/lib/doku-billing.ts";
 
 const db=new PGlite();
+let legacyCheckout:DokuInvoice;
 const a="00000000-0000-0000-0000-000000000001",b="00000000-0000-0000-0000-000000000002",c="00000000-0000-0000-0000-000000000003";
 const config={environment:"sandbox",clientId:"test-merchant",secretKey:"test-secret-not-a-credential",siteUrl:"https://preview.tippo.test",notificationUrl:"https://billing.supabase.test/functions/v1/tippo-doku-sandbox/webhook"};
 before(async()=>{
  await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${a}'),('${b}'),('${c}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to anon,authenticated;create table public.tippo_workspaces(owner_id uuid primary key,pro_until timestamptz);insert into public.tippo_workspaces values('${a}',null),('${b}',null),('${c}',null);`);
  const migration=await readFile(new URL("../supabase/migrations/202610120001_doku_sandbox.sql",import.meta.url),"utf8");await db.exec(migration);await db.exec(migration);
  const production=await readFile(new URL("../supabase/migrations/202610120002_doku_production_test.sql",import.meta.url),"utf8");await db.exec(production);await db.exec(production);
+ legacyCheckout=(await db.query<{value:DokuInvoice}>("select public.tippo_begin_production_test_checkout($1,$2,$3,$4) as value",[c,config.clientId,config.siteUrl+"/app",config.notificationUrl])).rows[0].value;
+ const methods=await readFile(new URL("../supabase/migrations/202610120004_doku_checkout_methods.sql",import.meta.url),"utf8");await db.exec(methods);await db.exec(methods);
 });
 after(()=>db.close());
 async function rpc(name:string,args:Record<string,unknown>){
@@ -113,13 +116,13 @@ test("public webhook health checks never mutate billing and POST still requires 
 test("production Rp10 is restricted, signed, idempotent and never grants Pro",async()=>{
  const cfg={...config,environment:"production",allowedUsers:[a],notificationUrl:"https://billing.supabase.test/functions/v1/tippo-doku-production-test/webhook"};
  let calls=0;let issued:DokuInvoice;
- const handle=productionTestHandler(cfg,{authenticate:async token=>token==="tester"?a:b,rpc:async(name,args)=>{const value=await rpc(name,args);if(name==="tippo_begin_production_test_checkout")issued=value as DokuInvoice;return value;},send:async(input,init)=>{calls++;assert.equal(String(input),"https://api.doku.com/checkout/v1/payment");const body=JSON.parse(init!.body as string);assert.equal(body.order.amount,10);return Response.json({response:{order:body.order,payment:{url:"https://jokul.doku.com/checkout/link/test",expired_date:"20501012120000"}}});}});
+ const handle=productionTestHandler(cfg,{authenticate:async token=>token==="tester"?a:b,rpc:async(name,args)=>{const value=await rpc(name,args);if(name==="tippo_begin_production_test_checkout")issued=value as DokuInvoice;return value;},send:async(input,init)=>{calls++;assert.equal(String(input),"https://api.doku.com/checkout/v1/payment");const body=JSON.parse(init!.body as string);assert.equal(body.order.amount,10);assert.equal(body.payment.payment_method_types,undefined);return Response.json({response:{order:body.order,payment:{url:"https://jokul.doku.com/checkout/link/test",expired_date:"20501012120000"}}});}});
  const base="https://billing.supabase.test/functions/v1/tippo-doku-production-test/";
  assert.equal((await handle(new Request(base+"checkout",{method:"POST",headers:{Authorization:"Bearer other"}}))).status,403);assert.equal(calls,0);
  const response=await handle(new Request(base+"checkout",{method:"POST",headers:{Authorization:"Bearer tester"},body:JSON.stringify({amount:25000,ownerId:b})}));
  assert.equal(response.status,200);const state=parseProductionTestBilling(await response.json());assert.equal(state.invoice!.amount,10);assert.equal(state.proUntil,null);
  await handle(new Request(base+"checkout",{method:"POST",headers:{Authorization:"Bearer tester"}}));assert.equal(calls,1);
- const payload=JSON.stringify({service:{id:"QRIS"},order:{invoice_number:issued!.invoice_number,amount:10},transaction:{status:"SUCCESS"}});
+ const payload=JSON.stringify({service:{id:"VIRTUAL_ACCOUNT"},channel:{id:"VIRTUAL_ACCOUNT_BNI"},order:{invoice_number:issued!.invoice_number,amount:10},transaction:{status:"SUCCESS"}});
  const timestamp="2026-10-12T01:00:00Z",id="production-test-event";
  const headers={"Client-Id":cfg.clientId,"Request-Id":id,"Request-Timestamp":timestamp,Signature:await signDoku(cfg.secretKey,cfg.clientId,id,timestamp,new URL(cfg.notificationUrl).pathname,payload)};
  assert.equal((await handle(new Request(base+"webhook",{method:"POST",headers,body:payload}))).status,200);
@@ -134,4 +137,10 @@ test("production provider rejection closes invoice without raising the Rp10 amou
  const response=await handle(new Request("https://billing.supabase.test/checkout",{method:"POST",headers:{Authorization:"Bearer tester"}}));
  assert.equal(response.status,400);assert.equal((await response.json()).error,"CHECKOUT_REJECTED");
  const state=parseProductionTestBilling(await rpc("tippo_get_production_test_billing",{p_owner:b}));assert.equal(state.invoice!.amount,10);assert.equal(state.invoice!.status,"error");
+});
+
+test("Checkout method migration preserves existing QRIS invoice body and identity",async()=>{
+ const invoice=await rpc("tippo_begin_production_test_checkout",{p_owner:c,p_client_id:config.clientId,p_callback:config.siteUrl+"/app",p_notification:config.notificationUrl}) as DokuInvoice;
+ assert.deepEqual(invoice,legacyCheckout);
+ assert.deepEqual(JSON.parse(invoice.request_body).payment.payment_method_types,["QRIS"]);
 });

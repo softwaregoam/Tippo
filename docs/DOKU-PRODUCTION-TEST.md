@@ -1,13 +1,13 @@
-# Uji QRIS produksi Rp10
+# Uji DOKU Checkout produksi Rp10
 
-Pengujian terbaru menggunakan [SNAP Virtual Account BNI](DOKU-SNAP-TEST.md). Panduan ini tetap menjelaskan alur Checkout QRIS lama; fungsi, migration dan Notification URL keduanya berbeda.
+Pilihan terbaru pengguna adalah **DOKU Checkout**, bukan Direct API SNAP. Pengguna memilih metode pembayaran di halaman DOKU. Private Key RSA dan BIN/prefix VA BNI tidak diperlukan.
 
-Invoice uji terpisah dari langganan Pro Rp25.000. Pembayaran ini memakai uang nyata dan tidak mengaktifkan Pro. Nominal dikunci Rp10 di database/backend; jika DOKU atau aplikasi pembayaran menolak, tidak ada kenaikan nominal otomatis. Batas minimum QRIS pada merchant ini belum terkonfirmasi.
+Invoice uji terpisah dari langganan Pro Rp25.000. Pembayaran ini memakai uang nyata dan tidak mengaktifkan Pro. Nominal dikunci Rp10 di database/backend; jika DOKU atau aplikasi pembayaran menolak, tidak ada kenaikan nominal otomatis. Batas minimum mengikuti metode pembayaran yang dipilih dan belum terkonfirmasi.
 
 ## Pemasangan
 
-1. Jalankan [migration produksi uji](../supabase/migrations/202610120002_doku_production_test.sql) melalui Supabase → SQL Editor pada project bkplemoflteubfgvqhke. Tabel sandbox dan langganan asli tetap terpisah.
-2. Buka DOKU **produksi**, ambil Client ID dan Secret Key untuk Checkout, serta pastikan QRIS aktif. Kredensial sandbox tidak dapat dipakai.
+1. Jalankan [migration produksi uji](../supabase/migrations/202610120002_doku_production_test.sql) melalui Supabase → SQL Editor pada project bkplemoflteubfgvqhke. Lalu jalankan [migration pilihan metode Checkout](../supabase/migrations/202610120004_doku_checkout_methods.sql). Tabel sandbox dan langganan asli tetap terpisah.
+2. Buka DOKU **produksi**, ambil Client ID dan Secret Key untuk Checkout, serta pastikan metode pembayaran yang ingin dipakai sudah aktif. Kredensial sandbox tidak dapat dipakai.
 3. Supabase → Authentication → Users: salin **User UID** akun Tippo milikmu.
 4. Supabase → Edge Functions → Secrets: tambahkan:
    - DOKU_PRODUCTION_CLIENT_ID: Client ID produksi.
@@ -35,8 +35,8 @@ https://bkplemoflteubfgvqhke.supabase.co/functions/v1/tippo-doku-production-test
 
 Konfigurasi notifikasi dashboard harus tersedia agar override_notification_url dapat digunakan. Jika dashboard mengembalikan “The product has not been Activated”, hubungi DOKU untuk aktivasi produk Checkout pada merchant/brand terkait.
 
-7. Vercel → Settings → Environment Variables: NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED=true pada environment pengujian yang digunakan; redeploy. Flag sandbox boleh dimatikan untuk mengurangi kebingungan.
-8. Masuk memakai akun yang UID-nya terdaftar → Paket & langganan → **Uji QRIS produksi → Siapkan pembayaran Rp10 → Buka pembayaran DOKU**. Bayar secara manual, lalu klik **Cek status pembayaran**. Redirect saja tidak menandakan lunas.
+7. Vercel → Settings → Environment Variables: NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED=true pada environment pengujian yang digunakan; NEXT_PUBLIC_DOKU_SNAP_TEST_ENABLED=false dan NEXT_PUBLIC_DOKU_SANDBOX_ENABLED=false. Redeploy. Supabase: set DOKU_SNAP_TEST_ENABLED=false bila fungsi SNAP sebelumnya pernah deployed.
+8. Masuk memakai akun yang UID-nya terdaftar → Paket & langganan → **Uji pembayaran produksi → Siapkan pembayaran Rp10 → Buka pembayaran DOKU**. Bayar secara manual, lalu klik **Cek status pembayaran**. Redirect saja tidak menandakan lunas.
 9. Setelah selesai, matikan kedua flag produksi uji dan redeploy. Simpan ledger invoice untuk rekonsiliasi.
 
 ## Validasi
@@ -44,3 +44,7 @@ Konfigurasi notifikasi dashboard harus tersedia agar override_notification_url d
 Tes lokal memakai transport DOKU tiruan dan PostgreSQL PGlite: nominal tetap Rp10, pembatasan akun, signature/replay, kegagalan provider, pemisahan entitlement dan RLS. Ini tidak membuktikan merchant menerima Rp10. Deployment remote, aktivasi merchant, pembayaran nyata dan penerimaan webhook harus diperiksa setelah pemasangan.
 
 Endpoint produksi mengikuti [Checkout backend integration](https://developers.doku.com/accept-payments/doku-checkout/integration-guide/backend-integration); host checkout jokul.doku.com mengikuti [frontend integration](https://developers.doku.com/accept-payments/doku-checkout/integration-guide/frontend-integration).
+
+Invoice baru tidak mengirim payment_method_types, sehingga DOKU menampilkan seluruh metode yang tersedia pada merchant. Invoice lama yang masih aktif mempertahankan body/Request ID aslinya; invoice QRIS lama tetap terbatas QRIS sampai selesai/kedaluwarsa. Perubahan tidak membatalkan transaksi yang sedang berjalan.
+
+Lokasi Notification URL perlu dicocokkan dengan konfigurasi Checkout/brand DOKU. HTTP Notifications → Pengaturan adalah pengaturan email kegagalan pengiriman, bukan kolom URL webhook. Jika konfigurasi Checkout tidak terlihat, minta DOKU menunjukkan konfigurasi notifikasi Checkout Non-SNAP untuk Client ID/brand tersebut; jangan memakai konfigurasi Direct API SNAP.

@@ -1,5 +1,7 @@
 # Uji produksi DOKU SNAP — Virtual Account BNI Rp10
 
+**Panduan historis.** Pengguna kembali memilih [DOKU Checkout](DOKU-PRODUCTION-TEST.md). Alur SNAP tidak ditampilkan pada aplikasi; jangan aktifkan fungsi SNAP untuk alur Checkout.
+
 Alur SNAP baru memakai DGPC (DOKU Generate Payment Code), closed amount Rp10, VA sekali pakai dan masa bayar 60 menit. Nomor VA muncul di Tippo dan dapat disalin. Ini pembayaran nyata khusus penguji, tidak mengaktifkan Pro; harga langganan tetap Rp25.000.
 
 Integrasi Checkout Non-SNAP lama tetap terpisah. Aktifkan SNAP dan matikan flag produksi Checkout lama agar pengguna hanya melihat satu alur pengujian.

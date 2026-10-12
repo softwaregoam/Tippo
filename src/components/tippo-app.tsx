@@ -85,7 +85,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     { id: "feedback" as Page, label: "Kritik & saran", icon: MessageSquare },
   ];
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [page, setPage] = useState<Page>(() => typeof window !== "undefined" && (process.env.NEXT_PUBLIC_DOKU_SANDBOX_ENABLED === "true" && new URLSearchParams(window.location.search).get("billing") === "sandbox" || process.env.NEXT_PUBLIC_DOKU_SNAP_TEST_ENABLED === "true" && new URLSearchParams(window.location.search).get("billing") === "snap-test" || process.env.NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED === "true" && new URLSearchParams(window.location.search).get("billing") === "production-test") ? "subscription" : "dashboard");
+  const [page, setPage] = useState<Page>(() => typeof window !== "undefined" && (process.env.NEXT_PUBLIC_DOKU_SANDBOX_ENABLED === "true" && new URLSearchParams(window.location.search).get("billing") === "sandbox" || process.env.NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED === "true" && new URLSearchParams(window.location.search).get("billing") === "production-test") ? "subscription" : "dashboard");
   const [selectedMonth, setMonth] = useState(() => jakartaMonth());
   const month = isPro ? selectedMonth : currentMonth;
   const [search, setSearch] = useState("");
