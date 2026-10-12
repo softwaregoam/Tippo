@@ -17,7 +17,7 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
   const site = new URL(config.siteUrl);
   if (config.environment !== (mode==="sandbox"?"sandbox":"production") || !config.clientId || !config.secretKey || site.protocol !== "https:" || site.username || site.password) throw new Error("BILLING_CONFIG_REQUIRED");
   const prefix=mode==="sandbox"?"sandbox":"production_test";
-  const price=mode==="sandbox"?25000:10;
+  const prices=mode==="sandbox"?[25000]:[10,1000];
   const numberPattern=mode==="sandbox"?/^TSBX-[A-F0-9]{32}$/:/^TPT-[A-F0-9]{32}$/;
   const target = new URL(config.notificationUrl).pathname;
   const json = (data: unknown, status = 200, cors = false) => new Response(JSON.stringify(data), { status, headers: {
@@ -47,7 +47,7 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
         const original=payload?.transaction?.original_request_id;
         const currency=payload?.order?.currency;
         const validService=mode==="sandbox" ? payload?.service?.id==="QRIS" || payload?.channel?.id==="QRIS_DOKU" : ["VIRTUAL_ACCOUNT","CREDIT_CARD","EMONEY","ONLINE_TO_OFFLINE","DIRECT_DEBIT","PEER_TO_PEER","QRIS"].includes(payload?.service?.id);
-        if (typeof invoice!=="string" || !numberPattern.test(invoice) || !Number.isSafeInteger(amount) || amount!==price || (currency!==undefined && currency!=="IDR") || !["SUCCESS","FAILED","PENDING","EXPIRED"].includes(status) || (original!==undefined && typeof original!=="string") || !validService) return json({error:"INVALID_PAYMENT"},400);
+        if (typeof invoice!=="string" || !numberPattern.test(invoice) || !Number.isSafeInteger(amount) || !prices.includes(amount) || (currency!==undefined && currency!=="IDR") || !["SUCCESS","FAILED","PENDING","EXPIRED"].includes(status) || (original!==undefined && typeof original!=="string") || !validService) return json({error:"INVALID_PAYMENT"},400);
         const accepted=await ports.rpc(`tippo_accept_${prefix}_notification`,{p_invoice:invoice,p_client_id:config.clientId,p_amount:amount,p_request_id:req.headers.get("Request-Id"),p_digest:await digest(raw),p_status:status,p_original_request:original??null});
         return json({received:true,matched:accepted===true});
       }
