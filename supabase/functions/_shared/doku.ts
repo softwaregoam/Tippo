@@ -3,8 +3,32 @@ export const DOKU_SANDBOX_ENDPOINT = "https://api-sandbox.doku.com/checkout/v1/p
 export type DokuMode = "sandbox" | "production-test";
 export const DOKU_PRODUCTION_ENDPOINT = "https://api.doku.com/checkout/v1/payment";
 export class CheckoutRejected extends Error {
- providerStatus:number;providerCode:string|null;
- constructor(status:number,code:string|null){super("CHECKOUT_REJECTED");this.providerStatus=status;this.providerCode=code;}
+ providerStatus:number;providerCode:string|null;providerMessage:string|null;providerFormat:string;
+ constructor(status:number,code:string|null,message:string|null=null,format="json"){super("CHECKOUT_REJECTED");this.providerStatus=status;this.providerCode=code;this.providerMessage=message;this.providerFormat=format;}
+}
+export async function readCheckoutRejection(response:Response,sensitive:string[]){
+ const reader=response.body?.getReader();const parts:Uint8Array[]=[];let size=0,truncated=false;
+ if(reader)while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>8192){truncated=true;await reader.cancel();break;}parts.push(value);}
+ if(truncated)return new CheckoutRejected(response.status,null,null,"truncated");
+ const bytes=new Uint8Array(size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length;}
+ const raw=new TextDecoder().decode(bytes).trim();
+ if(!raw)return new CheckoutRejected(response.status,null,null,"empty");
+ if(/^\s*</.test(raw))return new CheckoutRejected(response.status,null,null,"html");
+ let data;try{data=JSON.parse(raw);}catch{data=null;}
+ const format=data!==null?"json":"text";
+ const code=data?.error?.code??data?.code??data?.responseCode??data?.error_code??data?.errors?.[0]?.code??data?.response?.error?.code;
+ const candidate=data?.error?.message??data?.message??data?.responseMessage??data?.error_description??data?.errors?.[0]?.message??data?.response?.error?.message??data?.response?.message??(typeof data?.error==="string" || Array.isArray(data?.error)?data.error:undefined)??(typeof data?.errors?.[0]==="string"?data.errors[0]:undefined)??(typeof data==="string"?data:undefined)??(format==="text"?raw:undefined);
+ let message=typeof candidate==="string"?candidate:Array.isArray(candidate)?candidate.filter(value=>typeof value==="string").slice(0,3).join("; "):typeof candidate?.english==="string"?candidate.english:typeof candidate?.en==="string"?candidate.en:typeof candidate?.indonesia==="string"?candidate.indonesia:null;
+ const redact=(text:string)=>{
+  for(const secret of sensitive.filter(Boolean))for(const variant of new Set([secret,encodeURIComponent(secret),base64(encoder.encode(secret).buffer as ArrayBuffer)]))text=text.split(variant).join("[redacted]");
+  return text.replace(/Bearer\s+\S+/gi,"Bearer [redacted]").replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,"[redacted]")
+   .replace(/https?:\/\/[^\s"'<>]+/gi,"[URL]").replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g,"[email]")
+   .replace(/((?:secret(?:[_ -]?key)?|api[_ -]?key|signature|token|password|authorization)\s*[:=]\s*)[^\s,;]+/gi,"$1[redacted]")
+   .replace(/<[^>]*>/g,"").replace(/[\u0000-\u001f\u007f]+/g," ").trim().slice(0,300);
+ };
+ message=message?redact(message):null;
+ const safeCode=typeof code==="string" && /^[A-Za-z0-9_-]{1,80}$/.test(code) && !sensitive.includes(code)?code:null;
+ return new CheckoutRejected(response.status,safeCode,message||null,format);
 }
 const encoder = new TextEncoder();
 function base64(bytes: ArrayBuffer) { return btoa(String.fromCharCode(...new Uint8Array(bytes))); }
@@ -40,16 +64,14 @@ export function parseDokuExpiry(value: unknown): string {
 export interface DokuInvoice { id: string; owner_id: string; invoice_number: string; amount: number; request_id: string; request_body: string; status: string; checkout_url: string | null; }
 export async function createDokuCheckout(invoice: DokuInvoice, client: string, secret: string, send: typeof fetch = fetch, mode: DokuMode = "sandbox") {
   const timestamp = new Date().toISOString().slice(0,19)+"Z";
+  const signature=await signDoku(secret,client,invoice.request_id,timestamp,"/checkout/v1/payment",invoice.request_body);
   const response = await send(mode==="sandbox"?DOKU_SANDBOX_ENDPOINT:DOKU_PRODUCTION_ENDPOINT, { method: "POST", headers: {
     "Content-Type":"application/json", "Client-Id":client, "Request-Id":invoice.request_id, "Request-Timestamp":timestamp,
-    "Signature": await signDoku(secret,client,invoice.request_id,timestamp,"/checkout/v1/payment",invoice.request_body),
+    "Signature": signature,
   }, body:invoice.request_body, signal:AbortSignal.timeout(15000), redirect:"error" });
   // DOKU documents 409 with the original response for an idempotent retry.
   if (response.status===400 || response.status===422) {
-    const rejected=await response.json().catch(()=>null);
-    const code=rejected?.error?.code??rejected?.code??rejected?.responseCode;
-    // Never expose raw provider messages, headers or echoed request data.
-    throw new CheckoutRejected(response.status,typeof code==="string" && /^[A-Za-z0-9_-]{1,80}$/.test(code)?code:null);
+    throw await readCheckoutRejection(response,[secret,client,signature,signature.slice("HMACSHA256=".length)]);
   }
   if (!response.ok && response.status !== 409) throw new Error("CHECKOUT_UNAVAILABLE");
   const body = await response.json();

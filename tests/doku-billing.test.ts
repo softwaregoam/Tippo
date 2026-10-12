@@ -4,10 +4,25 @@ import {readFile} from "node:fs/promises";
 import {createHash,createHmac} from "node:crypto";
 import {PGlite} from "@electric-sql/pglite";
 import {billingHandler,productionTestHandler} from "../supabase/functions/_shared/billing-handler.ts";
-import {signDoku,verifyDoku,parseDokuExpiry,safeCheckoutUrl,createDokuCheckout,type DokuInvoice} from "../supabase/functions/_shared/doku.ts";
+import {readCheckoutRejection,signDoku,verifyDoku,parseDokuExpiry,safeCheckoutUrl,createDokuCheckout,type DokuInvoice} from "../supabase/functions/_shared/doku.ts";
 import {parseSandboxBilling,parseProductionTestBilling} from "../src/lib/doku-billing.ts";
 
 const db=new PGlite();
+
+test("Checkout diagnostics read alternate JSON/text errors and redact secrets without returning HTML",async()=>{
+ const secrets=["private-test-secret","merchant-test-id","signature-test-value"];
+ const flat=await readCheckoutRejection(Response.json({message:"order.amount is invalid",error_code:"INVALID_AMOUNT"},{status:400}),secrets);
+ assert.equal(flat.providerCode,"INVALID_AMOUNT");assert.equal(flat.providerMessage,"order.amount is invalid");assert.equal(flat.providerFormat,"json");
+ const nested=await readCheckoutRejection(Response.json({error:{message:["override_notification_url is invalid","secret: private-test-secret merchant-test-id signature-test-value Bearer bearer-test-value"]}},{status:400}),secrets);
+ assert.equal(nested.providerCode,null);assert.match(nested.providerMessage!,/override_notification_url/);
+ for(const secret of [...secrets,"bearer-test-value"])assert.equal(nested.providerMessage!.includes(secret),false);
+ const plain=await readCheckoutRejection(new Response("Client-Id is not registered",{status:400}),secrets);
+ assert.equal(plain.providerMessage,"Client-Id is not registered");assert.equal(plain.providerFormat,"text");
+ const html=await readCheckoutRejection(new Response("<html>private-test-secret</html>",{status:400}),secrets);
+ assert.equal(html.providerFormat,"html");assert.equal(html.providerMessage,null);
+ const large=await readCheckoutRejection(new Response("x".repeat(9000),{status:400}),secrets);
+ assert.equal(large.providerFormat,"truncated");assert.equal(large.providerMessage,null);
+});
 let legacyCheckout:DokuInvoice;
 const a="00000000-0000-0000-0000-000000000001",b="00000000-0000-0000-0000-000000000002",c="00000000-0000-0000-0000-000000000003";
 const config={environment:"sandbox",clientId:"test-merchant",secretKey:"test-secret-not-a-credential",siteUrl:"https://preview.tippo.test",notificationUrl:"https://billing.supabase.test/functions/v1/tippo-doku-sandbox/webhook"};

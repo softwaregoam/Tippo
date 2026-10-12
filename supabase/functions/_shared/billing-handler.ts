@@ -64,7 +64,7 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
         if (!invoice.checkout_url && invoice.status==="creating") {
           let checkout;
           try{checkout=await createDokuCheckout(invoice,config.clientId,config.secretKey,ports.send,mode);}
-          catch(error){if(error instanceof CheckoutRejected && mode==="production-test"){await ports.rpc("tippo_fail_production_test_checkout",{p_id:invoice.id,p_owner:owner});return json({error:"CHECKOUT_REJECTED",providerStatus:error.providerStatus,providerCode:error.providerCode,billing:await ports.rpc("tippo_get_production_test_billing",{p_owner:owner})},400,true);}throw error;}
+          catch(error){if(error instanceof CheckoutRejected && mode==="production-test"){await ports.rpc("tippo_fail_production_test_checkout",{p_id:invoice.id,p_owner:owner});return json({error:"CHECKOUT_REJECTED",providerStatus:error.providerStatus,providerCode:error.providerCode,providerMessage:error.providerMessage,providerFormat:error.providerFormat,billing:await ports.rpc("tippo_get_production_test_billing",{p_owner:owner})},400,true);}throw error;}
           await ports.rpc(`tippo_attach_${prefix}_checkout`,{p_id:invoice.id,p_owner:owner,p_url:checkout.url,p_expires:checkout.expiresAt});
         }
       }

@@ -3,17 +3,18 @@ import { expect, test, type Page, type Locator } from "@playwright/test";
 import type { AppData } from "../src/lib/types";
 import { readFile } from "node:fs/promises";
 
-test("DOKU production rejection shows safe provider code and refreshes failed invoice",async({page})=>{
+test("DOKU production rejection shows provider reason and refreshes failed invoice",async({page})=>{
  test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
  await authenticate(page);
  const state={environment:"production-test",proUntil:null,invoice:{id:"test",number:"TPT"+"A".repeat(24),amount:10000,currency:"IDR",status:"creating",checkoutUrl:null,createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null}};
  await page.route(endpoint+"/functions/v1/tippo-doku-production-test/**",async route=>{
-  if(route.request().method()==="POST"){state.invoice.status="error";return route.fulfill({status:400,json:{error:"CHECKOUT_REJECTED",providerStatus:400,providerCode:"INVALID_PARAMETER",billing:state}});}
+  if(route.request().method()==="POST"){state.invoice.status="error";return route.fulfill({status:400,json:{error:"CHECKOUT_REJECTED",providerStatus:400,providerCode:null,providerMessage:"override_notification_url is not configured",providerFormat:"json",billing:state}});}
   return route.fulfill({json:state});
  });
  await page.goto("/app?billing=production-test");const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});
  await panel.getByRole("button",{name:"Coba siapkan pembayaran"}).click();
- await expect(panel.getByRole("alert")).toContainText("kode INVALID_PARAMETER");
+ await expect(panel.getByRole("alert")).toContainText("HTTP 400");
+ await expect(panel.getByRole("alert")).toContainText("override_notification_url is not configured");
  await expect(panel).toContainText("Belum berhasil");
 });
 
