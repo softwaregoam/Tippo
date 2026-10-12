@@ -896,3 +896,10 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .pro-invoice-empty p { color: var(--muted); line-height: 1.8; }
 @media (max-width: 600px) { .pro-invoice-body { padding: 20px; } .pro-invoice-details { grid-template-columns: 1fr; gap: 8px; } .pro-invoice-details dd { margin-bottom: 8px; } .pro-invoice-actions { flex-direction: column; } }
 .batch-status-flow { display: flex; align-items: center; gap: 12px; }
+.tippo-doku-dialog { padding:0; border:0; border-radius:12px; width:min(520px,calc(100vw - 32px)); max-width:none; height:min(800px,calc(100dvh - 32px)); max-height:none; margin:auto; background:var(--paper); color:var(--ink); overflow:hidden; }
+.tippo-doku-dialog::backdrop { background:rgba(0,0,0,.6); }
+.tippo-doku-dialog .jokul-modal { position:static; padding:0!important; width:100%; height:100%; background:transparent; overflow:hidden; }
+.tippo-doku-header { display:flex; align-items:center; justify-content:space-between; gap:12px; height:60px; padding:8px 16px; border-bottom:1px solid var(--border); }
+.tippo-doku-dialog .jokul-content { height:calc(100% - 60px)!important; }
+.tippo-doku-dialog iframe { width:100%!important; height:100%!important; border:0; margin:0; border-radius:0; box-shadow:none; background:white; }
+@media (max-width:600px) { .tippo-doku-dialog { width:100vw; height:100dvh; margin:0; border-radius:0; } }

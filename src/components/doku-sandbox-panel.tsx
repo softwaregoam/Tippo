@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, RefreshCw, ReceiptText } from "lucide-react";
+import { RefreshCw, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient } from "@/lib/supabase";
 import { parseSandboxBilling, parseProductionTestBilling, type SandboxBilling } from "@/lib/doku-billing";
 import { formatProInvoiceDate } from "@/lib/pro-invoice";
+import { prepareDokuCheckout, showDokuCheckout } from "@/lib/doku-checkout-popup";
 
 class CheckoutFailure extends Error {
   billing:SandboxBilling|null;
@@ -18,6 +19,7 @@ export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},m
   const [clock,setClock]=useState(()=>Date.now());
   const [cancelId,setCancelId]=useState<string|null>(null);
   const alive=useRef(false),lock=useRef(false);
+  const popupCleanup=useRef<(()=>void)|null>(null);
   async function request(action:"checkout"|"status"|"cancel",signal?:AbortSignal,invoiceId?:string) {
     const client=getSupabaseClient();const session=await client?.auth.getSession();
     if(!client || session?.data.session?.user.id!==account.id)throw new Error("Masuk kembali sebelum membuka pembayaran.");
@@ -29,7 +31,7 @@ export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},m
     alive.current=true;lock.current=true;const controller=new AbortController();
     const timer=setInterval(()=>setClock(Date.now()),30000);
     request("status",controller.signal).then(value=>{if(alive.current)setBilling(value);}).catch(reason=>{if(alive.current && !controller.signal.aborted)setError(reason instanceof Error?reason.message:failure);}).finally(()=>{lock.current=false;if(alive.current)setBusy(false);});
-    return()=>{alive.current=false;controller.abort();clearInterval(timer);};
+    return()=>{alive.current=false;controller.abort();clearInterval(timer);popupCleanup.current?.();popupCleanup.current=null;};
     // The component is keyed by account ID; never reuses another owner's state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[account.id,mode]);
@@ -44,6 +46,19 @@ export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},m
   const payable=invoice?.status==="pending" && Date.parse(invoice.expiresAt)>clock && (!production || (invoice.amount===10000 && invoice.number.length<=30));
   const displayedStatus=invoice && ["creating","pending"].includes(invoice.status) && Date.parse(invoice.expiresAt)<=clock?"expired":invoice?.status;
   const needsReview=production && invoice?.recoveryRequired===true && displayedStatus!=="expired";
+  async function openPayment(){
+    if(lock.current || !payable || !invoice?.checkoutUrl)return;
+    const opener=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    lock.current=true;setBusy(true);setError("");
+    try{
+      await prepareDokuCheckout(mode);
+      if(!alive.current || Date.parse(invoice.expiresAt)<=Date.now())return;
+      popupCleanup.current=showDokuCheckout(invoice.checkoutUrl,mode,()=>{
+        popupCleanup.current=null;if(alive.current)return load("status");
+      },opener);
+    }catch(reason){if(alive.current)setError(reason instanceof Error?reason.message:failure);}
+    finally{lock.current=false;if(alive.current)setBusy(false);}
+  }
   return <section id={production?"production-test-payment":"invoice-pro"} className="card pro-invoice-panel" aria-label={production?"Uji pembayaran produksi":"Pembayaran Pro sandbox"}>
     <div className="card-header"><div><h2>{production?"Uji pembayaran produksi":"Pembayaran Pro"}</h2><p>DOKU Checkout · <span className="status-tag order-status-new">{production?"Produksi · Rp10.000":"Sandbox"}</span></p></div><ReceiptText size={22}/></div>
     <div className="pro-invoice-body"><p className="field-hint">{production?"Pembayaran nyata sebesar Rp10.000 untuk menguji DOKU Checkout. Tidak mengaktifkan Pro. DOKU atau aplikasi pembayaran dapat menolak nominal ini.":"Pengujian pembayaran Rp25.000 untuk satu bulan Pro. Gunakan simulator DOKU. Hasil uji tidak mengaktifkan langganan produksi."}</p>
@@ -54,7 +69,7 @@ export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},m
       {production && invoice?.customerName && <p className="field-hint">Pelanggan: {invoice.customerName}{invoice.customerEmail?" · "+invoice.customerEmail:""}</p>}
       {billing?.proUntil && <p className="field-hint">Simulasi masa Pro tercatat sampai {formatProInvoiceDate(billing.proUntil)}. Paket dan kuota akun produksi tetap terpisah.</p>}
       <div className="pro-invoice-actions">
-        {payable && invoice?.checkoutUrl ? <a className="btn btn-primary" href={invoice.checkoutUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/>Buka pembayaran DOKU</a> : invoice?.status!=="paid" && !needsReview && <Button className="btn btn-primary" disabled={busy} onClick={()=>void load("checkout")}><ReceiptText size={16}/>{busy?"Menyiapkan…":invoice?.status==="creating"?"Coba siapkan pembayaran":production?"Siapkan pembayaran Rp10.000":"Buat pembayaran sandbox"}</Button>}
+        {payable && invoice?.checkoutUrl ? <Button className="btn btn-primary" disabled={busy} onClick={()=>void openPayment()}><ReceiptText size={16}/>{busy?"Memuat…":"Buka pembayaran DOKU"}</Button> : invoice?.status!=="paid" && !needsReview && <Button className="btn btn-primary" disabled={busy} onClick={()=>void load("checkout")}><ReceiptText size={16}/>{busy?"Menyiapkan…":invoice?.status==="creating"?"Coba siapkan pembayaran":production?"Siapkan pembayaran Rp10.000":"Buat pembayaran sandbox"}</Button>}
         <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("status")}><RefreshCw size={16}/>{busy?"Memuat…":"Cek status pembayaran"}</Button>
         {invoice?.status==="paid" && <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("checkout")}>{production?"Uji pembayaran lagi":"Uji perpanjangan Pro"}</Button>}
       </div>{error&&<p className="error-message" role="alert">{error}</p>}

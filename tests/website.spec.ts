@@ -42,15 +42,15 @@ test("DOKU production replaces an old Rp1.000 link with a new Rp10.000 invoice",
  });
  await page.goto("/app?billing=production-test");const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});
  await expect(panel).toContainText("invoice uji lama Rp1.000");
- await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toHaveCount(0);
+ await expect(panel.getByRole("button",{name:"Buka pembayaran DOKU"})).toHaveCount(0);
  await panel.getByRole("button",{name:"Siapkan pembayaran Rp10.000"}).click();
  await expect(panel.locator(".pro-invoice-details")).toContainText("Rp10.000");
- await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toBeVisible();
+ await expect(panel.getByRole("button",{name:"Buka pembayaran DOKU"})).toBeVisible();
 });
 
 for(const width of [320,1440])test(`DOKU production Rp10.000 test at ${width}px`,async({page})=>{
  test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
- await page.setViewportSize({width,height:900});await authenticate(page);
+ await page.setViewportSize({width,height:900});await authenticate(page);await mockDokuPopup(page);
  let paid=false,created=false;
  await page.route(`${endpoint}/functions/v1/tippo-doku-production-test/**`,async route=>{
   if(route.request().method()==="POST"){created=true;expect(route.request().postDataJSON()).toEqual({});}
@@ -59,8 +59,19 @@ for(const width of [320,1440])test(`DOKU production Rp10.000 test at ${width}px`
  await page.goto("/app?billing=production-test");
  const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});
  await expect(panel).toBeVisible();await panel.getByRole("button",{name:"Siapkan pembayaran Rp10.000"}).click();
- await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toHaveAttribute("href","https://checkout.doku.com/checkout/link/test");
- await expect(panel).toContainText("Rp10.000");paid=true;await panel.getByRole("button",{name:"Cek status pembayaran"}).click();await expect(panel).toContainText("Lunas (uji produksi)");
+ const open=panel.getByRole("button",{name:"Buka pembayaran DOKU"});await open.click();
+ const popup=page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true});await expect(popup).toBeVisible();
+ await expect(popup.locator("iframe")).toHaveAttribute("src","https://checkout.doku.com/checkout/link/test?view=iframe");
+ expect(page.context().pages()).toHaveLength(1);
+ expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");
+ const bounds=await popup.boundingBox();expect(bounds!.width).toBeLessThanOrEqual(width);expect(bounds!.height).toBeLessThanOrEqual(900);
+ await popup.getByRole("button",{name:"Tutup pembayaran DOKU"}).click();await expect(popup).toHaveCount(0);await expect(open).toBeFocused();
+ await open.click();await expect(popup).toBeVisible();await page.keyboard.press("Escape");await expect(popup).toHaveCount(0);
+ await open.click();await expect(popup).toBeVisible();await expect(page.locator("#jokul_checkout_modal")).toHaveCount(1);
+ await page.evaluate(()=>window.dispatchEvent(new MessageEvent("message",{origin:"https://checkout.doku.com",source:window,data:{func:"closeJokul"}})));await expect(popup).toBeVisible();
+ await expect(panel).toContainText("Rp10.000");paid=true;
+ await popup.frameLocator("iframe").getByRole("button",{name:"Selesai"}).click();await expect(popup).toHaveCount(0);
+ expect(await page.evaluate(()=>document.body.style.position)).not.toBe("fixed");await expect(panel).toContainText("Lunas (uji produksi)");
  await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toContainText("25.000");
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
@@ -598,7 +609,7 @@ for(const width of [320,390,1440])for(const theme of ["light","dark"])test(`DOKU
   else statusCalls++;
   return route.fulfill({json:state});
  });
- await page.goto("/app?billing=sandbox");const panel=page.getByRole("region",{name:"Pembayaran Pro sandbox",exact:true});await expect(panel).toBeVisible();await panel.getByRole("button",{name:"Buat pembayaran sandbox",exact:true}).click();await expect(panel).toContainText("Menunggu pembayaran");await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toHaveAttribute("href","https://sandbox.doku.com/checkout/preview");expect(creates).toBe(1);
+ await page.goto("/app?billing=sandbox");const panel=page.getByRole("region",{name:"Pembayaran Pro sandbox",exact:true});await expect(panel).toBeVisible();await panel.getByRole("button",{name:"Buat pembayaran sandbox",exact:true}).click();await expect(panel).toContainText("Menunggu pembayaran");await expect(panel.getByRole("button",{name:"Buka pembayaran DOKU"})).toBeVisible();expect(creates).toBe(1);
  await page.reload();await expect(panel).toContainText("Menunggu pembayaran");expect(creates).toBe(1);
  state.invoice!.status="paid";state.invoice!.paidAt=new Date().toISOString();state.proUntil=new Date(Date.now()+30*86400000).toISOString();await panel.getByRole("button",{name:"Cek status pembayaran",exact:true}).click();await expect(panel).toContainText("Lunas (sandbox)");await expect(panel).toContainText("Simulasi masa Pro tercatat sampai");await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Gratis");expect(statusCalls).toBeGreaterThanOrEqual(3);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);await panel.screenshot({path:`docs/preview-doku-sandbox-${width}-${theme}.png`});
 });
@@ -1109,8 +1120,34 @@ for(const width of [320,1440])test(`DOKU production cancellation history at ${wi
  await history.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(panel.getByRole("alert")).toContainText("Order Cancellation not activated");
  await expect(history).toContainText("Menunggu pembayaran");allowCancel=true;
  await history.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(history).toContainText("Dibatalkan");
- await expect(history.getByRole("button",{name:"Batalkan",exact:true})).toHaveCount(0);await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toHaveCount(0);
+ await expect(history.getByRole("button",{name:"Batalkan",exact:true})).toHaveCount(0);await expect(panel.getByRole("button",{name:"Buka pembayaran DOKU"})).toHaveCount(0);
  await page.reload();await expect(history).toContainText("Dibatalkan");
  expect(calls).toBe(2);
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
+});
+
+async function mockDokuPopup(page:Page){
+ await page.route("https://jokul.doku.com/jokul-checkout-js/v1/jokul-checkout-1.0.0.js",route=>route.fulfill({contentType:"application/javascript",body:`
+ window.loadJokulCheckout=function(url){
+  const modal=document.createElement("div");modal.id="jokul_checkout_modal";modal.className="jokul-modal";modal.style.display="block";
+  const content=document.createElement("div");content.className="jokul-content";const frame=document.createElement("iframe");frame.src=url+"?view=iframe";content.append(frame);modal.append(content);document.body.append(modal);
+ };
+ window.receive=function(){const modal=document.getElementById("jokul_checkout_modal");if(modal)modal.style.display="none";};window.addEventListener("message",window.receive);
+ `}));
+ await page.route("https://checkout.doku.com/checkout/**",route=>route.fulfill({contentType:"text/html",body:'<html><body><h1>Pembayaran uji</h1><button onclick="parent.postMessage({func: \'closeJokul\'}, \'*\')">Selesai</button></body></html>'}));
+}
+
+test("DOKU production popup script failure can retry without creating another invoice",async({page})=>{
+ test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
+ await authenticate(page);let creates=0;
+ await page.route(`${endpoint}/functions/v1/tippo-doku-production-test/**`,async route=>{
+  if(route.request().method()==="POST")creates++;
+  await route.fulfill({json:{environment:"production-test",proUntil:null,invoice:{id:"test",number:"TPT"+"C".repeat(24),amount:10000,currency:"IDR",status:"pending",checkoutUrl:"https://checkout.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null}}});
+ });
+ await page.route("https://jokul.doku.com/jokul-checkout-js/v1/jokul-checkout-1.0.0.js",route=>route.abort());
+ await page.goto("/app?billing=production-test");const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});
+ await panel.getByRole("button",{name:"Buka pembayaran DOKU"}).click();await expect(panel.getByRole("alert")).toContainText("Popup DOKU belum dapat dimuat");
+ await expect(page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true})).toHaveCount(0);
+ await mockDokuPopup(page);await panel.getByRole("button",{name:"Buka pembayaran DOKU"}).click();
+ await expect(page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true})).toBeVisible();expect(creates).toBe(0);
 });
