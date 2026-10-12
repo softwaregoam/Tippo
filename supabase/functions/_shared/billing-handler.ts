@@ -18,7 +18,7 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
   if (config.environment !== (mode==="sandbox"?"sandbox":"production") || !config.clientId || !config.secretKey || site.protocol !== "https:" || site.username || site.password) throw new Error("BILLING_CONFIG_REQUIRED");
   const prefix=mode==="sandbox"?"sandbox":"production_test";
   const prices=mode==="sandbox"?[25000]:[10,1000,10000];
-  const numberPattern=mode==="sandbox"?/^TSBX-[A-F0-9]{32}$/:/^TPT-[A-F0-9]{32}$/;
+  const numberPattern=mode==="sandbox"?/^TSBX-[A-F0-9]{32}$/:/^(TPT-[A-F0-9]{32}|TPT[A-F0-9]{24})$/;
   const target = new URL(config.notificationUrl).pathname;
   const json = (data: unknown, status = 200, cors = false) => new Response(JSON.stringify(data), { status, headers: {
     "Content-Type":"application/json", "Cache-Control":"no-store", ...(cors ? {"Access-Control-Allow-Origin":site.origin,"Vary":"Origin"} : {}),
@@ -64,7 +64,7 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
         if (!invoice.checkout_url && invoice.status==="creating") {
           let checkout;
           try{checkout=await createDokuCheckout(invoice,config.clientId,config.secretKey,ports.send,mode);}
-          catch(error){if(error instanceof CheckoutRejected && mode==="production-test"){await ports.rpc("tippo_fail_production_test_checkout",{p_id:invoice.id,p_owner:owner});return json({error:"CHECKOUT_REJECTED"},400,true);}throw error;}
+          catch(error){if(error instanceof CheckoutRejected && mode==="production-test"){await ports.rpc("tippo_fail_production_test_checkout",{p_id:invoice.id,p_owner:owner});return json({error:"CHECKOUT_REJECTED",providerStatus:error.providerStatus,providerCode:error.providerCode,billing:await ports.rpc("tippo_get_production_test_billing",{p_owner:owner})},400,true);}throw error;}
           await ports.rpc(`tippo_attach_${prefix}_checkout`,{p_id:invoice.id,p_owner:owner,p_url:checkout.url,p_expires:checkout.expiresAt});
         }
       }

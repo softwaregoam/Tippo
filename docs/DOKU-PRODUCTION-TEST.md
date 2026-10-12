@@ -41,6 +41,10 @@ Konfigurasi notifikasi dashboard harus tersedia agar override_notification_url d
 
 ## Validasi
 
+Pembaruan format: jalankan [migration invoice Checkout](../supabase/migrations/202610120007_doku_checkout_invoice_format.sql) setelah migration nominal. Invoice baru berisi 27 karakter alfanumerik tanpa simbol. DOKU membatasi invoice maksimal 30 karakter jika channel kartu kredit aktif, dan KKI tidak menerima simbol. Invoice lama 36 karakter ditutup secara lokal saat invoice baru dibuat; body/nomor lama tetap disimpan untuk rekonsiliasi.
+
+Jika permintaan ditolak, backend mengembalikan HTTP provider dan kode error yang telah divalidasi, tanpa pesan mentah/header/kredensial. Tampilan memperbarui status invoice gagal dari server. Kode penolakan membantu diagnosis; pesan umum sebelumnya tidak membuktikan nominal terlalu kecil.
+
 Tes lokal memakai transport DOKU tiruan dan PostgreSQL PGlite: nominal tetap Rp10.000, pembatasan akun, signature/replay, kegagalan provider, pemisahan entitlement dan RLS. Ini tidak membuktikan merchant menerima Rp10.000. Deployment remote, aktivasi merchant, pembayaran nyata dan penerimaan webhook harus diperiksa setelah pemasangan.
 
 Endpoint produksi mengikuti [Checkout backend integration](https://developers.doku.com/accept-payments/doku-checkout/integration-guide/backend-integration); host checkout jokul.doku.com mengikuti [frontend integration](https://developers.doku.com/accept-payments/doku-checkout/integration-guide/frontend-integration).

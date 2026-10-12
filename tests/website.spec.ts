@@ -3,12 +3,26 @@ import { expect, test, type Page, type Locator } from "@playwright/test";
 import type { AppData } from "../src/lib/types";
 import { readFile } from "node:fs/promises";
 
+test("DOKU production rejection shows safe provider code and refreshes failed invoice",async({page})=>{
+ test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
+ await authenticate(page);
+ const state={environment:"production-test",proUntil:null,invoice:{id:"test",number:"TPT"+"A".repeat(24),amount:10000,currency:"IDR",status:"creating",checkoutUrl:null,createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null}};
+ await page.route(endpoint+"/functions/v1/tippo-doku-production-test/**",async route=>{
+  if(route.request().method()==="POST"){state.invoice.status="error";return route.fulfill({status:400,json:{error:"CHECKOUT_REJECTED",providerStatus:400,providerCode:"INVALID_PARAMETER",billing:state}});}
+  return route.fulfill({json:state});
+ });
+ await page.goto("/app?billing=production-test");const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});
+ await panel.getByRole("button",{name:"Coba siapkan pembayaran"}).click();
+ await expect(panel.getByRole("alert")).toContainText("kode INVALID_PARAMETER");
+ await expect(panel).toContainText("Belum berhasil");
+});
+
 test("DOKU production replaces an old Rp1.000 link with a new Rp10.000 invoice",async({page})=>{
  test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
  await authenticate(page);let amount=1000;
  await page.route(endpoint+"/functions/v1/tippo-doku-production-test/**",async route=>{
   if(route.request().method()==="POST"){expect(route.request().postDataJSON()).toEqual({});amount=10000;}
-  await route.fulfill({json:{environment:"production-test",proUntil:null,invoice:{id:"test",number:"TPT-"+"A".repeat(32),amount,currency:"IDR",status:"pending",checkoutUrl:"https://jokul.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null}}});
+  await route.fulfill({json:{environment:"production-test",proUntil:null,invoice:{id:"test",number:amount===10000?"TPT"+"A".repeat(24):"TPT-"+"A".repeat(32),amount,currency:"IDR",status:"pending",checkoutUrl:"https://jokul.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null}}});
  });
  await page.goto("/app?billing=production-test");const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});
  await expect(panel).toContainText("invoice uji lama Rp1.000");
@@ -24,7 +38,7 @@ for(const width of [320,1440])test(`DOKU production Rp10.000 test at ${width}px`
  let paid=false,created=false;
  await page.route(`${endpoint}/functions/v1/tippo-doku-production-test/**`,async route=>{
   if(route.request().method()==="POST"){created=true;expect(route.request().postDataJSON()).toEqual({});}
-  await route.fulfill({json:{environment:"production-test",proUntil:null,invoice:created?{id:"test",number:"TPT-"+"A".repeat(32),amount:10000,currency:"IDR",status:paid?"paid":"pending",checkoutUrl:"https://jokul.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:paid?"2026-10-12T01:00:00Z":null}:null}});
+  await route.fulfill({json:{environment:"production-test",proUntil:null,invoice:created?{id:"test",number:"TPT"+"A".repeat(24),amount:10000,currency:"IDR",status:paid?"paid":"pending",checkoutUrl:"https://jokul.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:paid?"2026-10-12T01:00:00Z":null}:null}});
  });
  await page.goto("/app?billing=production-test");
  const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});

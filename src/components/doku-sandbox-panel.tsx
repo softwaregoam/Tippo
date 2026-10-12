@@ -6,6 +6,11 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { parseSandboxBilling, parseProductionTestBilling, type SandboxBilling } from "@/lib/doku-billing";
 import { formatProInvoiceDate } from "@/lib/pro-invoice";
 
+class CheckoutFailure extends Error {
+  billing:SandboxBilling|null;
+  constructor(message:string,billing:SandboxBilling|null){super(message);this.billing=billing;}
+}
+
 export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},mode?:"sandbox"|"production-test"}) {
   const production=mode==="production-test";
   const failure="Pembayaran belum dapat dimuat. Coba lagi sebentar.";
@@ -16,7 +21,7 @@ export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},m
     const client=getSupabaseClient();const session=await client?.auth.getSession();
     if(!client || session?.data.session?.user.id!==account.id)throw new Error("Masuk kembali sebelum membuka pembayaran.");
     const response=await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/tippo-doku-${mode}/${action}`,{method:action==="checkout"?"POST":"GET",headers:{Authorization:`Bearer ${session.data.session.access_token}`,apikey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,"Content-Type":"application/json"},...(action==="checkout"?{body:"{}"}:{}),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000)});
-    if(!response.ok){const body=await response.json().catch(()=>({}));throw new Error(body.error==="CHECKOUT_REJECTED"?"DOKU menolak pembayaran Rp10.000. Periksa batas nominal dan aktivasi metode pembayaran.":response.status===403?"Akun ini belum diizinkan melakukan uji produksi.":response.status===401?"Sesi berakhir. Masuk kembali untuk melanjutkan.":failure);}
+    if(!response.ok){const body=await response.json().catch(()=>({}));let rejectedBilling:SandboxBilling|null=null;if(body.error==="CHECKOUT_REJECTED" && body.billing){try{rejectedBilling=parseProductionTestBilling(body.billing);}catch{}}const providerCode=typeof body.providerCode==="string" && /^[A-Za-z0-9_-]{1,80}$/.test(body.providerCode)?body.providerCode:null;throw new CheckoutFailure(body.error==="CHECKOUT_REJECTED"?"Permintaan pembayaran ditolak DOKU"+(providerCode?" (kode "+providerCode+")":"")+". Periksa konfigurasi Checkout dan metode pembayaran.":response.status===403?"Akun ini belum diizinkan melakukan uji produksi.":response.status===401?"Sesi berakhir. Masuk kembali untuk melanjutkan.":failure,rejectedBilling);}
     return (production?parseProductionTestBilling:parseSandboxBilling)(await response.json());
   }
   useEffect(()=>{
@@ -30,18 +35,19 @@ export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},m
   async function load(action:"checkout"|"status") {
     if(lock.current)return;lock.current=true;setBusy(true);setError("");
     try{const value=await request(action);if(alive.current)setBilling(value);}
-    catch(reason){if(alive.current)setError(reason instanceof Error && !reason.message.startsWith("Invalid")?reason.message:failure);}
+    catch(reason){if(alive.current){if(reason instanceof CheckoutFailure && reason.billing)setBilling(reason.billing);setError(reason instanceof Error && !reason.message.startsWith("Invalid")?reason.message:failure);}}
     finally{lock.current=false;if(alive.current)setBusy(false);}
   }
   const invoice=billing?.invoice;
   const labels={creating:"Menyiapkan pembayaran",pending:"Menunggu pembayaran",paid:production?"Lunas (uji produksi)":"Lunas (sandbox)",expired:"Kedaluwarsa",error:"Belum berhasil"};
-  const payable=invoice?.status==="pending" && Date.parse(invoice.expiresAt)>clock && (!production || invoice.amount===10000);
+  const payable=invoice?.status==="pending" && Date.parse(invoice.expiresAt)>clock && (!production || (invoice.amount===10000 && invoice.number.length<=30));
   const displayedStatus=invoice && ["creating","pending"].includes(invoice.status) && Date.parse(invoice.expiresAt)<=clock?"expired":invoice?.status;
   return <section id={production?"production-test-payment":"invoice-pro"} className="card pro-invoice-panel" aria-label={production?"Uji pembayaran produksi":"Pembayaran Pro sandbox"}>
     <div className="card-header"><div><h2>{production?"Uji pembayaran produksi":"Pembayaran Pro"}</h2><p>DOKU Checkout · <span className="status-tag order-status-new">{production?"Produksi · Rp10.000":"Sandbox"}</span></p></div><ReceiptText size={22}/></div>
     <div className="pro-invoice-body"><p className="field-hint">{production?"Pembayaran nyata sebesar Rp10.000 untuk menguji DOKU Checkout. Tidak mengaktifkan Pro. DOKU atau aplikasi pembayaran dapat menolak nominal ini.":"Pengujian pembayaran Rp25.000 untuk satu bulan Pro. Gunakan simulator DOKU. Hasil uji tidak mengaktifkan langganan produksi."}</p>
       {invoice && <dl className="pro-invoice-details"><dt>Nomor invoice</dt><dd>{invoice.number}</dd><dt>Tanggal dibuat</dt><dd>{formatProInvoiceDate(invoice.createdAt)}</dd><dt>Total</dt><dd><strong>{"Rp"+invoice.amount.toLocaleString("id-ID")}</strong></dd><dt>Status</dt><dd><span className={`status-tag ${invoice.status==="paid"?"order-status-done":"order-status-new"}`}>{labels[displayedStatus!]}</span></dd><dt>Batas pembayaran</dt><dd>{formatProInvoiceDate(invoice.expiresAt)}</dd></dl>}
       {production && invoice && invoice.amount!==10000 && <p className="field-hint">Ini invoice uji lama {"Rp"+invoice.amount.toLocaleString("id-ID")}. Buat pembayaran baru untuk menggunakan nominal Rp10.000.</p>}
+      {production && invoice?.amount===10000 && invoice.number.length>30 && <p className="field-hint">Format invoice lama perlu diperbarui. Buat pembayaran baru Rp10.000.</p>}
       {billing?.proUntil && <p className="field-hint">Simulasi masa Pro tercatat sampai {formatProInvoiceDate(billing.proUntil)}. Paket dan kuota akun produksi tetap terpisah.</p>}
       <div className="pro-invoice-actions">
         {payable && invoice?.checkoutUrl ? <a className="btn btn-primary" href={invoice.checkoutUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/>Buka pembayaran DOKU</a> : invoice?.status!=="paid" && <Button className="btn btn-primary" disabled={busy} onClick={()=>void load("checkout")}><ReceiptText size={16}/>{busy?"Menyiapkan…":invoice?.status==="creating"?"Coba siapkan pembayaran":production?"Siapkan pembayaran Rp10.000":"Buat pembayaran sandbox"}</Button>}

@@ -2,7 +2,10 @@
 export const DOKU_SANDBOX_ENDPOINT = "https://api-sandbox.doku.com/checkout/v1/payment";
 export type DokuMode = "sandbox" | "production-test";
 export const DOKU_PRODUCTION_ENDPOINT = "https://api.doku.com/checkout/v1/payment";
-export class CheckoutRejected extends Error { constructor(){super("CHECKOUT_REJECTED");} }
+export class CheckoutRejected extends Error {
+ providerStatus:number;providerCode:string|null;
+ constructor(status:number,code:string|null){super("CHECKOUT_REJECTED");this.providerStatus=status;this.providerCode=code;}
+}
 const encoder = new TextEncoder();
 function base64(bytes: ArrayBuffer) { return btoa(String.fromCharCode(...new Uint8Array(bytes))); }
 export async function digest(body: string) { return base64(await crypto.subtle.digest("SHA-256", encoder.encode(body))); }
@@ -42,7 +45,12 @@ export async function createDokuCheckout(invoice: DokuInvoice, client: string, s
     "Signature": await signDoku(secret,client,invoice.request_id,timestamp,"/checkout/v1/payment",invoice.request_body),
   }, body:invoice.request_body, signal:AbortSignal.timeout(15000), redirect:"error" });
   // DOKU documents 409 with the original response for an idempotent retry.
-  if (response.status===400 || response.status===422) throw new CheckoutRejected();
+  if (response.status===400 || response.status===422) {
+    const rejected=await response.json().catch(()=>null);
+    const code=rejected?.error?.code??rejected?.code??rejected?.responseCode;
+    // Never expose raw provider messages, headers or echoed request data.
+    throw new CheckoutRejected(response.status,typeof code==="string" && /^[A-Za-z0-9_-]{1,80}$/.test(code)?code:null);
+  }
   if (!response.ok && response.status !== 409) throw new Error("CHECKOUT_UNAVAILABLE");
   const body = await response.json();
   const payment = body?.response?.payment;
