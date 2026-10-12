@@ -16,12 +16,13 @@ export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},m
   const failure="Pembayaran belum dapat dimuat. Coba lagi sebentar.";
   const [billing,setBilling]=useState<SandboxBilling|null>(null),[busy,setBusy]=useState(true),[error,setError]=useState("");
   const [clock,setClock]=useState(()=>Date.now());
+  const [cancelId,setCancelId]=useState<string|null>(null);
   const alive=useRef(false),lock=useRef(false);
-  async function request(action:"checkout"|"status",signal?:AbortSignal) {
+  async function request(action:"checkout"|"status"|"cancel",signal?:AbortSignal,invoiceId?:string) {
     const client=getSupabaseClient();const session=await client?.auth.getSession();
     if(!client || session?.data.session?.user.id!==account.id)throw new Error("Masuk kembali sebelum membuka pembayaran.");
-    const response=await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/tippo-doku-${mode}/${action}`,{method:action==="checkout"?"POST":"GET",headers:{Authorization:`Bearer ${session.data.session.access_token}`,apikey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,"Content-Type":"application/json"},...(action==="checkout"?{body:"{}"}:{}),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000)});
-    if(!response.ok){const body=await response.json().catch(()=>({}));let rejectedBilling:SandboxBilling|null=null;if(production && body.billing){try{rejectedBilling=parseProductionTestBilling(body.billing);}catch{}}const providerCode=typeof body.providerCode==="string" && /^[A-Za-z0-9_-]{1,80}$/.test(body.providerCode)?body.providerCode:null;const providerMessage=typeof body.providerMessage==="string"?body.providerMessage.slice(0,300):null;const providerStatus=[400,401,403,422].includes(body.providerStatus)?body.providerStatus:null;const reviewMessage=body.error==="CHECKOUT_RECONCILIATION_REQUIRED"?"Request ID sudah tercatat di DOKU. Periksa invoice ini di dashboard DOKU; link pembayaran belum berhasil disimpan.":body.error==="CHECKOUT_RESPONSE_INVALID"?"Respons pembayaran DOKU belum dapat dipakai: "+(typeof body.providerIssue==="string"?body.providerIssue:"format tidak sesuai")+(typeof body.checkoutHost==="string"?" (host "+body.checkoutHost+")":"")+". Periksa invoice ini sebelum membuat pembayaran lain.":null;throw new CheckoutFailure(reviewMessage??(body.error==="CHECKOUT_REJECTED"?"Permintaan pembayaran ditolak DOKU"+(providerCode?" (kode "+providerCode+")":providerStatus?" (HTTP "+providerStatus+")":"")+(providerMessage?": "+providerMessage:". Periksa konfigurasi Checkout dan metode pembayaran."):response.status===403?"Akun ini belum diizinkan melakukan uji produksi.":response.status===401?"Sesi berakhir. Masuk kembali untuk melanjutkan.":failure),rejectedBilling);}
+    const response=await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/tippo-doku-${mode}/${action}`,{method:action==="status"?"GET":"POST",headers:{Authorization:`Bearer ${session.data.session.access_token}`,apikey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,"Content-Type":"application/json"},...(action!=="status"?{body:JSON.stringify(action==="cancel"?{invoiceId}:{})}:{}),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000)});
+    if(!response.ok){const body=await response.json().catch(()=>({}));let rejectedBilling:SandboxBilling|null=null;if(production && body.billing){try{rejectedBilling=parseProductionTestBilling(body.billing);}catch{}}const providerCode=typeof body.providerCode==="string" && /^[A-Za-z0-9_-]{1,80}$/.test(body.providerCode)?body.providerCode:null;const providerMessage=typeof body.providerMessage==="string"?body.providerMessage.slice(0,300):null;const providerStatus=[400,401,403,422].includes(body.providerStatus)?body.providerStatus:null;const cancellationMessage=body.error==="CANCELLATION_REJECTED"?"DOKU menolak pembatalan"+(providerMessage?": "+providerMessage:". Aktifkan Order Cancellation dan periksa metode pembayaran."):body.error==="CANCELLATION_NOT_AVAILABLE"?"Invoice tidak dapat dibatalkan atau sedang diproses. Cek status pembayaran sebelum mencoba lagi.":body.error==="CANCELLATION_UNCONFIRMED"?"Pembatalan belum terkonfirmasi. Periksa DOKU dan cek status sebelum mencoba lagi.":null;const reviewMessage=body.error==="CHECKOUT_RECONCILIATION_REQUIRED"?"Request ID sudah tercatat di DOKU. Periksa invoice ini di dashboard DOKU; link pembayaran belum berhasil disimpan.":body.error==="CHECKOUT_RESPONSE_INVALID"?"Respons pembayaran DOKU belum dapat dipakai: "+(typeof body.providerIssue==="string"?body.providerIssue:"format tidak sesuai")+(typeof body.checkoutHost==="string"?" (host "+body.checkoutHost+")":"")+". Periksa invoice ini sebelum membuat pembayaran lain.":null;throw new CheckoutFailure(cancellationMessage??reviewMessage??(body.error==="CHECKOUT_REJECTED"?"Permintaan pembayaran ditolak DOKU"+(providerCode?" (kode "+providerCode+")":providerStatus?" (HTTP "+providerStatus+")":"")+(providerMessage?": "+providerMessage:". Periksa konfigurasi Checkout dan metode pembayaran."):response.status===403?"Akun ini belum diizinkan melakukan uji produksi.":response.status===401?"Sesi berakhir. Masuk kembali untuk melanjutkan.":failure),rejectedBilling);}
     return (production?parseProductionTestBilling:parseSandboxBilling)(await response.json());
   }
   useEffect(()=>{
@@ -32,14 +33,14 @@ export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},m
     // The component is keyed by account ID; never reuses another owner's state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[account.id,mode]);
-  async function load(action:"checkout"|"status") {
+  async function load(action:"checkout"|"status"|"cancel",invoiceId?:string) {
     if(lock.current)return;lock.current=true;setBusy(true);setError("");
-    try{const value=await request(action);if(alive.current)setBilling(value);}
+    try{const value=await request(action,undefined,invoiceId);if(alive.current){setBilling(value);if(action==="cancel")setCancelId(null);}}
     catch(reason){if(alive.current){if(reason instanceof CheckoutFailure && reason.billing)setBilling(reason.billing);setError(reason instanceof Error && !reason.message.startsWith("Invalid")?reason.message:failure);}}
     finally{lock.current=false;if(alive.current)setBusy(false);}
   }
   const invoice=billing?.invoice;
-  const labels={creating:"Menyiapkan pembayaran",pending:"Menunggu pembayaran",paid:production?"Lunas (uji produksi)":"Lunas (sandbox)",expired:"Kedaluwarsa",error:"Belum berhasil"};
+  const labels={creating:"Menyiapkan pembayaran",pending:"Menunggu pembayaran",paid:production?"Lunas (uji produksi)":"Lunas (sandbox)",expired:"Kedaluwarsa",error:"Belum berhasil",cancelled:"Dibatalkan"};
   const payable=invoice?.status==="pending" && Date.parse(invoice.expiresAt)>clock && (!production || (invoice.amount===10000 && invoice.number.length<=30));
   const displayedStatus=invoice && ["creating","pending"].includes(invoice.status) && Date.parse(invoice.expiresAt)<=clock?"expired":invoice?.status;
   const needsReview=production && invoice?.recoveryRequired===true && displayedStatus!=="expired";
@@ -50,12 +51,22 @@ export function DokuSandboxPanel({account,mode="sandbox"}:{account:{id:string},m
       {production && invoice && invoice.amount!==10000 && <p className="field-hint">Ini invoice uji lama {"Rp"+invoice.amount.toLocaleString("id-ID")}. Buat pembayaran baru untuk menggunakan nominal Rp10.000.</p>}
       {production && invoice?.amount===10000 && invoice.number.length>30 && <p className="field-hint">Format invoice lama perlu diperbarui. Buat pembayaran baru Rp10.000.</p>}
       {needsReview && <p className="field-hint">DOKU mungkin sudah membuat transaksi untuk invoice ini. Periksa nomor invoice di dashboard DOKU sebelum mencoba pembayaran lain. Pengiriman ulang dihentikan sampai invoice selesai atau kedaluwarsa.</p>}
+      {production && invoice?.customerName && <p className="field-hint">Pelanggan: {invoice.customerName}{invoice.customerEmail?" · "+invoice.customerEmail:""}</p>}
       {billing?.proUntil && <p className="field-hint">Simulasi masa Pro tercatat sampai {formatProInvoiceDate(billing.proUntil)}. Paket dan kuota akun produksi tetap terpisah.</p>}
       <div className="pro-invoice-actions">
         {payable && invoice?.checkoutUrl ? <a className="btn btn-primary" href={invoice.checkoutUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/>Buka pembayaran DOKU</a> : invoice?.status!=="paid" && !needsReview && <Button className="btn btn-primary" disabled={busy} onClick={()=>void load("checkout")}><ReceiptText size={16}/>{busy?"Menyiapkan…":invoice?.status==="creating"?"Coba siapkan pembayaran":production?"Siapkan pembayaran Rp10.000":"Buat pembayaran sandbox"}</Button>}
         <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("status")}><RefreshCw size={16}/>{busy?"Memuat…":"Cek status pembayaran"}</Button>
         {invoice?.status==="paid" && <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("checkout")}>{production?"Uji pembayaran lagi":"Uji perpanjangan Pro"}</Button>}
       </div>{error&&<p className="error-message" role="alert">{error}</p>}
+      {production && billing?.invoices && billing.invoices.length>0 && <section aria-label="Daftar pembayaran uji" style={{marginTop:24}}>
+        <h3>Daftar pembayaran uji</h3>
+        <p className="field-hint">20 invoice terbaru. Pembatalan membutuhkan Order Cancellation aktif di DOKU dan metode pembayaran yang didukung. Pembayaran lunas tidak dapat dibatalkan.</p>
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Riwayat pembayaran uji"><table className="orders-table"><thead><tr><th>Invoice / pelanggan</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead><tbody>{billing.invoices.map(item=>{
+          const status=["creating","pending"].includes(item.status) && Date.parse(item.expiresAt)<=clock?"expired":item.status;
+          return <tr key={item.id}><td style={{overflowWrap:"anywhere",whiteSpace:"normal"}}>{item.number}<div className="field-hint">{formatProInvoiceDate(item.createdAt)}</div>{item.customerName && <div>{item.customerName}</div>}{item.customerEmail && <div className="field-hint">{item.customerEmail}</div>}</td><td>{"Rp"+item.amount.toLocaleString("id-ID")}</td><td>{labels[status]}</td><td>{["creating","pending"].includes(status)?<Button className="btn btn-secondary" disabled={busy} onClick={()=>setCancelId(item.id)}>Batalkan</Button>:"—"}</td></tr>;
+        })}</tbody></table></div>
+        {cancelId && <div role="group" aria-label="Konfirmasi pembatalan" style={{marginTop:16}}><p>Batalkan invoice {billing.invoices.find(item=>item.id===cancelId)?.number}? Link pembayaran akan dinonaktifkan jika DOKU menerima pembatalan.</p><div className="pro-invoice-actions"><Button className="btn btn-primary" disabled={busy} onClick={()=>void load("cancel",cancelId)}>{busy?"Membatalkan…":"Ya, batalkan pembayaran"}</Button><Button className="btn btn-secondary" disabled={busy} onClick={()=>setCancelId(null)}>Kembali</Button></div></div>}
+      </section>}
     </div>
   </section>;
 }

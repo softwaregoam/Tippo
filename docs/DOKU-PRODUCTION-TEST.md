@@ -66,3 +66,13 @@ Perubahan nominal: invoice uji baru dikunci Rp10.000. Invoice Rp10/Rp1.000 yang 
 Validasi link produksi menerima HTTPS dengan hostname tepat `checkout.doku.com` atau `jokul.doku.com`, tanpa kredensial atau port khusus. Sandbox tetap hanya `sandbox.doku.com`. Perbaikan ini membutuhkan redeploy frontend dan Edge Function, tanpa migration tambahan.
 
 Invoice yang sebelumnya ditahan karena `CHECKOUT_URL_INVALID` tidak otomatis dikirim ulang: URL respons lama tidak tersimpan dan tidak dapat direkonstruksi dari hostname. Periksa invoice tersebut di DOKU. Notifikasi pembayaran terverifikasi tetap diterima. Jika belum dibayar, tunggu batas pembayaran berlalu sebelum membuat invoice uji baru; jangan membayar link invoice lama setelah beralih ke invoice baru.
+
+## Informasi pelanggan dan pembatalan khusus tes
+
+Jalankan migration [009](../supabase/migrations/202610120009_doku_test_customers_cancellation.sql), lalu deploy ulang `tippo-doku-production-test` dan frontend. Invoice baru menyertakan `customer.id`, nama dan email dari `auth.users`. Nama memakai metadata `full_name`, `name`, atau `business_name`, dengan bagian awal email sebagai fallback. Nomor telepon/alamat tidak direkayasa. Snapshot pelanggan ditandatangani bersama body Checkout dan tetap sama saat retry. Invoice lama tidak diubah atau dikirim ulang untuk menambahkan pelanggan.
+
+Panel uji menampilkan 20 invoice terbaru milik akun yang sedang masuk. Aksi **Batalkan** meminta konfirmasi, lalu backend mengirim request bertanda tangan ke `POST https://api.doku.com/checkout/v3/cancellations`, menggunakan nomor invoice dan Request ID Checkout asli. Ini hanya tersedia di fungsi production-test untuk akun yang ada di allowlist; paket Pro tidak berubah. Fitur tes dipertahankan sampai pengguna mengizinkan penghapusannya.
+
+Aktifkan **Settings → Checkout Appearance → System Settings → Order Settings → Order Cancellation** di DOKU. Menurut [Cancel Order API](https://developers.doku.com/accept-payments/doku-checkout/order-and-notification-handling/cancel-order-api), pembatalan hanya mendukung QRIS dan Bank Transfer kecuali BTN, BNC, BPD, OCBC. Metode lain, invoice lunas dan kedaluwarsa tidak dapat dibatalkan. DOKU akan menampilkan order yang dibatalkan sebagai CANCELLED pada Checkout Order Report.
+
+Tippo baru menandai Dibatalkan setelah respons HTTP sukses dari API pembatalan. Kegagalan/timeout mempertahankan status sebelumnya; lease 60 detik mencegah request bersamaan dan Request ID pembatalan tetap tersimpan untuk rekonsiliasi. Pembayaran yang masuk saat pembatalan tidak ditimpa menjadi Dibatalkan. Pembatalan bukan refund, dan tidak menghapus ledger. Notifikasi pembayaran sah yang terlambat tetap dapat merekonsiliasi invoice menjadi lunas.

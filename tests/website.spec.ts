@@ -1090,3 +1090,27 @@ test("feedback failure retains input and retries with the same request id",async
  await page.route(`${endpoint}/rest/v1/rpc/submit_tippo_feedback`,async route=>{const body=route.request().postDataJSON();ids.push(body.p_id);if(ids.length===1)return route.fulfill({status:404,json:{code:"PGRST202",message:"schema cache"}});return route.fulfill({json:{id:body.p_id,createdAt:new Date().toISOString()}});});
  await page.goto("/app");await openSection(page,"Kritik & saran");await chooseOption(page.getByLabel("Jenis masukan",{exact:true}),"suggestion");await chooseOption(page.getByLabel("Bagian Tippo",{exact:true}),"general");await page.getByLabel("Judul",{exact:true}).fill("Saran baru");await page.getByLabel("Pesan",{exact:true}).fill("Tolong tambahkan pencarian untuk pelanggan.");await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("region",{name:"Form kritik dan saran",exact:true}).getByRole("alert")).toContainText("mengaktifkan database kritik & saran");await expect(page.getByLabel("Pesan",{exact:true})).toHaveValue("Tolong tambahkan pencarian untuk pelanggan.");await page.getByRole("button",{name:"Kirim masukan",exact:true}).click();await expect(page.getByRole("status",{name:"Masukan terkirim",exact:true})).toBeVisible();expect(ids).toHaveLength(2);expect(ids[0]).toBe(ids[1]);
 });
+
+for(const width of [320,1440])test(`DOKU production cancellation history at ${width}px`,async({page})=>{
+ test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
+ await page.setViewportSize({width,height:900});await authenticate(page);
+ const id="11111111-1111-4111-8111-111111111111";let cancelled=false,allowCancel=false,calls=0;
+ const invoice=()=>({id,number:"TPT"+"B".repeat(24),amount:10000,currency:"IDR",status:cancelled?"cancelled":"pending",checkoutUrl:cancelled?null:"https://checkout.doku.com/checkout/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null,customerName:"Pelanggan Tes",customerEmail:"tester@example.test"});
+ await page.route(`${endpoint}/functions/v1/tippo-doku-production-test/**`,async route=>{
+  const cancel=route.request().url().endsWith("/cancel");
+  if(cancel){calls++;expect(route.request().postDataJSON()).toEqual({invoiceId:id});if(allowCancel)cancelled=true;}
+  const billing={environment:"production-test",proUntil:null,invoice:invoice(),invoices:[invoice()]};
+  await route.fulfill({status:cancel&&!allowCancel?400:200,json:cancel&&!allowCancel?{error:"CANCELLATION_REJECTED",providerMessage:"Order Cancellation not activated",billing}:billing});
+ });
+ await page.goto("/app?billing=production-test");
+ const panel=page.getByRole("region",{name:"Uji pembayaran produksi"}),history=panel.getByRole("region",{name:"Daftar pembayaran uji"});
+ await expect(history).toContainText("tester@example.test");
+ await history.getByRole("button",{name:"Batalkan",exact:true}).click();expect(calls).toBe(0);
+ await history.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(panel.getByRole("alert")).toContainText("Order Cancellation not activated");
+ await expect(history).toContainText("Menunggu pembayaran");allowCancel=true;
+ await history.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(history).toContainText("Dibatalkan");
+ await expect(history.getByRole("button",{name:"Batalkan",exact:true})).toHaveCount(0);await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toHaveCount(0);
+ await page.reload();await expect(history).toContainText("Dibatalkan");
+ expect(calls).toBe(2);
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
+});

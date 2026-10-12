@@ -1,4 +1,4 @@
-import { CheckoutResponseInvalid, CheckoutRejected, createDokuCheckout, digest, verifyDoku, type DokuInvoice, type DokuMode } from "./doku.ts";
+import { CheckoutResponseInvalid, CheckoutRejected, createDokuCheckout, cancelDokuTestCheckout, digest, verifyDoku, type DokuInvoice, type DokuMode } from "./doku.ts";
 
 export interface BillingConfig { environment: string; clientId: string; secretKey: string; siteUrl: string; notificationUrl: string; }
 export interface BillingPorts {
@@ -51,13 +51,31 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
         const accepted=await ports.rpc(`tippo_accept_${prefix}_notification`,{p_invoice:invoice,p_client_id:config.clientId,p_amount:amount,p_request_id:req.headers.get("Request-Id"),p_digest:await digest(raw),p_status:status,p_original_request:original??null});
         return json({received:true,matched:accepted===true});
       }
-      if (action!=="checkout" && action!=="status") return json({error:"NOT_FOUND"},404,true);
-      if ((action==="status" && req.method!=="GET") || (action==="checkout" && req.method!=="POST")) return json({error:"METHOD_NOT_ALLOWED"},405,true);
+      if (action!=="checkout" && action!=="status" && !(mode==="production-test" && action==="cancel")) return json({error:"NOT_FOUND"},404,true);
+      if ((action==="status" && req.method!=="GET") || (action!=="status" && req.method!=="POST")) return json({error:"METHOD_NOT_ALLOWED"},405,true);
       const authorization=req.headers.get("Authorization");
       if (!authorization?.startsWith("Bearer ")) return json({error:"UNAUTHORIZED"},401,true);
       const owner=await ports.authenticate(authorization.slice(7));
       if (!owner) return json({error:"UNAUTHORIZED"},401,true);
       if(mode==="production-test" && !allowedUsers.includes(owner))return json({error:"TEST_ACCOUNT_REQUIRED"},403,true);
+      if(action==="cancel"){
+        if(Number(req.headers.get("Content-Length"))>1024)return json({error:"BODY_TOO_LARGE"},413,true);
+        const reader=req.body?.getReader();let raw="",size=0;
+        if(reader)while(true){const chunk=await reader.read();if(chunk.done)break;size+=chunk.value.length;if(size>1024){await reader.cancel();return json({error:"BODY_TOO_LARGE"},413,true);}raw+=new TextDecoder().decode(chunk.value);}
+        let input;try{input=JSON.parse(raw);}catch{return json({error:"INVALID_JSON"},400,true);}
+        if(typeof input?.invoiceId!=="string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(input.invoiceId))return json({error:"INVALID_INVOICE"},400,true);
+        const invoice=await ports.rpc("tippo_claim_production_test_cancellation",{p_id:input.invoiceId,p_owner:owner,p_client_id:config.clientId}) as (DokuInvoice & {cancellation_request_id:string})|null;
+        if(!invoice)return json({error:"CANCELLATION_NOT_AVAILABLE",billing:await ports.rpc("tippo_get_production_test_billing",{p_owner:owner})},409,true);
+        try{await cancelDokuTestCheckout(invoice,config.clientId,config.secretKey,ports.send);}
+        catch(error){
+          if(error instanceof CheckoutRejected){
+            await ports.rpc("tippo_finish_production_test_cancellation",{p_id:invoice.id,p_owner:owner,p_success:false});
+            return json({error:"CANCELLATION_REJECTED",providerMessage:error.providerMessage,billing:await ports.rpc("tippo_get_production_test_billing",{p_owner:owner})},400,true);
+          }
+          return json({error:"CANCELLATION_UNCONFIRMED",billing:await ports.rpc("tippo_get_production_test_billing",{p_owner:owner})},503,true);
+        }
+        await ports.rpc("tippo_finish_production_test_cancellation",{p_id:invoice.id,p_owner:owner,p_success:true});
+      }
       if (action==="checkout") {
         // No owner, amount, duration, URL or environment is accepted from the browser.
         const invoice=await ports.rpc(`tippo_begin_${prefix}_checkout`,{p_owner:owner,p_client_id:config.clientId,p_callback:`${site.origin}/app?billing=${mode}`,p_notification:config.notificationUrl}) as DokuInvoice;

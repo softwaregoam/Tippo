@@ -66,6 +66,23 @@ export function parseDokuExpiry(value: unknown): string {
   return date.toISOString();
 }
 export interface DokuInvoice { id: string; owner_id: string; invoice_number: string; amount: number; request_id: string; request_body: string; status: string; checkout_url: string | null; }
+export async function cancelDokuTestCheckout(invoice:DokuInvoice & {cancellation_request_id:string},client:string,secret:string,send:typeof fetch=fetch){
+  const target="/checkout/v3/cancellations",timestamp=new Date().toISOString().slice(0,19)+"Z";
+  const body=JSON.stringify({order:{invoice_number:invoice.invoice_number},payment:{original_request_id:invoice.request_id},note:"Pembatalan pembayaran uji Tippo"});
+  const signature=await signDoku(secret,client,invoice.cancellation_request_id,timestamp,target,body);
+  const response=await send("https://api.doku.com"+target,{method:"POST",headers:{"Content-Type":"application/json","Client-Id":client,"Request-Id":invoice.cancellation_request_id,"Request-Timestamp":timestamp,Signature:signature},body,signal:AbortSignal.timeout(15000),redirect:"error"});
+  if([400,401,403,404,409,422].includes(response.status))throw await readCheckoutRejection(response,[secret,client,signature]);
+  if(response.status!==200 && response.status!==204)throw new Error("CANCELLATION_UNCONFIRMED");
+  if(response.status===200){
+    const reader=response.body?.getReader();let raw="",size=0;
+    if(reader)while(true){const chunk=await reader.read();if(chunk.done)break;size+=chunk.value.length;if(size>8192){await reader.cancel();throw new Error("CANCELLATION_UNCONFIRMED");}raw+=new TextDecoder().decode(chunk.value);}
+    if(raw.trim()){
+      let result;try{result=JSON.parse(raw);}catch{throw new Error("CANCELLATION_UNCONFIRMED");}
+      const data=result?.response??result;
+      if(!data || typeof data!=="object" || data.error || data.errors || ["FAILED","ERROR","PENDING"].includes(data.status))throw new Error("CANCELLATION_UNCONFIRMED");
+    }
+  }
+}
 export async function createDokuCheckout(invoice: DokuInvoice, client: string, secret: string, send: typeof fetch = fetch, mode: DokuMode = "sandbox") {
   const timestamp = new Date().toISOString().slice(0,19)+"Z";
   const signature=await signDoku(secret,client,invoice.request_id,timestamp,"/checkout/v1/payment",invoice.request_body);
