@@ -1,5 +1,7 @@
 # Uji QRIS produksi Rp10
 
+Pengujian terbaru menggunakan [SNAP Virtual Account BNI](DOKU-SNAP-TEST.md). Panduan ini tetap menjelaskan alur Checkout QRIS lama; fungsi, migration dan Notification URL keduanya berbeda.
+
 Invoice uji terpisah dari langganan Pro Rp25.000. Pembayaran ini memakai uang nyata dan tidak mengaktifkan Pro. Nominal dikunci Rp10 di database/backend; jika DOKU atau aplikasi pembayaran menolak, tidak ada kenaikan nominal otomatis. Batas minimum QRIS pada merchant ini belum terkonfirmasi.
 
 ## Pemasangan
