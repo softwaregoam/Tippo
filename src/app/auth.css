@@ -155,7 +155,12 @@
 }
 
 .auth-page :is(a, button):active { opacity: .8; }
-.auth-input-wrap:focus-within { border-color: var(--tone-line-245c4e); }
+.auth-input-wrap:focus-within {
+  border-color: var(--tone-line-245c4e);
+  outline: 3px solid var(--tone-line-245c4e);
+  outline-offset: 3px;
+}
+.auth-page .auth-input-wrap input:focus-visible { outline: none; }
 
 .auth-forgot {
   width: fit-content;
