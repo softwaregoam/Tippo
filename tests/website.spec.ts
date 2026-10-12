@@ -3,34 +3,34 @@ import { expect, test, type Page, type Locator } from "@playwright/test";
 import type { AppData } from "../src/lib/types";
 import { readFile } from "node:fs/promises";
 
-test("DOKU production replaces an old Rp10 link with a new Rp1.000 invoice",async({page})=>{
+test("DOKU production replaces an old Rp1.000 link with a new Rp10.000 invoice",async({page})=>{
  test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
- await authenticate(page);let amount=10;
+ await authenticate(page);let amount=1000;
  await page.route(endpoint+"/functions/v1/tippo-doku-production-test/**",async route=>{
-  if(route.request().method()==="POST"){expect(route.request().postDataJSON()).toEqual({});amount=1000;}
+  if(route.request().method()==="POST"){expect(route.request().postDataJSON()).toEqual({});amount=10000;}
   await route.fulfill({json:{environment:"production-test",proUntil:null,invoice:{id:"test",number:"TPT-"+"A".repeat(32),amount,currency:"IDR",status:"pending",checkoutUrl:"https://jokul.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null}}});
  });
  await page.goto("/app?billing=production-test");const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});
- await expect(panel).toContainText("invoice uji lama Rp10");
+ await expect(panel).toContainText("invoice uji lama Rp1.000");
  await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toHaveCount(0);
- await panel.getByRole("button",{name:"Siapkan pembayaran Rp1.000"}).click();
- await expect(panel.locator(".pro-invoice-details")).toContainText("Rp1.000");
+ await panel.getByRole("button",{name:"Siapkan pembayaran Rp10.000"}).click();
+ await expect(panel.locator(".pro-invoice-details")).toContainText("Rp10.000");
  await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toBeVisible();
 });
 
-for(const width of [320,1440])test(`DOKU production Rp1.000 test at ${width}px`,async({page})=>{
+for(const width of [320,1440])test(`DOKU production Rp10.000 test at ${width}px`,async({page})=>{
  test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
  await page.setViewportSize({width,height:900});await authenticate(page);
  let paid=false,created=false;
  await page.route(`${endpoint}/functions/v1/tippo-doku-production-test/**`,async route=>{
   if(route.request().method()==="POST"){created=true;expect(route.request().postDataJSON()).toEqual({});}
-  await route.fulfill({json:{environment:"production-test",proUntil:null,invoice:created?{id:"test",number:"TPT-"+"A".repeat(32),amount:1000,currency:"IDR",status:paid?"paid":"pending",checkoutUrl:"https://jokul.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:paid?"2026-10-12T01:00:00Z":null}:null}});
+  await route.fulfill({json:{environment:"production-test",proUntil:null,invoice:created?{id:"test",number:"TPT-"+"A".repeat(32),amount:10000,currency:"IDR",status:paid?"paid":"pending",checkoutUrl:"https://jokul.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:paid?"2026-10-12T01:00:00Z":null}:null}});
  });
  await page.goto("/app?billing=production-test");
  const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});
- await expect(panel).toBeVisible();await panel.getByRole("button",{name:"Siapkan pembayaran Rp1.000"}).click();
+ await expect(panel).toBeVisible();await panel.getByRole("button",{name:"Siapkan pembayaran Rp10.000"}).click();
  await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toHaveAttribute("href","https://jokul.doku.com/checkout/link/test");
- await expect(panel).toContainText("Rp1.000");paid=true;await panel.getByRole("button",{name:"Cek status pembayaran"}).click();await expect(panel).toContainText("Lunas (uji produksi)");
+ await expect(panel).toContainText("Rp10.000");paid=true;await panel.getByRole("button",{name:"Cek status pembayaran"}).click();await expect(panel).toContainText("Lunas (uji produksi)");
  await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toContainText("25.000");
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);

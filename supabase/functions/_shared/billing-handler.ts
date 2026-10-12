@@ -17,7 +17,7 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
   const site = new URL(config.siteUrl);
   if (config.environment !== (mode==="sandbox"?"sandbox":"production") || !config.clientId || !config.secretKey || site.protocol !== "https:" || site.username || site.password) throw new Error("BILLING_CONFIG_REQUIRED");
   const prefix=mode==="sandbox"?"sandbox":"production_test";
-  const prices=mode==="sandbox"?[25000]:[10,1000];
+  const prices=mode==="sandbox"?[25000]:[10,1000,10000];
   const numberPattern=mode==="sandbox"?/^TSBX-[A-F0-9]{32}$/:/^TPT-[A-F0-9]{32}$/;
   const target = new URL(config.notificationUrl).pathname;
   const json = (data: unknown, status = 200, cors = false) => new Response(JSON.stringify(data), { status, headers: {
