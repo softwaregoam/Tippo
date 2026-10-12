@@ -15,6 +15,11 @@ export function billingHandler(config: BillingConfig, ports: BillingPorts) {
   }});
   return async (req: Request) => {
     const action = new URL(req.url).pathname.split("/").at(-1);
+    // Public reachability check only. GET/HEAD cannot process a notification,
+    // call the database or grant any subscription entitlement.
+    if (action === "webhook" && (req.method === "GET" || req.method === "HEAD")) {
+      return new Response(req.method === "HEAD" ? null : JSON.stringify({status:"ok",environment:"sandbox"}),{status:200,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
+    }
     const origin = req.headers.get("Origin");
     if (origin && origin !== site.origin) return json({ error:"ORIGIN_NOT_ALLOWED" },403);
     if (req.method === "OPTIONS") return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":site.origin,"Access-Control-Allow-Headers":"authorization,apikey,content-type,x-client-info","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Vary":"Origin"}});

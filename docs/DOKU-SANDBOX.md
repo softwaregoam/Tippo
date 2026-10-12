@@ -86,6 +86,8 @@ Tes signature valid/palsu dan raw body berubah, sesi/kepemilikan invoice, nomina
 
 Jika create timeout, invoice berstatus creating tetap disimpan dan retry memakai Request-Id serta body yang sama. Respons idempotensi DOKU 409 diterima bila memuat data Checkout yang cocok. Notifikasi FAILED adalah percobaan pembayaran gagal dan tidak membatalkan invoice Checkout; notifikasi SUCCESS tetap dapat diterima kemudian. Notifikasi EXPIRED mengakhiri invoice belum lunas; notifikasi duplikat tidak mengubah invoice paid.
 
+Jika dashboard menampilkan `Failed to update notify URL`, periksa endpoint dan lingkungan dashboard sebelum menyimpulkan penyebabnya. GET/HEAD pada URL webhook memiliki pemeriksaan ketersediaan HTTP 200; ini tidak membaca atau mengubah database. POST tanpa signature tetap HTTP 401. Setelah pembaruan fungsi, deploy ulang sebelum mencoba menyimpan URL. Jika masih gagal, ambil status HTTP dan pesan respons permintaan Save dari DevTools Network; jangan membagikan Cookie, Authorization header atau secret. Health check tidak membuktikan bahwa DOKU memakai GET saat memvalidasi URL.
+
 ## Pengujian lokal
 
 Kode signature, handler HTTP dan migration diuji dengan PostgreSQL/PGlite lokal dan transport DOKU terkontrol. Ini bukan bukti kredensial merchant atau pembayaran simulator remote. Deno memeriksa entry Edge Function; Next.js lint/build memeriksa frontend dan shared types.

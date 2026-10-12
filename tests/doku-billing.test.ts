@@ -101,3 +101,10 @@ test("failed database notification is not acknowledged and signed expiry permits
  assert.equal((await handler(new Request(config.notificationUrl,{method:"POST",headers,body:payload}))).status,503);
  const invoice=await begin(c);await notify(invoice,"expired-before-payment","EXPIRED");const state=await rpc("tippo_get_sandbox_billing",{p_owner:c}) as {invoice:{status:string}};assert.equal(state.invoice.status,"expired");assert.notEqual((await begin(c)).id,invoice.id);
 });
+
+test("public webhook health checks never mutate billing and POST still requires a valid signature",async()=>{
+ let calls=0;const handler=billingHandler(config,{authenticate:async()=>{calls++;return null;},rpc:async()=>{calls++;return null;}});
+ for(const method of ["GET","HEAD"]){const response=await handler(new Request(config.notificationUrl,{method}));assert.equal(response.status,200);if(method==="HEAD")assert.equal(await response.text(),"");}
+ assert.equal((await handler(new Request(config.notificationUrl,{method:"POST",body:"{}"}))).status,401);
+ assert.equal(calls,0);
+});
