@@ -5,12 +5,13 @@ type DokuWindow=Window & {loadJokulCheckout?:(url:string)=>void;receive?:EventLi
 const scripts=new Map<Mode,Promise<void>>();
 
 function loadScript(mode:Mode):Promise<void>{
-  const existing=scripts.get(mode);if(existing)return existing;
+  const scriptMode=mode==="sandbox"?"sandbox":"production";
+  const existing=scripts.get(scriptMode);if(existing)return existing;
   const promise=new Promise<void>((resolve,reject)=>{
     const script=document.createElement("script"),previousClick=window.onclick;
     script.src=(mode==="sandbox"?"https://sandbox.doku.com":"https://jokul.doku.com")+"/jokul-checkout-js/v1/jokul-checkout-1.0.0.js";
     script.async=true;
-    const fail=()=>{clearTimeout(timer);script.onload=null;script.onerror=null;script.remove();scripts.delete(mode);reject(new Error("Popup DOKU belum dapat dimuat. Coba buka pembayaran lagi."));};
+    const fail=()=>{clearTimeout(timer);script.onload=null;script.onerror=null;script.remove();scripts.delete(scriptMode);reject(new Error("Popup DOKU belum dapat dimuat. Coba buka pembayaran lagi."));};
     const timer=setTimeout(fail,15000);
     script.onerror=fail;
     script.onload=()=>{
@@ -25,7 +26,7 @@ function loadScript(mode:Mode):Promise<void>{
     };
     document.head.appendChild(script);
   });
-  scripts.set(mode,promise);return promise;
+  scripts.set(scriptMode,promise);return promise;
 }
 
 export async function prepareDokuCheckout(mode:Mode){await loadScript(mode);}

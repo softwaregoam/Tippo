@@ -1151,3 +1151,34 @@ test("DOKU production popup script failure can retry without creating another in
  await mockDokuPopup(page);await panel.getByRole("button",{name:"Buka pembayaran DOKU"}).click();
  await expect(page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true})).toBeVisible();expect(creates).toBe(0);
 });
+
+for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and cancellation at ${width}px`,async({page})=>{
+ test.skip(process.env.PLAYWRIGHT_DOKU_PRO_ENABLED!=="true","Requires real Pro billing build");
+ await page.setViewportSize({width,height:900});await authenticate(page);await mockDokuPopup(page);
+ let created=0,paid=false,cancelled=false,checks=0;
+ const expiry="2099-01-01T00:00:00Z";
+ const invoice=(renewal=false)=>({id:renewal?"22222222-2222-4222-8222-222222222222":"11111111-1111-4111-8111-111111111111",number:"TPR"+(renewal?"B":"A").repeat(24),amount:25000,currency:"IDR",status:renewal?(cancelled?"cancelled":"pending"):paid?"paid":"pending",checkoutUrl:cancelled&&renewal?null:"https://checkout.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:!renewal&&paid?"2026-10-12T01:00:00Z":null,customerName:"Titipan Naya",customerEmail:"naya@example.test",periodStart:!renewal&&paid?"2098-12-01T00:00:00Z":null,periodEnd:!renewal&&paid?expiry:null});
+ await page.route(endpoint+"/rest/v1/rpc/get_tippo_workspace",route=>route.fulfill({json:{data:fixture,version:0,subscription:{tier:paid?"pro":"free",expiresAt:paid?expiry:null},usage:[]}}));
+ await page.route(endpoint+"/functions/v1/tippo-doku-pro/**",async route=>{
+  if(route.request().url().endsWith("/checkout")){expect(route.request().postDataJSON()).toEqual({});created++;}
+  if(route.request().url().endsWith("/cancel")){expect(route.request().postDataJSON()).toEqual({invoiceId:"22222222-2222-4222-8222-222222222222"});cancelled=true;}
+  if(route.request().url().endsWith("/status"))checks++;
+  const rows=created===0?[]:created===1?[invoice()]:[invoice(true),invoice()];
+  await route.fulfill({json:{environment:"production",proUntil:paid?expiry:null,invoice:rows[0]??null,invoices:rows}});
+ });
+ await page.goto("/app?billing=production");
+ const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});await expect(panel).toBeVisible();
+ await expect(panel).toContainText("Rp25.000");await expect(panel).toContainText("Belum ada invoice pembayaran");
+ await panel.getByRole("button",{name:"Bayar Pro Rp25.000"}).click();await expect(panel).toContainText("Menunggu pembayaran");
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
+ await panel.getByRole("button",{name:"Buka pembayaran DOKU"}).click();const popup=page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true});await expect(popup).toBeVisible();
+ paid=true;await popup.frameLocator("iframe").getByRole("button",{name:"Selesai"}).click();await expect(popup).toHaveCount(0);
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");await expect(panel).toContainText("Periode invoice");
+ await panel.getByRole("button",{name:"Perpanjang Pro",exact:true}).click();
+ const history=panel.getByRole("region",{name:"Riwayat berlangganan",exact:true});await expect(history.locator("tbody tr")).toHaveCount(2);
+ await history.getByRole("button",{name:"Cek status",exact:true}).click();await history.getByRole("button",{name:"Batalkan",exact:true}).click();
+ await history.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(history).toContainText("Dibatalkan");await expect(history.getByRole("button",{name:"Batalkan",exact:true})).toHaveCount(0);
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");expect(created).toBe(2);expect(checks).toBeGreaterThanOrEqual(3);
+ await page.reload();await expect(history).toContainText("Dibatalkan");await expect(history.locator("tbody tr")).toHaveCount(2);await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+});

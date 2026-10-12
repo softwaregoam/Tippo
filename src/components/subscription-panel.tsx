@@ -16,12 +16,14 @@ interface SubscriptionPanelProps {
   subscription: Subscription;
   account?: { id: string; name: string; email: string };
   onNotify?: (message: string) => void;
+  onSubscriptionChanged?:()=>Promise<void>;
 }
 
-export function SubscriptionPanel({ data, subscription, account, onNotify }: SubscriptionPanelProps) {
+export function SubscriptionPanel({ data, subscription, account, onNotify, onSubscriptionChanged }: SubscriptionPanelProps) {
   const plan = effectivePlan(subscription);
   const live = subscription.mode === "live";
   const sandbox = process.env.NEXT_PUBLIC_DOKU_SANDBOX_ENABLED === "true";
+  const proBilling=process.env.NEXT_PUBLIC_DOKU_PRO_ENABLED==="true";
   const jastipUsed = monthlyOrderUsage(data, new Date(), "jastip");
   const poUsed = monthlyOrderUsage(data, new Date(), "po");
   const currentMonth = new Date(`${jakartaMonth()}-01T00:00:00+07:00`).toLocaleDateString("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
@@ -72,11 +74,11 @@ export function SubscriptionPanel({ data, subscription, account, onNotify }: Sub
           <li><Check size={16} /><span>Template dan import Excel produk, Jastip, dan Open PO</span></li>
           <li><Check size={16} /><span>Semua fitur paket Gratis</span></li>
         </ul>
-        <p className="field-hint">{live ? sandbox ? "Pembayaran DOKU tersedia untuk pengujian sandbox. Paket akun produksi tidak berubah setelah simulasi." : "Pembayaran Pro sedang disiapkan. Paket Gratis tetap bisa digunakan; kami belum menerima pembayaran langganan." : "Pembayaran langganan belum tersedia pada prototipe ini. Tombol di bawah mengaktifkan demo lokal selama satu bulan tanpa biaya."}</p>
-        {live ? <a className="btn btn-secondary" href="#invoice-pro">{plan === "pro" ? "Invoice perpanjangan Pro" : "Lihat invoice Pro"}</a> : plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
+        <p className="field-hint">{live ? proBilling?"Bayar melalui DOKU Checkout. Pro aktif setelah pembayaran terverifikasi; riwayat invoice tersimpan di akunmu.":sandbox ? "Pembayaran DOKU tersedia untuk pengujian sandbox. Paket akun produksi tidak berubah setelah simulasi." : "Pembayaran Pro sedang disiapkan. Paket Gratis tetap bisa digunakan; kami belum menerima pembayaran langganan." : "Pembayaran langganan belum tersedia pada prototipe ini. Tombol di bawah mengaktifkan demo lokal selama satu bulan tanpa biaya."}</p>
+        {live ? <a className="btn btn-secondary" href="#invoice-pro">{proBilling?(plan === "pro"?"Perpanjang Pro":"Langganan Pro"):plan === "pro" ? "Invoice perpanjangan Pro" : "Lihat invoice Pro"}</a> : plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
       </section>
     </div>
     {live && account && process.env.NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED==="true" && <DokuSandboxPanel key={account.id+"-production-test"} account={account} mode="production-test"/>}
-    {live && account && (sandbox ? <DokuSandboxPanel key={account.id} account={account}/> : <ProInvoicePanel key={account.id} account={account} onNotify={onNotify} />)}
+    {live && account && (proBilling?<DokuSandboxPanel key={account.id+"-pro"} account={account} mode="production" onSubscriptionChanged={onSubscriptionChanged}/>:sandbox ? <DokuSandboxPanel key={account.id} account={account}/> : <ProInvoicePanel key={account.id} account={account} onNotify={onNotify} />)}
   </div>;
 }

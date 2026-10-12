@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {createHash,createHmac} from "node:crypto";
 import {PGlite} from "@electric-sql/pglite";
-import {billingHandler,productionTestHandler} from "../supabase/functions/_shared/billing-handler.ts";
+import {billingHandler,productionTestHandler,productionBillingHandler} from "../supabase/functions/_shared/billing-handler.ts";
 import {readCheckoutRejection,signDoku,verifyDoku,parseDokuExpiry,safeCheckoutUrl,createDokuCheckout,cancelDokuTestCheckout,type DokuInvoice} from "../supabase/functions/_shared/doku.ts";
-import {parseSandboxBilling,parseProductionTestBilling} from "../src/lib/doku-billing.ts";
+import {parseSandboxBilling,parseProductionTestBilling,parseProductionBilling} from "../src/lib/doku-billing.ts";
+
+import {productionNotifications} from "../supabase/functions/_shared/production-notifications.ts";
 
 const db=new PGlite();
 
@@ -37,12 +39,13 @@ before(async()=>{
  const format=await readFile(new URL("../supabase/migrations/202610120007_doku_checkout_invoice_format.sql",import.meta.url),"utf8");await db.exec(format);await db.exec(format);
  const delivery=await readFile(new URL("../supabase/migrations/202610120008_doku_checkout_delivery.sql",import.meta.url),"utf8");await db.exec(delivery);await db.exec(delivery);
  const customers=await readFile(new URL("../supabase/migrations/202610120009_doku_test_customers_cancellation.sql",import.meta.url),"utf8");await db.exec(customers);await db.exec(customers);
+  const pro=await readFile(new URL("../supabase/migrations/202610120010_doku_pro_billing.sql",import.meta.url),"utf8");await db.exec(pro);await db.exec(pro);
  await db.query("update auth.users set email=$1,raw_user_meta_data=$2 where id=$3",["tester@example.test",JSON.stringify({full_name:"Pelanggan Tes"}),c]);
 });
 after(()=>db.close());
 async function rpc(name:string,args:Record<string,unknown>){
  const allowed=["tippo_begin_sandbox_checkout","tippo_attach_sandbox_checkout","tippo_get_sandbox_billing","tippo_accept_sandbox_notification"];
- assert.ok([...allowed,...allowed.map(name=>name.replace("sandbox","production_test")),"tippo_fail_production_test_checkout","tippo_claim_production_test_checkout","tippo_review_production_test_checkout","tippo_claim_production_test_cancellation","tippo_finish_production_test_cancellation"].includes(name));
+ assert.ok([...allowed,...allowed.map(name=>name.replace("sandbox","production_test")),"tippo_fail_production_test_checkout","tippo_claim_production_test_checkout","tippo_review_production_test_checkout","tippo_claim_production_test_cancellation","tippo_finish_production_test_cancellation",...["begin_pro_checkout","attach_pro_checkout","get_pro_billing","accept_pro_notification","fail_pro_checkout","claim_pro_checkout","review_pro_checkout","claim_pro_cancellation","finish_pro_cancellation"].map(name=>"tippo_"+name)].includes(name));
  await db.exec("reset role;set role service_role;");
  const entries=Object.entries(args);return (await db.query<{value:unknown}>(`select public.${name}(${entries.map(([key],i)=>`${key}=>$${i+1}`).join(",")}) as value`,entries.map(([,value])=>value))).rows[0].value;
 }
@@ -301,3 +304,82 @@ test("uncertain cancellation keeps invoice payable and prevents concurrent resen
  await rpc("tippo_accept_production_test_notification",{...args,p_request_id:"cancelled-late-payment",p_digest:"payment",p_status:"SUCCESS"});
  await db.exec("reset role;");assert.equal((await db.query<{status:string}>("select status from public.tippo_production_test_invoices where id=$1",[cancelled.id])).rows[0].status,"paid");
  });
+
+ test("real Pro grants one calendar month only after verified Rp25,000 payment and renews once",async()=>{
+ const cfg={...config,environment:"production",notificationUrl:"https://billing.test/functions/v1/tippo-doku-pro/webhook"};
+ const handle=productionBillingHandler(cfg,{authenticate:async token=>token==="user-a"?a:null,rpc,send:async(input,init)=>{
+  assert.equal(String(input),"https://api.doku.com/checkout/v1/payment");const body=JSON.parse(init!.body as string);
+  assert.equal(body.order.amount,25000);assert.match(body.order.invoice_number,/^TPR[A-F0-9]{24}$/);assert.equal(body.customer.id,a);
+  return Response.json({order:body.order,payment:{url:"https://checkout.doku.com/checkout/pro",expired_date:"20501012120000"}});
+ }});
+ const checkout=()=>new Request("https://billing.test/checkout",{method:"POST",headers:{Authorization:"Bearer user-a"},body:JSON.stringify({amount:10000,owner:c,proUntil:"2050-01-01T00:00:00Z"})});
+ assert.equal((await handle(new Request("https://billing.test/status"))).status,401);
+ const first=parseProductionBilling(await (await handle(checkout())).json());assert.equal(first.invoice!.amount,25000);assert.equal(first.proUntil,null);
+ assert.throws(()=>parseProductionTestBilling(first));
+ const sendEvent=async(number:string,event:string,amount=25000,status="SUCCESS")=>{
+  const raw=JSON.stringify({order:{invoice_number:number,amount,currency:"IDR"},service:{id:"VIRTUAL_ACCOUNT"},transaction:{status}});
+  const timestamp="2026-10-12T12:00:00Z";
+  const signature=await signDoku(cfg.secretKey,cfg.clientId,event,timestamp,new URL(cfg.notificationUrl).pathname,raw);
+  return handle(new Request(cfg.notificationUrl,{method:"POST",headers:{"Client-Id":cfg.clientId,"Request-Id":event,"Request-Timestamp":timestamp,Signature:signature},body:raw}));
+ };
+ assert.equal((await sendEvent(first.invoice!.number,"underpaid-pro",10000)).status,400);
+ assert.equal((await handle(new Request("https://billing.test/status",{headers:{Authorization:"Bearer user-a"}}))).status,200);
+ assert.equal((await rpc("tippo_get_pro_billing",{p_owner:a}) as {proUntil:null}).proUntil,null);
+ assert.equal((await sendEvent(first.invoice!.number,"pro-payment-1")).status,200);
+ const paid=parseProductionBilling(await rpc("tippo_get_pro_billing",{p_owner:a}));assert.equal(paid.invoice!.status,"paid");assert.ok(paid.proUntil);assert.equal(paid.invoice!.periodEnd,paid.proUntil);assert.ok(paid.invoice!.periodStart);
+ const expiry=paid.proUntil;
+ await sendEvent(first.invoice!.number,"pro-payment-1");await sendEvent(first.invoice!.number,"pro-payment-1-repeat");await sendEvent(first.invoice!.number,"pro-late-expiry",25000,"EXPIRED");
+ assert.equal(parseProductionBilling(await rpc("tippo_get_pro_billing",{p_owner:a})).proUntil,expiry);
+ const renewal=parseProductionBilling(await (await handle(checkout())).json());assert.notEqual(renewal.invoice!.id,first.invoice!.id);
+ assert.equal((await sendEvent(renewal.invoice!.number,"pro-payment-2")).status,200);
+ const renewed=parseProductionBilling(await rpc("tippo_get_pro_billing",{p_owner:a}));assert.equal(renewed.invoice!.periodStart,expiry);assert.ok(Date.parse(renewed.proUntil!)>Date.parse(expiry!));assert.equal(renewed.invoices!.filter(i=>i.status==="paid").length,2);
+ await db.exec("reset role;");assert.equal((await db.query<{pro_until:string|null}>("select pro_until from public.tippo_workspaces where owner_id=$1",[b])).rows[0].pro_until,null);
+ await db.exec("set role authenticated;");await assert.rejects(db.exec("select public.tippo_accept_pro_notification('x','x',25000,'x','x','SUCCESS',null)"),/permission denied/);await assert.rejects(db.exec("update public.tippo_pro_invoices set status='paid'"),/permission denied/);
+ });
+ test("real Pro cancellation preserves active entitlement and history and checks ownership",async()=>{
+ const cfg={...config,environment:"production"};let cancellations=0;
+ const handle=productionBillingHandler(cfg,{authenticate:async()=>a,rpc,send:async(input,init)=>{
+  const body=JSON.parse(init!.body as string);
+  if(String(input).endsWith("/cancellations")){cancellations++;return Response.json({status:"CANCELLED"});}
+  return Response.json({order:body.order,payment:{url:"https://checkout.doku.com/checkout/pro",expired_date:"20501012120000"}});
+ }});
+ const before=parseProductionBilling(await rpc("tippo_get_pro_billing",{p_owner:a}));
+ const pending=parseProductionBilling(await (await handle(new Request("https://billing.test/checkout",{method:"POST",headers:{Authorization:"Bearer user-a"}}))).json());
+ const cancel=(id:string)=>handle(new Request("https://billing.test/cancel",{method:"POST",headers:{Authorization:"Bearer user-a"},body:JSON.stringify({invoiceId:id})}));
+ assert.equal((await cancel(b)).status,409);assert.equal((await cancel(before.invoice!.id)).status,409);assert.equal(cancellations,0);
+ const result=parseProductionBilling(await (await cancel(pending.invoice!.id)).json());assert.equal(result.invoice!.status,"cancelled");assert.equal(result.proUntil,before.proUntil);assert.equal(cancellations,1);
+ assert.equal(result.invoices!.filter(i=>i.status==="paid").length,2);
+ });
+ test("paid Pro cannot be granted by a test notification or a forged callback",async()=>{
+ const handle=productionBillingHandler({...config,environment:"production"},{authenticate:async()=>b,rpc});
+ const before=parseProductionBilling(await rpc("tippo_get_pro_billing",{p_owner:b}));assert.equal(before.proUntil,null);
+ const response=await handle(new Request("https://billing.test/status",{headers:{Authorization:"Bearer any"}}));assert.equal(parseProductionBilling(await response.json()).proUntil,null);
+ const raw=JSON.stringify({order:{invoice_number:"TPR"+"A".repeat(24),amount:25000},service:{id:"QRIS"},transaction:{status:"SUCCESS"}});
+ assert.equal((await handle(new Request(config.notificationUrl,{method:"POST",headers:{Signature:"fake"},body:raw}))).status,401);
+ assert.equal(parseProductionBilling(await rpc("tippo_get_pro_billing",{p_owner:b})).proUntil,null);
+ });
+
+ test("shared production notification preserves signatures and keeps test payments out of Pro",async()=>{
+ const cfg={...config,environment:"production",notificationUrl:"https://billing.test/functions/v1/tippo-doku-pro/webhook"};
+ const handle=productionNotifications(productionBillingHandler(cfg,{authenticate:async()=>b,rpc}),productionTestHandler({...cfg,allowedUsers:[b]},{authenticate:async()=>b,rpc}));
+ const invoice=parseProductionTestBilling(await rpc("tippo_get_production_test_billing",{p_owner:b})).invoice!;
+ const raw=JSON.stringify({order:{invoice_number:invoice.number,amount:invoice.amount},service:{id:"QRIS"},transaction:{status:"SUCCESS"}},null,2);
+ const timestamp="2026-10-12T12:00:00Z",event="shared-test-paid";
+ const Signature=await signDoku(cfg.secretKey,cfg.clientId,event,timestamp,new URL(cfg.notificationUrl).pathname,raw);
+ assert.equal((await handle(new Request(cfg.notificationUrl,{method:"POST",headers:{"Client-Id":cfg.clientId,"Request-Id":event,"Request-Timestamp":timestamp,Signature},body:raw}))).status,200);
+ assert.equal(parseProductionBilling(await rpc("tippo_get_pro_billing",{p_owner:b})).proUntil,null);
+ assert.equal(parseProductionTestBilling(await rpc("tippo_get_production_test_billing",{p_owner:b})).invoice!.status,"paid");
+ assert.equal((await handle(new Request(cfg.notificationUrl,{method:"POST",body:raw}))).status,401);
+ assert.equal((await handle(new Request(cfg.notificationUrl,{method:"POST",body:"x".repeat(65537)}))).status,413);
+ });
+
+test("Pro period clamps a January renewal in Jakarta and browser cannot read foreign or private billing",async()=>{
+ await db.exec("reset role;");await db.query("update public.tippo_workspaces set pro_until=$1 where owner_id=$2",["2099-01-31T05:30:00Z",b]);
+ const invoice=await rpc("tippo_begin_pro_checkout",{p_owner:b,p_client_id:config.clientId,p_callback:config.siteUrl+"/app",p_notification:config.notificationUrl}) as DokuInvoice;
+ await rpc("tippo_accept_pro_notification",{p_invoice:invoice.invoice_number,p_client_id:config.clientId,p_amount:25000,p_request_id:"pro-calendar-clamp",p_digest:"clamp",p_status:"SUCCESS",p_original_request:invoice.request_id});
+ const billing=parseProductionBilling(await rpc("tippo_get_pro_billing",{p_owner:b}));assert.equal(billing.invoice!.periodStart,"2099-01-31T05:30:00+00:00");assert.equal(Date.parse(billing.proUntil!),Date.parse("2099-02-28T05:30:00Z"));
+ await db.exec("reset role;set role authenticated;");await db.query("select set_config('request.jwt.claim.sub',$1,false)",[b]);
+ assert.equal((await db.query("select invoice_number from public.tippo_pro_invoices where owner_id=$1",[a])).rows.length,0);
+ await assert.rejects(db.exec("select request_body from public.tippo_pro_invoices"),/permission denied/);
+ await assert.rejects(db.query("select public.tippo_get_pro_billing($1)",[a]),/permission denied/);
+});

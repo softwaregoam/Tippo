@@ -1,5 +1,9 @@
 project_id = "tippo"
 
+[functions.tippo-doku-pro]
+# User authentication on checkout/status/cancel; signed DOKU webhook only.
+verify_jwt = false
+
 [functions.tippo-doku-sandbox]
 # DOKU has no Supabase JWT. The handler validates DOKU signatures for webhook,
 # and verifies the user's JWT with auth.getUser for checkout/status.

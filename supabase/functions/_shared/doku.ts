@@ -1,6 +1,6 @@
 /** DOKU Checkout Non-SNAP. No credentials or production endpoint defaults. */
 export const DOKU_SANDBOX_ENDPOINT = "https://api-sandbox.doku.com/checkout/v1/payment";
-export type DokuMode = "sandbox" | "production-test";
+export type DokuMode = "sandbox" | "production-test" | "production";
 export const DOKU_PRODUCTION_ENDPOINT = "https://api.doku.com/checkout/v1/payment";
 export class CheckoutRejected extends Error {
  providerStatus:number;providerCode:string|null;providerMessage:string|null;providerFormat:string;
