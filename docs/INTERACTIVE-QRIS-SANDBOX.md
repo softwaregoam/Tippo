@@ -1,5 +1,7 @@
 # Integrasi Interactive QRIS untuk Tippo — sandbox
 
+Catatan historis: pada 12 Oktober 2026, pengguna memilih beralih ke DOKU. Panduan aktif berikutnya ada di [DOKU-SANDBOX.md](DOKU-SANDBOX.md). Hasil trial InterActive di bawah disimpan sebagai catatan; bukan rencana provider Tippo saat ini.
+
 Referensi: https://qris.interactive.co.id/api-doc/#sandbox (dibaca 12 Oktober 2026).
 
 ## Kondisi Tippo
