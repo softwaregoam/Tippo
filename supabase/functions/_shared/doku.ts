@@ -6,6 +6,10 @@ export class CheckoutRejected extends Error {
  providerStatus:number;providerCode:string|null;providerMessage:string|null;providerFormat:string;
  constructor(status:number,code:string|null,message:string|null=null,format="json"){super("CHECKOUT_REJECTED");this.providerStatus=status;this.providerCode=code;this.providerMessage=message;this.providerFormat=format;}
 }
+export class CheckoutResponseInvalid extends Error {
+ issue:string;checkoutHost:string|null;
+ constructor(issue:string,host:string|null=null){super("CHECKOUT_RESPONSE_INVALID");this.issue=issue;this.checkoutHost=host;}
+}
 export async function readCheckoutRejection(response:Response,sensitive:string[]){
  const reader=response.body?.getReader();const parts:Uint8Array[]=[];let size=0,truncated=false;
  if(reader)while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>8192){truncated=true;await reader.cancel();break;}parts.push(value);}
@@ -70,12 +74,19 @@ export async function createDokuCheckout(invoice: DokuInvoice, client: string, s
     "Signature": signature,
   }, body:invoice.request_body, signal:AbortSignal.timeout(15000), redirect:"error" });
   // DOKU documents 409 with the original response for an idempotent retry.
-  if (response.status===400 || response.status===422) {
+  if ([400,401,403,422].includes(response.status)) {
     throw await readCheckoutRejection(response,[secret,client,signature,signature.slice("HMACSHA256=".length)]);
   }
   if (!response.ok && response.status !== 409) throw new Error("CHECKOUT_UNAVAILABLE");
-  const body = await response.json();
-  const payment = body?.response?.payment;
-  if (body?.response?.order?.invoice_number !== invoice.invoice_number || body?.response?.order?.amount !== invoice.amount) throw new Error("CHECKOUT_MISMATCH");
-  return { url: safeCheckoutUrl(payment?.url,mode), expiresAt: parseDokuExpiry(payment?.expired_date) };
+  let body;try{body=await response.json();}catch{throw new CheckoutResponseInvalid("INVALID_JSON");}
+  const result=body?.response??body,payment=result?.payment,order=result?.order;
+  if(order?.invoice_number!==invoice.invoice_number)throw new CheckoutResponseInvalid("ORDER_INVOICE_MISMATCH");
+  const amount=typeof order?.amount==="string" && /^\d{1,16}(\.0{1,2})?$/.test(order.amount)?Number(order.amount):order?.amount;
+  if(amount!==invoice.amount || (order.currency!==undefined && order.currency!=="IDR"))throw new CheckoutResponseInvalid("ORDER_AMOUNT_MISMATCH");
+  let url:string;try{url=safeCheckoutUrl(payment?.url,mode);}catch{
+    let host:null|string=null;try{host=new URL(payment?.url).hostname;}catch{}
+    throw new CheckoutResponseInvalid("CHECKOUT_URL_INVALID",host && /^[a-z0-9.-]{1,253}$/.test(host)?host:null);
+  }
+  let expiresAt:string;try{expiresAt=parseDokuExpiry(payment?.expired_date);}catch{throw new CheckoutResponseInvalid("CHECKOUT_EXPIRY_INVALID");}
+  return {url,expiresAt};
 }

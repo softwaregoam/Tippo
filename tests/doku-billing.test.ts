@@ -35,11 +35,12 @@ before(async()=>{
  const thousand=await readFile(new URL("../supabase/migrations/202610120005_doku_checkout_test_1000.sql",import.meta.url),"utf8");await db.exec(thousand);await db.exec(thousand);
  const tenThousand=await readFile(new URL("../supabase/migrations/202610120006_doku_checkout_test_10000.sql",import.meta.url),"utf8");await db.exec(tenThousand);await db.exec(tenThousand);
  const format=await readFile(new URL("../supabase/migrations/202610120007_doku_checkout_invoice_format.sql",import.meta.url),"utf8");await db.exec(format);await db.exec(format);
+ const delivery=await readFile(new URL("../supabase/migrations/202610120008_doku_checkout_delivery.sql",import.meta.url),"utf8");await db.exec(delivery);await db.exec(delivery);
 });
 after(()=>db.close());
 async function rpc(name:string,args:Record<string,unknown>){
  const allowed=["tippo_begin_sandbox_checkout","tippo_attach_sandbox_checkout","tippo_get_sandbox_billing","tippo_accept_sandbox_notification"];
- assert.ok([...allowed,...allowed.map(name=>name.replace("sandbox","production_test")),"tippo_fail_production_test_checkout"].includes(name));
+ assert.ok([...allowed,...allowed.map(name=>name.replace("sandbox","production_test")),"tippo_fail_production_test_checkout","tippo_claim_production_test_checkout","tippo_review_production_test_checkout"].includes(name));
  await db.exec("reset role;set role service_role;");
  const entries=Object.entries(args);return (await db.query<{value:unknown}>(`select public.${name}(${entries.map(([key],i)=>`${key}=>$${i+1}`).join(",")}) as value`,entries.map(([,value])=>value))).rows[0].value;
 }
@@ -171,4 +172,51 @@ test("Rp10,000 migration supersedes old Rp10 test, preserving its body and late 
  await rpc("tippo_accept_production_test_notification",{p_invoice:legacyCheckout.invoice_number,p_client_id:config.clientId,p_amount:10,p_request_id:"late-old-payment",p_digest:"old-digest",p_status:"SUCCESS"});
  await db.exec("reset role;");
  assert.equal((await db.query<{amount:number}>("select amount from public.tippo_production_test_invoices where id=$1",[legacyCheckout.id])).rows[0].amount,10);
+});
+
+test("parallel Checkout calls send once and accept a flat response with exact decimal amount",{timeout:10000},async()=>{
+ let calls=0,release!:()=>void,ready!:()=>void;
+ const gate=new Promise<void>(resolve=>{release=resolve;}),started=new Promise<void>(resolve=>{ready=resolve;});
+ const handle=productionTestHandler({...config,environment:"production",allowedUsers:[b]},{authenticate:async()=>b,rpc,send:async(_input,init)=>{
+  calls++;ready();await gate;const body=JSON.parse(init!.body as string);
+  return Response.json({order:{...body.order,amount:"10000.00"},payment:{url:"https://jokul.doku.com/checkout/link/flat",expired_date:"20501012120000"}});
+ }});
+ const req=()=>new Request("https://billing.test/checkout",{method:"POST",headers:{Authorization:"Bearer tester"}});
+ const first=handle(req());await started;
+ try{const second=await handle(req());assert.equal(second.status,200);assert.equal(calls,1);assert.equal(parseProductionTestBilling(await second.json()).invoice!.status,"creating");}finally{release();}
+ const complete=parseProductionTestBilling(await (await first).json());assert.equal(complete.invoice!.status,"pending");
+ await handle(req());assert.equal(calls,1);
+});
+
+test("DOKU used Request ID enters reconciliation without changing identity or sending again",async()=>{
+ let calls=0,codeOnly=false;
+ const handle=productionTestHandler({...config,environment:"production",allowedUsers:[a]},{authenticate:async()=>a,rpc,send:async()=>{
+  calls++;return Response.json(codeOnly?{error:{code:"REQUEST_ID_ALREADY_USED",message:"Duplicate operation"}}:{message:"REQUEST ID ALREADY USED"},{status:400});
+ }});
+ const req=()=>new Request("https://billing.test/checkout",{method:"POST",headers:{Authorization:"Bearer tester"}});
+ const response=await handle(req());assert.equal(response.status,409);
+ const result=await response.json();assert.equal(result.error,"CHECKOUT_RECONCILIATION_REQUIRED");
+ const state=parseProductionTestBilling(result.billing);assert.equal(state.invoice!.status,"creating");assert.equal(state.invoice!.recoveryRequired,true);
+ const before=await rpc("tippo_begin_production_test_checkout",{p_owner:a,p_client_id:config.clientId,p_callback:config.siteUrl+"/app",p_notification:config.notificationUrl}) as DokuInvoice;
+ await handle(req());assert.equal(calls,1);
+ const after=await rpc("tippo_begin_production_test_checkout",{p_owner:a,p_client_id:config.clientId,p_callback:config.siteUrl+"/app",p_notification:config.notificationUrl}) as DokuInvoice;
+ assert.equal(after.id,before.id);assert.equal(after.request_id,before.request_id);assert.equal(after.request_body,before.request_body);
+ const payload=JSON.stringify({service:{id:"VIRTUAL_ACCOUNT"},order:{invoice_number:before.invoice_number,amount:10000},transaction:{status:"SUCCESS",original_request_id:before.request_id}});
+ const timestamp="2026-10-12T01:00:00Z",event="review-resolved";
+ const headers={"Client-Id":config.clientId,"Request-Id":event,"Request-Timestamp":timestamp,Signature:await signDoku(config.secretKey,config.clientId,event,timestamp,new URL(config.notificationUrl).pathname,payload)};
+ assert.equal((await handle(new Request(config.notificationUrl,{method:"POST",headers,body:payload}))).status,200);
+ const resolved=parseProductionTestBilling(await rpc("tippo_get_production_test_billing",{p_owner:a}));assert.equal(resolved.invoice!.status,"paid");assert.equal(resolved.invoice!.recoveryRequired,false);assert.equal(resolved.proUntil,null);
+ codeOnly=true;const codeResponse=await handle(req());assert.equal(codeResponse.status,409);assert.equal((await codeResponse.json()).error,"CHECKOUT_RECONCILIATION_REQUIRED");assert.equal(calls,2);
+});
+
+test("an unusable successful DOKU response preserves the order and reports the failing field",async()=>{
+ let calls=0;
+ const handle=productionTestHandler({...config,environment:"production",allowedUsers:[c]},{authenticate:async()=>c,rpc,send:async(_input,init)=>{
+  calls++;const body=JSON.parse(init!.body as string);
+  return Response.json({response:{order:body.order,payment:{url:"https://unrecognized-provider.test/pay",expired_date:"20501012120000"}}});
+ }});
+ const req=()=>new Request("https://billing.test/checkout",{method:"POST",headers:{Authorization:"Bearer tester"}});
+ const response=await handle(req());assert.equal(response.status,409);
+ const result=await response.json();assert.equal(result.error,"CHECKOUT_RESPONSE_INVALID");assert.equal(result.providerIssue,"CHECKOUT_URL_INVALID");assert.equal(result.checkoutHost,"unrecognized-provider.test");assert.equal(result.billing.invoice.recoveryRequired,true);
+ await handle(req());assert.equal(calls,1);
 });

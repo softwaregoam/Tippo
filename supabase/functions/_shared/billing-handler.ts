@@ -1,4 +1,4 @@
-import { CheckoutRejected, createDokuCheckout, digest, verifyDoku, type DokuInvoice, type DokuMode } from "./doku.ts";
+import { CheckoutResponseInvalid, CheckoutRejected, createDokuCheckout, digest, verifyDoku, type DokuInvoice, type DokuMode } from "./doku.ts";
 
 export interface BillingConfig { environment: string; clientId: string; secretKey: string; siteUrl: string; notificationUrl: string; }
 export interface BillingPorts {
@@ -62,9 +62,19 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
         // No owner, amount, duration, URL or environment is accepted from the browser.
         const invoice=await ports.rpc(`tippo_begin_${prefix}_checkout`,{p_owner:owner,p_client_id:config.clientId,p_callback:`${site.origin}/app?billing=${mode}`,p_notification:config.notificationUrl}) as DokuInvoice;
         if (!invoice.checkout_url && invoice.status==="creating") {
+          if(mode==="production-test" && await ports.rpc("tippo_claim_production_test_checkout",{p_id:invoice.id,p_owner:owner})!==true)return json(await ports.rpc("tippo_get_production_test_billing",{p_owner:owner}),200,true);
           let checkout;
           try{checkout=await createDokuCheckout(invoice,config.clientId,config.secretKey,ports.send,mode);}
-          catch(error){if(error instanceof CheckoutRejected && mode==="production-test"){await ports.rpc("tippo_fail_production_test_checkout",{p_id:invoice.id,p_owner:owner});return json({error:"CHECKOUT_REJECTED",providerStatus:error.providerStatus,providerCode:error.providerCode,providerMessage:error.providerMessage,providerFormat:error.providerFormat,billing:await ports.rpc("tippo_get_production_test_billing",{p_owner:owner})},400,true);}throw error;}
+          catch(error){
+            if(mode==="production-test" && (error instanceof CheckoutResponseInvalid || error instanceof CheckoutRejected && /REQUEST[\s_-]+ID[\s_-]+ALREADY[\s_-]+USED/i.test((error.providerMessage??"")+" "+(error.providerCode??"")))){
+              await ports.rpc("tippo_review_production_test_checkout",{p_id:invoice.id,p_owner:owner});
+              return json({error:error instanceof CheckoutResponseInvalid?"CHECKOUT_RESPONSE_INVALID":"CHECKOUT_RECONCILIATION_REQUIRED",
+                ...(error instanceof CheckoutResponseInvalid?{providerIssue:error.issue,checkoutHost:error.checkoutHost}:{providerMessage:error.providerMessage}),
+                providerRequestId:invoice.request_id,billing:await ports.rpc("tippo_get_production_test_billing",{p_owner:owner})},409,true);
+            }
+            if(error instanceof CheckoutRejected && mode==="production-test"){await ports.rpc("tippo_fail_production_test_checkout",{p_id:invoice.id,p_owner:owner});return json({error:"CHECKOUT_REJECTED",providerStatus:error.providerStatus,providerCode:error.providerCode,providerMessage:error.providerMessage,providerFormat:error.providerFormat,billing:await ports.rpc("tippo_get_production_test_billing",{p_owner:owner})},400,true);}
+            throw error;
+          }
           await ports.rpc(`tippo_attach_${prefix}_checkout`,{p_id:invoice.id,p_owner:owner,p_url:checkout.url,p_expires:checkout.expiresAt});
         }
       }

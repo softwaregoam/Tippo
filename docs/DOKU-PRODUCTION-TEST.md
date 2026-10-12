@@ -41,6 +41,12 @@ Konfigurasi notifikasi dashboard harus tersedia agar override_notification_url d
 
 ## Validasi
 
+Penguncian pengiriman: jalankan [migration delivery Checkout](../supabase/migrations/202610120008_doku_checkout_delivery.sql). Backend mengunci pengiriman invoice selama 60 detik, sehingga tab/fungsi yang berjalan bersamaan tidak mengirim Request ID yang sama sekaligus. Identitas invoice dan Request ID tetap dipertahankan untuk retry sesuai kontrak idempotensi DOKU.
+
+Jika DOKU mengembalikan REQUEST ID ALREADY USED, invoice ditandai Perlu diperiksa dan pengiriman ulang dihentikan. Ini bukan bukti transaksi pertama gagal: mungkin DOKU sudah membuat checkout tetapi respons/link tidak tersimpan. Periksa nomor invoice pada dashboard DOKU; jika perlu hubungi DOKU memakai nomor invoice dan providerRequestId dari response. Jangan mengganti Request ID untuk invoice yang sama tanpa rekonsiliasi. Notifikasi terverifikasi tetap dapat menyelesaikan invoice.
+
+Respons sukses kini menerima wrapper response maupun field order/payment langsung, dengan nominal number atau string desimal yang tepat. Invoice, nominal, mata uang, host URL dan expiry tetap divalidasi. Jika respons sukses tidak dapat dipakai, providerIssue menunjukkan field yang gagal dan checkoutHost berisi hanya hostname, tanpa token/link mentah. Invoice dipertahankan untuk pemeriksaan, sehingga masalah parsing tidak terus memicu pengiriman ulang.
+
 Pembaruan format: jalankan [migration invoice Checkout](../supabase/migrations/202610120007_doku_checkout_invoice_format.sql) setelah migration nominal. Invoice baru berisi 27 karakter alfanumerik tanpa simbol. DOKU membatasi invoice maksimal 30 karakter jika channel kartu kredit aktif, dan KKI tidak menerima simbol. Invoice lama 36 karakter ditutup secara lokal saat invoice baru dibuat; body/nomor lama tetap disimpan untuk rekonsiliasi.
 
 Jika permintaan ditolak, backend mengembalikan HTTP provider dan kode error yang telah divalidasi, tanpa pesan mentah/header/kredensial. Tampilan memperbarui status invoice gagal dari server. Kode penolakan membantu diagnosis; pesan umum sebelumnya tidak membuktikan nominal terlalu kecil.

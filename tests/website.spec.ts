@@ -3,6 +3,21 @@ import { expect, test, type Page, type Locator } from "@playwright/test";
 import type { AppData } from "../src/lib/types";
 import { readFile } from "node:fs/promises";
 
+test("DOKU production duplicate request blocks resending after reload",async({page})=>{
+ test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
+ await authenticate(page);let sends=0;
+ const state={environment:"production-test",proUntil:null,invoice:{id:"test",number:"TPT"+"A".repeat(24),amount:10000,currency:"IDR",status:"creating",checkoutUrl:null,createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null,recoveryRequired:false}};
+ await page.route(endpoint+"/functions/v1/tippo-doku-production-test/**",async route=>{
+  if(route.request().method()==="POST"){sends++;state.invoice.recoveryRequired=true;return route.fulfill({status:409,json:{error:"CHECKOUT_RECONCILIATION_REQUIRED",providerMessage:"REQUEST ID ALREADY USED",billing:state}});}
+  return route.fulfill({json:state});
+ });
+ await page.goto("/app?billing=production-test");const panel=page.getByRole("region",{name:"Uji pembayaran produksi"});
+ await panel.getByRole("button",{name:"Coba siapkan pembayaran"}).click();
+ await expect(panel).toContainText("Perlu diperiksa");await expect(panel.getByRole("alert")).toContainText("Request ID sudah tercatat");
+ await expect(panel.getByRole("button",{name:"Coba siapkan pembayaran"})).toHaveCount(0);
+ await page.reload();await expect(panel).toContainText("Perlu diperiksa");await expect(panel.getByRole("button",{name:"Coba siapkan pembayaran"})).toHaveCount(0);expect(sends).toBe(1);
+});
+
 test("DOKU production rejection shows provider reason and refreshes failed invoice",async({page})=>{
  test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
  await authenticate(page);
