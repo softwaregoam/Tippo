@@ -904,3 +904,26 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .tippo-doku-dialog .jokul-content { height:calc(100% - 60px)!important; }
 .tippo-doku-dialog iframe { width:100%!important; height:100%!important; border:0; margin:0; border-radius:0; box-shadow:none; background:white; }
 @media (max-width:600px) { .tippo-doku-dialog { width:100vw; height:100dvh; margin:0; border-radius:0; } }
+.pro-history-mobile { display:none; }
+.pro-history-account,.pro-history-invoice,.pro-history-period { overflow-wrap:anywhere; white-space:normal; }
+.pro-history-period { min-width:140px; }
+.pro-history-confirmation { margin-top:16px; overflow-wrap:anywhere; }
+.pro-history-confirmation p { margin-bottom:12px; }
+@media (max-width:600px) {
+ .pro-history-desktop { display:none; }
+ .pro-history-mobile { display:block; list-style:none; margin:16px 0 0; padding:0; border-top:1px solid var(--border); }
+ .pro-history-mobile > li { border-bottom:1px solid var(--border); }
+ .pro-history-mobile summary { display:flex; align-items:center; gap:12px; padding:16px 0; cursor:pointer; list-style:none; }
+ .pro-history-mobile summary::-webkit-details-marker { display:none; }
+ .pro-history-mobile summary > svg { flex-shrink:0; transition:transform .15s; }
+ .pro-history-mobile details[open] summary > svg { transform:rotate(180deg); }
+ .pro-history-mobile summary:focus-visible { outline:2px solid var(--primary); outline-offset:2px; border-radius:4px; }
+ .pro-history-summary { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; flex:1; min-width:0; }
+ .pro-history-summary > strong { flex:1 1 100%; }
+ .pro-history-number { flex-basis:100%; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+ .pro-history-details { padding-bottom:16px; }
+ .pro-history-details dl { display:grid; grid-template-columns:minmax(0,1fr); gap:4px; margin-bottom:16px; }
+ .pro-history-details dt { color:var(--muted); font-size:12px; }
+ .pro-history-details dd { margin:0 0 8px; font-size:14px; overflow-wrap:anywhere; }
+ .pro-history-details .btn { width:100%; white-space:normal; }
+}

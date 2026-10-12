@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { getSupabaseClient } from "@/lib/supabase";
 import { parseSandboxBilling, parseProductionTestBilling, parseProductionBilling, type SandboxBilling } from "@/lib/doku-billing";
 import { formatProInvoiceDate } from "@/lib/pro-invoice";
+import { SubscriptionHistory } from "@/components/subscription-history";
 import { prepareDokuCheckout, showDokuCheckout } from "@/lib/doku-checkout-popup";
 
 class CheckoutFailure extends Error {
@@ -12,7 +13,7 @@ class CheckoutFailure extends Error {
   constructor(message:string,billing:SandboxBilling|null){super(message);this.billing=billing;}
 }
 
-export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged}:{account:{id:string},mode?:SandboxBilling["environment"],onSubscriptionChanged?:()=>Promise<void>}) {
+export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged}:{account:{id:string;email?:string},mode?:SandboxBilling["environment"],onSubscriptionChanged?:()=>Promise<void>}) {
   const production=mode!=="sandbox",livePro=mode==="production",testing=mode==="production-test";
   const parse=livePro?parseProductionBilling:testing?parseProductionTestBilling:parseSandboxBilling;
   const failure="Pembayaran belum dapat dimuat. Coba lagi sebentar.";
@@ -75,16 +76,8 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged}:
         <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("status")}><RefreshCw size={16}/>{busy?"Memuat…":"Cek status pembayaran"}</Button>
         {invoice?.status==="paid" && <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("checkout")}>{livePro?"Perpanjang Pro":testing?"Uji pembayaran lagi":"Uji perpanjangan Pro"}</Button>}
       </div>{error&&<p className="error-message" role="alert">{error}</p>}
-      {production && billing?.invoices && <section aria-label={livePro?"Riwayat berlangganan":"Daftar pembayaran uji"} style={{marginTop:24}}>
-        <h3>{livePro?"Riwayat berlangganan":"Daftar pembayaran uji"}</h3>
-        {billing.invoices.length===0 && <p className="field-hint">Belum ada invoice pembayaran.</p>}
-        <p className="field-hint">{livePro?"20 invoice terbaru. Cek status atau batalkan pembayaran yang belum lunas. Pembatalan invoice tidak mengakhiri Pro yang masih aktif.":"20 invoice terbaru. Pembatalan membutuhkan Order Cancellation aktif di DOKU dan metode pembayaran yang didukung. Pembayaran lunas tidak dapat dibatalkan."}</p>
-        <div className="table-wrap" tabIndex={0} role="region" aria-label={livePro?"Invoice berlangganan":"Riwayat pembayaran uji"}><table className="orders-table"><thead><tr><th>Invoice / pelanggan</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead><tbody>{billing.invoices.map(item=>{
-          const status=["creating","pending"].includes(item.status) && Date.parse(item.expiresAt)<=clock?"expired":item.status;
-          return <tr key={item.id}><td style={{overflowWrap:"anywhere",whiteSpace:"normal"}}>{item.number}<div className="field-hint">{formatProInvoiceDate(item.createdAt)}</div>{item.customerName && <div>{item.customerName}</div>}{item.customerEmail && <div className="field-hint">{item.customerEmail}</div>}</td><td>{"Rp"+item.amount.toLocaleString("id-ID")}</td><td>{labels[status]}{livePro && item.periodStart && item.periodEnd && <div className="field-hint">{formatProInvoiceDate(item.periodStart)} – {formatProInvoiceDate(item.periodEnd)}</div>}</td><td>{["creating","pending"].includes(status)?<div className="pro-invoice-actions">{livePro && <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("status")}>Cek status</Button>}<Button className="btn btn-secondary" disabled={busy} onClick={()=>setCancelId(item.id)}>Batalkan</Button></div>:"—"}</td></tr>;
-        })}</tbody></table></div>
-        {cancelId && <div role="group" aria-label="Konfirmasi pembatalan" style={{marginTop:16}}><p>Batalkan invoice {billing.invoices.find(item=>item.id===cancelId)?.number}? Link pembayaran akan dinonaktifkan jika DOKU menerima pembatalan.</p><div className="pro-invoice-actions"><Button className="btn btn-primary" disabled={busy} onClick={()=>void load("cancel",cancelId)}>{busy?"Membatalkan…":"Ya, batalkan pembayaran"}</Button><Button className="btn btn-secondary" disabled={busy} onClick={()=>setCancelId(null)}>Kembali</Button></div></div>}
-      </section>}
+      {production && billing?.invoices && <SubscriptionHistory invoices={billing.invoices} livePro={livePro} email={account.email} busy={busy} clock={clock} cancelId={cancelId} onCheck={()=>void load("status")} onCancel={setCancelId} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>setCancelId(null)}/>}
+
     </div>
   </section>;
 }

@@ -34,6 +34,8 @@ Gunakan konfigurasi Checkout, bukan Direct API SNAP atau kolom email kegagalan n
 - Notifikasi ulang tidak memperpanjang masa Pro dua kali. Pembayaran sah yang datang terlambat tetap direkonsiliasi. Membatalkan invoice belum lunas tidak mengubah Pro yang telah dibayar.
 - Setelah popup ditutup atau Cek status ditekan, UI membaca ledger dan memuat ulang entitlement terverifikasi melalui RPC workspace. Data usaha dan versi penyimpanan tidak diganti oleh refresh langganan.
 - Riwayat berlangganan menampilkan 20 invoice terbaru, status dan periode invoice lunas. Invoice pending dapat dicek statusnya atau dibatalkan dengan konfirmasi.
+- Riwayat dibatasi berdasarkan ID akun dari sesi yang telah diverifikasi backend; parameter pemilik dari browser tidak digunakan. RLS juga menolak pembacaan invoice akun lain. Email akun ditampilkan sebagai konteks riwayat.
+- Desktop memakai tabel invoice dan periode. Ponsel memakai daftar ringkas yang dapat dibuka untuk melihat tanggal pembayaran, periode Pro atau batas bayar. Tombol cek status, batalkan dan konfirmasinya berada dalam detail invoice dengan ukuran penuh; halaman tidak perlu digeser ke samping.
 - Status dibaca dari notifikasi yang sudah tersimpan. Jika pembayaran sudah dilakukan tetapi masih pending, cek HTTP Notification DOKU dan Logs Edge Function, lalu kirim ulang notifikasi melalui DOKU. Jangan menetapkan status paid/Pro secara manual untuk menutupi webhook yang gagal.
 - Invoice uji dan sandbox tidak memberikan entitlement produksi. Draf invoice lokal lama bukan transaksi DOKU dan tidak dimigrasikan menjadi tagihan.
 

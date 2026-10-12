@@ -383,3 +383,17 @@ test("Pro period clamps a January renewal in Jakarta and browser cannot read for
  await assert.rejects(db.exec("select request_body from public.tippo_pro_invoices"),/permission denied/);
  await assert.rejects(db.query("select public.tippo_get_pro_billing($1)",[a]),/permission denied/);
 });
+
+ test("subscription history is scoped to the authenticated account despite forged owner parameters",async()=>{
+ const handle=productionBillingHandler({...config,environment:"production"},{authenticate:async token=>token==="account-a"?a:token==="account-b"?b:null,rpc});
+ const read=async(token:string,query:string)=>parseProductionBilling(await (await handle(new Request("https://billing.test/status?owner="+query,{headers:{Authorization:"Bearer "+token}}))).json());
+ const first=await read("account-a",b),second=await read("account-b",a);
+ assert.ok(first.invoices!.length>1);assert.equal(second.invoices!.length,1);
+ const firstIds=new Set(first.invoices!.map(i=>i.id));assert.equal(second.invoices!.some(i=>firstIds.has(i.id)),false);
+ assert.equal(first.invoice!.id,first.invoices![0].id);assert.equal(second.invoice!.id,second.invoices![0].id);
+ await db.exec("reset role;");
+ for(const [owner,billing] of [[a,first],[b,second]] as const){
+  const ids=(await db.query<{id:string}>("select id from public.tippo_pro_invoices where owner_id=$1 order by created_at desc,id desc limit 20",[owner])).rows.map(row=>row.id);
+  assert.deepEqual(billing.invoices!.map(item=>item.id),ids);
+ }
+ });
