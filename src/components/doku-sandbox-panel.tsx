@@ -6,6 +6,7 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { parseSandboxBilling, parseProductionTestBilling, parseProductionBilling, type SandboxBilling } from "@/lib/doku-billing";
 import { formatProInvoiceDate } from "@/lib/pro-invoice";
 import { SubscriptionHistory } from "@/components/subscription-history";
+import { SubscriptionHistoryDialog } from "@/components/subscription-history-dialog";
 import { prepareDokuCheckout, showDokuCheckout } from "@/lib/doku-checkout-popup";
 
 class CheckoutFailure extends Error {
@@ -14,7 +15,7 @@ class CheckoutFailure extends Error {
   constructor(message:string,billing:SandboxBilling|null,testDenied=false){super(message);this.billing=billing;this.testDenied=testDenied;}
 }
 
-export interface ProPaymentControls { upgrade:()=>Promise<void>; }
+export interface ProPaymentControls { upgrade:()=>Promise<void>; showHistory:()=>void; }
 export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,paymentRef,onBusyChange}:{account:{id:string;email?:string},mode?:SandboxBilling["environment"],onSubscriptionChanged?:()=>Promise<void>,paymentRef?:Ref<ProPaymentControls>,onBusyChange?:(busy:boolean)=>void}) {
   const production=mode!=="sandbox",livePro=mode==="production",testing=mode==="production-test";
   const parse=livePro?parseProductionBilling:testing?parseProductionTestBilling:parseSandboxBilling;
@@ -23,10 +24,12 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   const [clock,setClock]=useState(()=>Date.now());
   const [cancelId,setCancelId]=useState<string|null>(null);
   const [testAllowed,setTestAllowed]=useState(false);
+  const [historyOpen,setHistoryOpen]=useState(false);
+  const [historyOpener,setHistoryOpener]=useState<HTMLElement|null>(null);
   const alive=useRef(false),lock=useRef(false);
   const popupCleanup=useRef<(()=>void)|null>(null);
   useEffect(()=>{onBusyChange?.(busy);},[busy,onBusyChange]);
-  useImperativeHandle(paymentRef,()=>({upgrade:()=>openPayment(true)}));
+  useImperativeHandle(paymentRef,()=>({upgrade:()=>openPayment(true),showHistory:()=>{setHistoryOpener(document.activeElement instanceof HTMLElement?document.activeElement:null);setHistoryOpen(true);if(!lock.current)void load("status");}}));
   async function request(action:"checkout"|"status"|"cancel",signal?:AbortSignal,invoiceId?:string) {
     const client=getSupabaseClient();const session=await client?.auth.getSession();
     if(!client || session?.data.session?.user.id!==account.id)throw new Error("Masuk kembali sebelum membuka pembayaran.");
@@ -75,12 +78,13 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
     finally{lock.current=false;if(alive.current)setBusy(false);}
   }
   if(testing && !testAllowed)return null;
-  if(livePro)return <section id="invoice-pro" className="card" aria-label="Pembayaran langganan"><div className="pro-invoice-body">
-    {error && <p className="error-message" role="alert">{error}</p>}
-    {needsReview && <p className="field-hint">Pembayaran ini perlu diperiksa di DOKU sebelum dicoba kembali. Kamu dapat mengecek status atau membatalkan invoice yang belum lunas melalui riwayat.</p>}
-    {billing?.invoices && <SubscriptionHistory invoices={billing.invoices} livePro email={account.email} busy={busy} clock={clock} cancelId={cancelId} onCheck={()=>void load("status")} onCancel={setCancelId} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>setCancelId(null)}/>}
-    <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("status")}><RefreshCw size={16}/>{busy?"Memuat…":"Cek status pembayaran"}</Button>
-  </div></section>;
+  if(livePro)return <>
+    {!historyOpen && (error || needsReview) && <div id="invoice-pro" className="card pro-invoice-body">{error && <p className="error-message" role="alert">{error}</p>}{needsReview && <p className="field-hint">Pembayaran perlu diperiksa. Buka Riwayat langganan untuk cek status atau batalkan invoice yang belum lunas.</p>}</div>}
+    {historyOpen && <SubscriptionHistoryDialog busy={busy} opener={historyOpener} onCheck={()=>void load("status")} onClose={()=>{setHistoryOpen(false);setCancelId(null);}}>
+      {error && <p className="error-message" role="alert">{error}</p>}
+      {billing?.invoices?<SubscriptionHistory invoices={billing.invoices} livePro email={account.email} busy={busy} clock={clock} cancelId={cancelId} onCheck={()=>void load("status")} onCancel={setCancelId} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>setCancelId(null)}/>:<p role="status">{busy?"Memuat riwayat langganan…":"Riwayat belum dapat dimuat. Coba cek status kembali."}</p>}
+    </SubscriptionHistoryDialog>}
+  </>;
   return <section id={testing?"production-test-payment":"invoice-pro"} className="card pro-invoice-panel" aria-label={livePro?"Invoice langganan Pro":testing?"Uji pembayaran produksi":"Pembayaran Pro sandbox"}>
     <div className="card-header"><div><h2>{livePro?"Invoice langganan Pro":testing?"Uji pembayaran produksi":"Pembayaran Pro"}</h2><p>DOKU Checkout · <span className="status-tag order-status-new">{livePro?"Pro · Rp25.000 / bulan":testing?"Produksi · Rp10.000":"Sandbox"}</span></p></div><ReceiptText size={22}/></div>
     <div className="pro-invoice-body"><p className="field-hint">{livePro?"Bayar Tippo Pro Rp25.000 untuk satu bulan. Pro aktif setelah pembayaran terverifikasi. Perpanjangan ditambahkan dari akhir masa Pro yang masih aktif.":testing?"Pembayaran nyata sebesar Rp10.000 untuk menguji DOKU Checkout. Tidak mengaktifkan Pro. DOKU atau aplikasi pembayaran dapat menolak nominal ini.":"Pengujian pembayaran Rp25.000 untuk satu bulan Pro. Gunakan simulator DOKU. Hasil uji tidak mengaktifkan langganan produksi."}</p>

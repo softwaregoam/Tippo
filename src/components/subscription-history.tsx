@@ -19,7 +19,7 @@ export function SubscriptionHistory({invoices,livePro,email,busy,clock,cancelId,
  const selected=invoices.find(item=>item.id===cancelId);
  const confirmation=selected && <div className="pro-history-confirmation" role="group" aria-label="Konfirmasi pembatalan"><p>Batalkan invoice {selected.number}? Link pembayaran akan dinonaktifkan jika DOKU menerima pembatalan.</p><div className="pro-invoice-actions"><Button className="btn btn-primary" disabled={busy} onClick={onConfirm}>{busy?"Membatalkan…":"Ya, batalkan pembayaran"}</Button><Button className="btn btn-secondary" disabled={busy} onClick={onDismiss}>Kembali</Button></div></div>;
  return <section aria-label={livePro?"Riwayat berlangganan":"Daftar pembayaran uji"} style={{marginTop:livePro?0:24}}>
-  <h3>{livePro?"Riwayat berlangganan":"Daftar pembayaran uji"}</h3>
+  {!livePro && <h3>Daftar pembayaran uji</h3>}
   {livePro && <p className="field-hint pro-history-account">{email?"Riwayat akun "+email:"Riwayat akun yang sedang masuk"}</p>}
   {invoices.length===0?<p className="field-hint">Belum ada invoice pembayaran.</p>:<>
    <p className="field-hint">{livePro?"20 invoice terbaru milik akunmu. Pembatalan invoice tidak mengakhiri Pro yang masih aktif.":"20 invoice terbaru. Pembatalan membutuhkan Order Cancellation aktif di DOKU dan metode pembayaran yang didukung. Pembayaran lunas tidak dapat dibatalkan."}</p>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Check, Crown } from "lucide-react";
+import { Check, Crown, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokuSandboxPanel, type ProPaymentControls } from "@/components/doku-sandbox-panel";
 import {
@@ -42,6 +42,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
   }
 
   return <div className="subscription-layout">
+    {live && account && <div className="subscription-tools"><Button className="btn btn-secondary" disabled={!proBilling || paymentBusy} onClick={()=>paymentRef.current?.showHistory()}><History size={17}/>Riwayat langganan</Button></div>}
     <section className="card subscription-status" aria-label="Paket aktif">
       <div className="card-header"><div><h2>Paketmu: {plan === "pro" ? (live ? "Pro" : "Pro (demo)") : "Gratis"}</h2><p>Periode kuota {currentMonth} · waktu Jakarta</p></div><span className="type-badge">{plan === "pro" ? (live ? "PRO" : "PRO DEMO") : "GRATIS"}</span></div>
       <div className="subscription-usage">

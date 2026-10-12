@@ -1128,15 +1128,17 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
   await route.fulfill({json:{environment:"production",proUntil:paid?expiry:null,invoice:rows[0]??null,invoices:rows}});
  });
  await page.goto("/app?billing=production");
- const panel=page.getByRole("region",{name:"Pembayaran langganan",exact:true});await expect(panel).toBeVisible();
+ const panel=page.getByRole("dialog",{name:"Riwayat langganan",exact:true});
+ const historyButton=page.getByRole("button",{name:"Riwayat langganan",exact:true});await expect(historyButton).toBeVisible();await historyButton.click();await expect(panel).toBeVisible();
  await expect(page.getByRole("region",{name:"Invoice langganan Pro",exact:true})).toHaveCount(0);await expect(page.getByRole("button",{name:"Lihat invoice Pro",exact:true})).toHaveCount(0);await expect(page.getByRole("button",{name:"Buat draf invoice Pro",exact:true})).toHaveCount(0);
- await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toContainText("Rp25.000");await expect(panel).toContainText("Belum ada invoice pembayaran");
- await page.getByRole("region",{name:"Paket Pro",exact:true}).getByRole("button",{name:"Upgrade ke Pro · Rp25.000",exact:true}).click();const popup=page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true});await expect(popup).toBeVisible();await expect(panel).toContainText("Menunggu pembayaran");
+ await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toContainText("Rp25.000");await expect(panel).toContainText("Belum ada invoice pembayaran");await panel.getByRole("button",{name:"Tutup riwayat langganan"}).click();await expect(panel).toHaveCount(0);
+ await page.getByRole("region",{name:"Paket Pro",exact:true}).getByRole("button",{name:"Upgrade ke Pro · Rp25.000",exact:true}).click();const popup=page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true});await expect(popup).toBeVisible();
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
  expect(page.context().pages()).toHaveLength(1);
  paid=true;await popup.frameLocator("iframe").getByRole("button",{name:"Selesai"}).click();await expect(popup).toHaveCount(0);
- await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");await expect(panel.getByRole("region",{name:"Riwayat berlangganan",exact:true})).toContainText("Lunas");
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");await historyButton.click();await expect(panel).toBeVisible();await expect(panel.getByRole("region",{name:"Riwayat berlangganan",exact:true})).toContainText("Lunas");await panel.getByRole("button",{name:"Tutup riwayat langganan"}).click();await expect(panel).toHaveCount(0);
  await page.getByRole("region",{name:"Paket Pro",exact:true}).getByRole("button",{name:"Perpanjang Pro · Rp25.000",exact:true}).click();await expect(popup).toBeVisible();await popup.getByRole("button",{name:"Tutup pembayaran DOKU"}).click();await expect(popup).toHaveCount(0);
+ await historyButton.click();await expect(panel).toBeVisible();expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");
  const history=panel.getByRole("region",{name:"Riwayat berlangganan",exact:true});
  await expect(history).toContainText("Riwayat akun naya@example.test");
  const rows=width<=600?history.locator(".pro-history-mobile > li"):history.locator("tbody tr");await expect(rows).toHaveCount(2);
@@ -1144,7 +1146,7 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
  await history.getByRole("button",{name:"Cek status",exact:true}).click();await history.getByRole("button",{name:"Batalkan",exact:true}).click();
  await history.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(history).toContainText("Dibatalkan");await expect(history.getByRole("button",{name:"Batalkan",exact:true})).toHaveCount(0);
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");expect(created).toBe(2);expect(checks).toBeGreaterThanOrEqual(3);
- await page.reload();await expect(history).toContainText("Dibatalkan");await expect(rows).toHaveCount(2);await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");
+ await panel.getByRole("button",{name:"Tutup riwayat langganan"}).click();await expect(panel).toHaveCount(0);await expect(historyButton).toBeFocused();await page.reload();await historyButton.click();await expect(panel).toBeVisible();await expect(history).toContainText("Dibatalkan");await expect(rows).toHaveCount(2);await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");
  if(width<=600){await rows.last().locator("summary").click();await expect(rows.last().getByText("Mulai Pro",{exact:true})).toBeVisible();await expect(rows.last().getByText("Dibayar pada",{exact:true})).toBeVisible();}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
