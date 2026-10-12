@@ -18,7 +18,7 @@ export function SubscriptionHistory({invoices,livePro,email,busy,clock,cancelId,
  const actions=(item:SandboxInvoice)=>canCancel(item)?<div className="pro-invoice-actions">{livePro && <Button className="btn btn-secondary" disabled={busy} onClick={onCheck}>Cek status</Button>}<Button className="btn btn-secondary" disabled={busy} onClick={()=>onCancel(item.id)}>Batalkan</Button></div>:"—";
  const selected=invoices.find(item=>item.id===cancelId);
  const confirmation=selected && <div className="pro-history-confirmation" role="group" aria-label="Konfirmasi pembatalan"><p>Batalkan invoice {selected.number}? Link pembayaran akan dinonaktifkan jika DOKU menerima pembatalan.</p><div className="pro-invoice-actions"><Button className="btn btn-primary" disabled={busy} onClick={onConfirm}>{busy?"Membatalkan…":"Ya, batalkan pembayaran"}</Button><Button className="btn btn-secondary" disabled={busy} onClick={onDismiss}>Kembali</Button></div></div>;
- return <section aria-label={livePro?"Riwayat berlangganan":"Daftar pembayaran uji"} style={{marginTop:24}}>
+ return <section aria-label={livePro?"Riwayat berlangganan":"Daftar pembayaran uji"} style={{marginTop:livePro?0:24}}>
   <h3>{livePro?"Riwayat berlangganan":"Daftar pembayaran uji"}</h3>
   {livePro && <p className="field-hint pro-history-account">{email?"Riwayat akun "+email:"Riwayat akun yang sedang masuk"}</p>}
   {invoices.length===0?<p className="field-hint">Belum ada invoice pembayaran.</p>:<>

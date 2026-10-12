@@ -75,6 +75,12 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
     finally{lock.current=false;if(alive.current)setBusy(false);}
   }
   if(testing && !testAllowed)return null;
+  if(livePro)return <section id="invoice-pro" className="card" aria-label="Pembayaran langganan"><div className="pro-invoice-body">
+    {error && <p className="error-message" role="alert">{error}</p>}
+    {needsReview && <p className="field-hint">Pembayaran ini perlu diperiksa di DOKU sebelum dicoba kembali. Kamu dapat mengecek status atau membatalkan invoice yang belum lunas melalui riwayat.</p>}
+    {billing?.invoices && <SubscriptionHistory invoices={billing.invoices} livePro email={account.email} busy={busy} clock={clock} cancelId={cancelId} onCheck={()=>void load("status")} onCancel={setCancelId} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>setCancelId(null)}/>}
+    <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("status")}><RefreshCw size={16}/>{busy?"Memuat…":"Cek status pembayaran"}</Button>
+  </div></section>;
   return <section id={testing?"production-test-payment":"invoice-pro"} className="card pro-invoice-panel" aria-label={livePro?"Invoice langganan Pro":testing?"Uji pembayaran produksi":"Pembayaran Pro sandbox"}>
     <div className="card-header"><div><h2>{livePro?"Invoice langganan Pro":testing?"Uji pembayaran produksi":"Pembayaran Pro"}</h2><p>DOKU Checkout · <span className="status-tag order-status-new">{livePro?"Pro · Rp25.000 / bulan":testing?"Produksi · Rp10.000":"Sandbox"}</span></p></div><ReceiptText size={22}/></div>
     <div className="pro-invoice-body"><p className="field-hint">{livePro?"Bayar Tippo Pro Rp25.000 untuk satu bulan. Pro aktif setelah pembayaran terverifikasi. Perpanjangan ditambahkan dari akhir masa Pro yang masih aktif.":testing?"Pembayaran nyata sebesar Rp10.000 untuk menguji DOKU Checkout. Tidak mengaktifkan Pro. DOKU atau aplikasi pembayaran dapat menolak nominal ini.":"Pengujian pembayaran Rp25.000 untuk satu bulan Pro. Gunakan simulator DOKU. Hasil uji tidak mengaktifkan langganan produksi."}</p>

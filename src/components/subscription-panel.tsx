@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { Check, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ProInvoicePanel } from "@/components/pro-invoice-panel";
 import { DokuSandboxPanel, type ProPaymentControls } from "@/components/doku-sandbox-panel";
 import {
   effectivePlan, endProDemo, FREE_ORDER_LIMIT, FREE_PRODUCT_LIMIT, jakartaMonth,
@@ -78,10 +77,10 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
           <li><Check size={16} /><span>Semua fitur paket Gratis</span></li>
         </ul>
         <p className="field-hint">{live ? proBilling?"Bayar melalui DOKU Checkout. Pro aktif setelah pembayaran terverifikasi; riwayat invoice tersimpan di akunmu.":sandbox ? "Pembayaran DOKU tersedia untuk pengujian sandbox. Paket akun produksi tidak berubah setelah simulasi." : "Pembayaran Pro sedang disiapkan. Paket Gratis tetap bisa digunakan; kami belum menerima pembayaran langganan." : "Pembayaran langganan belum tersedia pada prototipe ini. Tombol di bawah mengaktifkan demo lokal selama satu bulan tanpa biaya."}</p>
-        {live && proBilling && account?<Button className="btn btn-primary subscription-upgrade" disabled={paymentBusy} onClick={()=>void paymentRef.current?.upgrade()}><Crown size={16}/>{paymentBusy?"Memuat pembayaran…":plan==="pro"?"Perpanjang Pro · Rp25.000":"Upgrade ke Pro · Rp25.000"}</Button>:live ? <a className="btn btn-secondary" href="#invoice-pro">{plan === "pro" ? "Invoice perpanjangan Pro" : "Lihat invoice Pro"}</a> : plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
+        {live?<Button className="btn btn-primary subscription-upgrade" disabled={!proBilling || !account || paymentBusy} onClick={()=>void paymentRef.current?.upgrade()}><Crown size={16}/>{proBilling && paymentBusy?"Memuat pembayaran…":plan==="pro"?"Perpanjang Pro · Rp25.000":"Upgrade ke Pro · Rp25.000"}</Button>:plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
       </section>
     </div>
     {live && account && process.env.NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED==="true" && <DokuSandboxPanel key={account.id+"-production-test"} account={account} mode="production-test"/>}
-    {live && account && (proBilling?<DokuSandboxPanel key={account.id+"-pro"} account={account} mode="production" onSubscriptionChanged={onSubscriptionChanged} paymentRef={paymentRef} onBusyChange={setPaymentBusy}/>:sandbox ? <DokuSandboxPanel key={account.id} account={account}/> : <ProInvoicePanel key={account.id} account={account} onNotify={onNotify} />)}
+    {live && account && (proBilling?<DokuSandboxPanel key={account.id+"-pro"} account={account} mode="production" onSubscriptionChanged={onSubscriptionChanged} paymentRef={paymentRef} onBusyChange={setPaymentBusy}/>:sandbox?<DokuSandboxPanel key={account.id} account={account}/>:null)}
   </div>;
 }

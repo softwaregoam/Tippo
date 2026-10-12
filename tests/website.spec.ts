@@ -1,7 +1,6 @@
 import { chooseOption } from "./select-helper";
 import { expect, test, type Page, type Locator } from "@playwright/test";
 import type { AppData } from "../src/lib/types";
-import { readFile } from "node:fs/promises";
 
 test("DOKU production duplicate request blocks resending after reload",async({page})=>{
  test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
@@ -897,44 +896,6 @@ test("batch status confirmation stays open when cloud saving fails",async({page}
  await expect(page.getByRole("table",{name:"Daftar perjalanan Jastip"}).getByText("Dibuka",{exact:true})).toBeVisible();
 });
 
-for (const [width,pro] of [[1440,false],[390,false],[1440,true],[390,true]] as const) {
- test(`Pro invoice draft persists and exports without activating payment ${width} ${pro}`,async({page,context})=>{
-  await context.grantPermissions(["clipboard-read","clipboard-write"]);
-  await page.setViewportSize({width,height:1000});
-  if(width<600)await page.addInitScript(()=>localStorage.setItem("tippo.theme.v1","dark"));
-  const requests=await authenticate(page,{pro});await page.goto("/app");await openSection(page,"Paket & langganan");
-  const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});
-  await panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true}).click();
-  await expect(panel).toContainText("Titipan Naya");await expect(panel).toContainText("naya@example.test");await expect(panel).toContainText("Rp25.000");
-  const id=await panel.locator("dd").first().innerText();expect(id).toMatch(/^INV-PRO-\d{8}-[A-F0-9]{16}$/);
-  const date=await panel.locator("dd").nth(1).innerText();expect(date).toMatch(/\d{1,2} [A-Za-z]+ \d{4}.*WIB/);
-  await panel.getByRole("button",{name:"Salin invoice",exact:true}).click();
-  await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toContain("Ini bukan bukti pembayaran.");
-  const downloadPromise=page.waitForEvent("download");await panel.getByRole("button",{name:"Unduh invoice (.txt)",exact:true}).click();
-  const download=await downloadPromise;expect(download.suggestedFilename()).toBe(`${id}.txt`);
-  const body=await readFile((await download.path())!,"utf8");expect(body).toContain(id);expect(body).toContain("Total: Rp25.000");
-  await page.reload();await openSection(page,"Paket & langganan");await expect(panel.locator("dd").first()).toHaveText(id);await expect(panel.locator("dd").nth(1)).toHaveText(date);
-  await expect(panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true})).toHaveCount(0);
-  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText(pro?"Paketmu: Pro":"Paketmu: Gratis");
-  expect(requests).toHaveLength(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
-  await panel.screenshot({path:`docs/preview-pro-invoice-${width}-${pro?"pro":"free"}.png`});
- });
-}
-
-test("Pro invoice copy failure offers download without changing entitlement",async({page})=>{
- const requests=await authenticate(page);await page.goto("/app");await openSection(page,"Paket & langganan");
- const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});await panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true}).click();
- await page.evaluate(()=>Object.defineProperty(navigator,"clipboard",{value:{writeText:async()=>{throw new Error("Denied");}},configurable:true}));
- await panel.getByRole("button",{name:"Salin invoice",exact:true}).click();await expect(panel.getByRole("alert")).toContainText("Gunakan Unduh invoice");
- await expect(panel.getByRole("button",{name:"Unduh invoice (.txt)",exact:true})).toBeEnabled();expect(requests).toHaveLength(0);
-});
-
-test("Pro invoice handles blocked browser storage without claiming a saved draft",async({page})=>{
- await authenticate(page);await page.addInitScript(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key.startsWith("tippo.pro-invoice.draft.v1."))throw new Error("Blocked");return original.call(this,key,value);};});
- await page.goto("/app");await openSection(page,"Paket & langganan");const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});
- await panel.getByRole("button",{name:"Buat draf invoice Pro",exact:true}).click();await expect(panel.getByRole("alert")).toContainText("Draf belum tersimpan");await expect(panel.locator("dl")).toHaveCount(0);
-});
-
 for (const width of [1440,390]) {
  test(`feedback sends authenticated input without changing workspace ${width}`,async({page})=>{
   await page.setViewportSize({width,height:1000});if(width<600)await page.addInitScript(()=>localStorage.setItem("tippo.theme.v1","dark"));
@@ -1167,13 +1128,14 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
   await route.fulfill({json:{environment:"production",proUntil:paid?expiry:null,invoice:rows[0]??null,invoices:rows}});
  });
  await page.goto("/app?billing=production");
- const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});await expect(panel).toBeVisible();
- await expect(panel).toContainText("Rp25.000");await expect(panel).toContainText("Belum ada invoice pembayaran");
+ const panel=page.getByRole("region",{name:"Pembayaran langganan",exact:true});await expect(panel).toBeVisible();
+ await expect(page.getByRole("region",{name:"Invoice langganan Pro",exact:true})).toHaveCount(0);await expect(page.getByRole("button",{name:"Lihat invoice Pro",exact:true})).toHaveCount(0);await expect(page.getByRole("button",{name:"Buat draf invoice Pro",exact:true})).toHaveCount(0);
+ await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toContainText("Rp25.000");await expect(panel).toContainText("Belum ada invoice pembayaran");
  await page.getByRole("region",{name:"Paket Pro",exact:true}).getByRole("button",{name:"Upgrade ke Pro · Rp25.000",exact:true}).click();const popup=page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true});await expect(popup).toBeVisible();await expect(panel).toContainText("Menunggu pembayaran");
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
  expect(page.context().pages()).toHaveLength(1);
  paid=true;await popup.frameLocator("iframe").getByRole("button",{name:"Selesai"}).click();await expect(popup).toHaveCount(0);
- await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");await expect(panel).toContainText("Periode invoice");
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");await expect(panel.getByRole("region",{name:"Riwayat berlangganan",exact:true})).toContainText("Lunas");
  await page.getByRole("region",{name:"Paket Pro",exact:true}).getByRole("button",{name:"Perpanjang Pro · Rp25.000",exact:true}).click();await expect(popup).toBeVisible();await popup.getByRole("button",{name:"Tutup pembayaran DOKU"}).click();await expect(popup).toHaveCount(0);
  const history=panel.getByRole("region",{name:"Riwayat berlangganan",exact:true});
  await expect(history).toContainText("Riwayat akun naya@example.test");
