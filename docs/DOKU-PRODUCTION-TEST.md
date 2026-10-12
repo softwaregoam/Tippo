@@ -62,3 +62,7 @@ Invoice baru tidak mengirim payment_method_types, sehingga DOKU menampilkan selu
 Lokasi Notification URL perlu dicocokkan dengan konfigurasi Checkout/brand DOKU. HTTP Notifications → Pengaturan adalah pengaturan email kegagalan pengiriman, bukan kolom URL webhook. Jika konfigurasi Checkout tidak terlihat, minta DOKU menunjukkan konfigurasi notifikasi Checkout Non-SNAP untuk Client ID/brand tersebut; jangan memakai konfigurasi Direct API SNAP.
 
 Perubahan nominal: invoice uji baru dikunci Rp10.000. Invoice Rp10/Rp1.000 yang masih creating/pending ditutup secara lokal saat membuat invoice baru; request body dan nomor lama tetap disimpan, dan notifikasi pembayaran lama tetap dapat direkonsiliasi. Ini tidak membatalkan link yang sudah diterbitkan DOKU. Nominal notifikasi harus cocok dengan invoice terkait; pembayaran Rp10/Rp1.000 tidak melunasi invoice Rp10.000.
+
+Validasi link produksi menerima HTTPS dengan hostname tepat `checkout.doku.com` atau `jokul.doku.com`, tanpa kredensial atau port khusus. Sandbox tetap hanya `sandbox.doku.com`. Perbaikan ini membutuhkan redeploy frontend dan Edge Function, tanpa migration tambahan.
+
+Invoice yang sebelumnya ditahan karena `CHECKOUT_URL_INVALID` tidak otomatis dikirim ulang: URL respons lama tidak tersimpan dan tidak dapat direkonstruksi dari hostname. Periksa invoice tersebut di DOKU. Notifikasi pembayaran terverifikasi tetap diterima. Jika belum dibayar, tunggu batas pembayaran berlalu sebelum membuat invoice uji baru; jangan membayar link invoice lama setelah beralih ke invoice baru.

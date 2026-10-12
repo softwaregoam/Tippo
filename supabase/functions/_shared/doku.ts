@@ -55,7 +55,7 @@ export async function verifyDoku(secret: string, client: string, target: string,
 export function safeCheckoutUrl(value: unknown, mode: DokuMode = "sandbox"): string {
   if (typeof value !== "string") throw new Error("INVALID_CHECKOUT_URL");
   const url = new URL(value);
-  const hosts=mode==="sandbox"?["sandbox.doku.com"]:["jokul.doku.com"];
+  const hosts=mode==="sandbox"?["sandbox.doku.com"]:["jokul.doku.com","checkout.doku.com"];
   if (url.protocol !== "https:" || !hosts.includes(url.hostname) || url.username || url.password || (url.port && url.port !== "443")) throw new Error("INVALID_CHECKOUT_URL");
   return url.href;
 }

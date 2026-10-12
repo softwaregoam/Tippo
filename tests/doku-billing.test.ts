@@ -179,7 +179,7 @@ test("parallel Checkout calls send once and accept a flat response with exact de
  const gate=new Promise<void>(resolve=>{release=resolve;}),started=new Promise<void>(resolve=>{ready=resolve;});
  const handle=productionTestHandler({...config,environment:"production",allowedUsers:[b]},{authenticate:async()=>b,rpc,send:async(_input,init)=>{
   calls++;ready();await gate;const body=JSON.parse(init!.body as string);
-  return Response.json({order:{...body.order,amount:"10000.00"},payment:{url:"https://jokul.doku.com/checkout/link/flat",expired_date:"20501012120000"}});
+  return Response.json({order:{...body.order,amount:"10000.00"},payment:{url:"https://checkout.doku.com/checkout/link/flat",expired_date:"20501012120000"}});
  }});
  const req=()=>new Request("https://billing.test/checkout",{method:"POST",headers:{Authorization:"Bearer tester"}});
  const first=handle(req());await started;
@@ -220,3 +220,17 @@ test("an unusable successful DOKU response preserves the order and reports the f
  const result=await response.json();assert.equal(result.error,"CHECKOUT_RESPONSE_INVALID");assert.equal(result.providerIssue,"CHECKOUT_URL_INVALID");assert.equal(result.checkoutHost,"unrecognized-provider.test");assert.equal(result.billing.invoice.recoveryRequired,true);
  await handle(req());assert.equal(calls,1);
 });
+
+ test("production Checkout URLs accept exact DOKU hosts and reject unsafe alternatives",()=>{
+ const invoice={id:"test",number:"TPT"+"A".repeat(24),amount:10000,currency:"IDR",status:"pending",checkoutUrl:null,createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null};
+ for(const host of ["checkout.doku.com","jokul.doku.com"]){
+  const url="https://"+host+"/checkout/link/test";
+  assert.equal(safeCheckoutUrl(url,"production-test"),url);
+  assert.equal(parseProductionTestBilling({environment:"production-test",proUntil:null,invoice:{...invoice,checkoutUrl:url}}).invoice!.checkoutUrl,url);
+  assert.throws(()=>safeCheckoutUrl(url,"sandbox"));
+ }
+ for(const url of ["https://checkout.doku.com.evil.test/pay","http://checkout.doku.com/pay","https://user@checkout.doku.com/pay","https://checkout.doku.com:444/pay","https://sandbox.doku.com/pay"]){
+  assert.throws(()=>safeCheckoutUrl(url,"production-test"));
+  assert.throws(()=>parseProductionTestBilling({environment:"production-test",proUntil:null,invoice:{...invoice,checkoutUrl:url}}));
+ }
+ });
