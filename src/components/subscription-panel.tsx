@@ -3,6 +3,7 @@
 import { Check, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProInvoicePanel } from "@/components/pro-invoice-panel";
+import { DokuSandboxPanel } from "@/components/doku-sandbox-panel";
 import {
   effectivePlan, endProDemo, FREE_ORDER_LIMIT, FREE_PRODUCT_LIMIT, jakartaMonth,
   monthlyOrderUsage, PRO_MONTHLY_PRICE, startProDemo,
@@ -20,6 +21,7 @@ interface SubscriptionPanelProps {
 export function SubscriptionPanel({ data, subscription, account, onNotify }: SubscriptionPanelProps) {
   const plan = effectivePlan(subscription);
   const live = subscription.mode === "live";
+  const sandbox = process.env.NEXT_PUBLIC_DOKU_SANDBOX_ENABLED === "true";
   const jastipUsed = monthlyOrderUsage(data, new Date(), "jastip");
   const poUsed = monthlyOrderUsage(data, new Date(), "po");
   const currentMonth = new Date(`${jakartaMonth()}-01T00:00:00+07:00`).toLocaleDateString("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
@@ -70,10 +72,10 @@ export function SubscriptionPanel({ data, subscription, account, onNotify }: Sub
           <li><Check size={16} /><span>Template dan import Excel produk, Jastip, dan Open PO</span></li>
           <li><Check size={16} /><span>Semua fitur paket Gratis</span></li>
         </ul>
-        <p className="field-hint">{live ? "Pembayaran Pro sedang disiapkan. Paket Gratis tetap bisa digunakan; kami belum menerima pembayaran langganan." : "Pembayaran langganan belum tersedia pada prototipe ini. Tombol di bawah mengaktifkan demo lokal selama satu bulan tanpa biaya."}</p>
+        <p className="field-hint">{live ? sandbox ? "Pembayaran DOKU tersedia untuk pengujian sandbox. Paket akun produksi tidak berubah setelah simulasi." : "Pembayaran Pro sedang disiapkan. Paket Gratis tetap bisa digunakan; kami belum menerima pembayaran langganan." : "Pembayaran langganan belum tersedia pada prototipe ini. Tombol di bawah mengaktifkan demo lokal selama satu bulan tanpa biaya."}</p>
         {live ? <a className="btn btn-secondary" href="#invoice-pro">{plan === "pro" ? "Invoice perpanjangan Pro" : "Lihat invoice Pro"}</a> : plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
       </section>
     </div>
-    {live && account && <ProInvoicePanel key={account.id} account={account} onNotify={onNotify} />}
+    {live && account && (sandbox ? <DokuSandboxPanel key={account.id} account={account}/> : <ProInvoicePanel key={account.id} account={account} onNotify={onNotify} />)}
   </div>;
 }

@@ -525,6 +525,27 @@ test("cloud Free account cannot unlock Excel imports with a local demo Pro entit
   expect(requests).toHaveLength(0);
 });
 
+for(const width of [320,390,1440])for(const theme of ["light","dark"])test(`DOKU sandbox checkout ${width} ${theme} persists server invoice and keeps production entitlement separate`,async({page})=>{
+ test.skip(process.env.PLAYWRIGHT_DOKU_SANDBOX!=="true","Requires a build with NEXT_PUBLIC_DOKU_SANDBOX_ENABLED=true");
+ await page.setViewportSize({width,height:1000});await page.addInitScript(t=>localStorage.setItem("tippo.theme.v1",t),theme);await authenticate(page);
+ const state:{environment:string;invoice:null|{id:string;number:string;amount:number;currency:string;status:string;checkoutUrl:string;createdAt:string;expiresAt:string;paidAt:string|null};proUntil:string|null}={environment:"sandbox",invoice:null,proUntil:null};let creates=0,statusCalls=0;
+ await page.route(`${endpoint}/functions/v1/tippo-doku-sandbox/**`,async route=>{
+  expect(route.request().headers().authorization).toContain("Bearer ");
+  if(route.request().url().endsWith("/checkout")){creates++;expect(route.request().postDataJSON()).toEqual({});state.invoice={id:"sandbox-invoice",number:"TSBX-"+"A".repeat(32),amount:25000,currency:"IDR",status:"pending",checkoutUrl:"https://sandbox.doku.com/checkout/preview",createdAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),paidAt:null};}
+  else statusCalls++;
+  return route.fulfill({json:state});
+ });
+ await page.goto("/app?billing=sandbox");const panel=page.getByRole("region",{name:"Pembayaran Pro sandbox",exact:true});await expect(panel).toBeVisible();await panel.getByRole("button",{name:"Buat pembayaran sandbox",exact:true}).click();await expect(panel).toContainText("Menunggu pembayaran");await expect(panel.getByRole("link",{name:"Buka pembayaran DOKU"})).toHaveAttribute("href","https://sandbox.doku.com/checkout/preview");expect(creates).toBe(1);
+ await page.reload();await expect(panel).toContainText("Menunggu pembayaran");expect(creates).toBe(1);
+ state.invoice!.status="paid";state.invoice!.paidAt=new Date().toISOString();state.proUntil=new Date(Date.now()+30*86400000).toISOString();await panel.getByRole("button",{name:"Cek status pembayaran",exact:true}).click();await expect(panel).toContainText("Lunas (sandbox)");await expect(panel).toContainText("Simulasi masa Pro tercatat sampai");await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Gratis");expect(statusCalls).toBeGreaterThanOrEqual(3);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);await panel.screenshot({path:`docs/preview-doku-sandbox-${width}-${theme}.png`});
+});
+
+test("DOKU sandbox backend failure stays recoverable and an unsafe URL is never linked",async({page})=>{
+ test.skip(process.env.PLAYWRIGHT_DOKU_SANDBOX!=="true","Requires a build with NEXT_PUBLIC_DOKU_SANDBOX_ENABLED=true");
+ await authenticate(page);let fail=true;await page.route(`${endpoint}/functions/v1/tippo-doku-sandbox/**`,route=>route.fulfill(fail?{status:503,json:{error:"SANDBOX_NOT_CONFIGURED"}}:{json:{environment:"sandbox",proUntil:null,invoice:{id:"i",number:"TSBX-"+"B".repeat(32),amount:25000,currency:"IDR",status:"pending",checkoutUrl:"https://sandbox.doku.com.evil.test/pay",createdAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),paidAt:null}}}));
+ await page.goto("/app?billing=sandbox");const panel=page.getByRole("region",{name:"Pembayaran Pro sandbox",exact:true});await expect(panel.getByRole("alert")).toContainText("belum dapat dimuat");fail=false;await panel.getByRole("button",{name:"Cek status pembayaran",exact:true}).click();await expect(panel.getByRole("alert")).toContainText("belum dapat dimuat");await expect(panel.getByRole("link")).toHaveCount(0);await expect(panel.getByRole("button",{name:"Cek status pembayaran",exact:true})).toBeEnabled();
+});
+
 for(const path of ["/masuk","/daftar"])test(`Google OAuth starts independently of empty email fields on ${path}`,async({page})=>{
   await page.route(`${endpoint}/auth/v1/settings`,route=>route.fulfill({json:{external:{google:true}}}));
   await page.route(`${endpoint}/auth/v1/authorize**`,route=>route.fulfill({contentType:"text/html",body:"<h1>Pilih akun Google (simulasi)</h1>"}));

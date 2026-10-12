@@ -1,6 +1,6 @@
 # Integrasi pembayaran Pro Tippo melalui DOKU — sandbox
 
-Pengguna memilih DOKU menggantikan InterActive pada 12 Oktober 2026. Belum ada kode pembayaran provider di aplikasi. Invoice Tippo masih draf browser; pembayaran belum diaktifkan.
+Pengguna memilih DOKU Checkout menggantikan InterActive pada 12 Oktober 2026. Backend dan tampilan sandbox sudah disiapkan dalam repository. Deployment fungsi, pemasangan secret, migration remote dan pembayaran simulator belum dijalankan. Tampilan pembayaran sandbox mati secara default; invoice draf lama tetap digunakan jika flag sandbox tidak diaktifkan.
 
 ## Pilihan integrasi
 
@@ -19,13 +19,13 @@ Jika belum memiliki akun uji, buka [pendaftaran sandbox DOKU](https://sandbox.do
 5. Setelah endpoint notifikasi tersedia, daftarkan Notification URL HTTPS publik di konfigurasi channel DOKU yang digunakan. Endpoint webhook memverifikasi signature DOKU, bukan sesi pengguna Supabase. DOKU harus dapat mengaksesnya tanpa login Vercel atau JWT pengguna. Dokumentasi melarang domain ngrok untuk Notification URL.
 6. Backend membuat invoice Pro Rp25.000 untuk satu bulan, kemudian meminta checkout ke `POST https://api-sandbox.doku.com/checkout/v1/payment`. Jangan mencoba kredensial contoh pada dokumentasi sebagai kredensial akun pengguna.
 7. Pengguna membuka URL checkout dan melakukan pembayaran uji melalui [simulator resmi](https://sandbox.doku.com/integration/simulator/), mengikuti channel yang dipilih.
-8. Backend menerima notifikasi terverifikasi, mencocokkan invoice, nominal, mata uang, merchant dan status sukses, lalu memperpanjang Pro di database uji secara atomik dan satu kali per invoice.
+8. Backend menerima notifikasi terverifikasi, mencocokkan invoice, nominal, mata uang, merchant dan status sukses, lalu memperpanjang simulasi masa Pro secara atomik dan satu kali per invoice. Simulasi disimpan di tabel sandbox terpisah, tanpa mengubah `tippo_workspaces.pro_until`, paket atau kuota produksi.
 
 Tidak ada kredensial DOKU di environment workspace saat panduan dibuat. URL Supabase dan publishable key tersedia; akses deploy/admin Supabase uji perlu disiapkan untuk menguji aktivasi server. Sandbox provider belum dipanggil karena kredensial akun belum tersedia.
 
 ## Alur Tippo
 
-**Paket & langganan → Bayar Pro → invoice pending di server → checkout DOKU → simulasi pembayaran → notifikasi terverifikasi → invoice paid → Pro aktif.**
+**Paket & langganan → Buat pembayaran sandbox → invoice pending di server → checkout DOKU → simulator → notifikasi terverifikasi → invoice paid → simulasi masa Pro bertambah.** Paket dan kuota akun produksi tetap mengikuti entitlement aslinya.
 
 - Nominal Rp25.000 dan durasi satu bulan ditentukan backend. Backend memverifikasi sesi pengguna pada permintaan membuat invoice, dan menentukan pemilik dari sesi tersebut.
 - Invoice perlu tersimpan di database, bukan hanya localStorage. Simpan ID internal, nomor invoice DOKU, pemilik, lingkungan, nominal, mata uang, status, URL checkout, waktu dibuat dan kedaluwarsa.
@@ -52,4 +52,51 @@ Tes signature valid/palsu dan raw body berubah, sesi/kepemilikan invoice, nomina
 - [Setup Notification URL](https://developers.doku.com/get-started-with-doku-api/notification/setup-notification-url)
 - [Direct API QRIS SNAP](https://developers.doku.com/accept-payments/direct-api/snap/integration-guide/qris)
 
-Panduan ini belum menerapkan migration, kode pembayaran, secret, konfigurasi dashboard, deployment atau aktivasi langganan.
+## Pemasangan backend yang sudah disiapkan
+
+1. Pastikan Supabase proyek uji sudah memiliki Auth dan RPC workspace Tippo. Untuk proyek baru, ikuti [setup Supabase Tippo](SUPABASE-SETUP.md) dan pasang migration aplikasi terlebih dahulu. Lalu buka **SQL Editor** dan jalankan seluruh [migration sandbox](../supabase/migrations/202610120001_doku_sandbox.sql). Script tidak mengubah tabel workspace maupun entitlement produksi. Tiga tabel sandbox baru dilindungi RLS; browser hanya boleh membaca metadata invoice miliknya, bukan Client ID/body request provider. RPC mutasi hanya dapat dipanggil `service_role` backend.
+2. Buka **Edge Functions → Secrets** dan isi nilai langsung di dashboard:
+
+   | Nama | Nilai |
+   | --- | --- |
+   | `DOKU_ENV` | `sandbox` |
+   | `DOKU_CLIENT_ID` | Client ID sandbox dari dashboard DOKU |
+   | `DOKU_SECRET_KEY` | Secret Key sandbox dari dashboard DOKU |
+   | `TIPPO_SITE_URL` | Origin HTTPS deployment Preview Tippo, tanpa path; harus cocok persis dengan origin yang digunakan browser |
+
+   `SUPABASE_URL`, `SUPABASE_ANON_KEY` dan `SUPABASE_SERVICE_ROLE_KEY` tersedia otomatis di Edge Runtime. Jangan menyalin service-role key ke Next.js/Vercel `NEXT_PUBLIC_*`. Secret DOKU dipakai server untuk HMAC dan tidak dikembalikan oleh endpoint.
+3. Dari checkout repository di komputer dengan Supabase CLI, jalankan login dan deployment. Ganti placeholder project ref dengan ID proyek Supabase uji, bukan URL atau nama proyek:
+
+   ```sh
+   supabase login
+   supabase functions deploy tippo-doku-sandbox --project-ref <PROJECT_REF> --use-api --no-verify-jwt
+   ```
+
+   [CLI resmi](https://supabase.com/docs/reference/cli/supabase-functions-deploy) mendokumentasikan `--use-api` untuk bundling server. Fungsi memakai `supabase/functions/deno.json` dan konfigurasi `verify_jwt=false` karena DOKU tidak memiliki JWT Supabase. Handler tetap memverifikasi sesi Supabase pada endpoint checkout/status dan signature DOKU pada webhook. Jangan menonaktifkan verifikasi di handler.
+4. Gunakan branch **doku-sandbox** untuk Preview. Di Vercel untuk **Preview saja**, isi `NEXT_PUBLIC_DOKU_SANDBOX_ENABLED=true`, beserta URL Supabase uji dan publishable key-nya, lalu rebuild. Jangan mengaktifkan flag pada deployment produksi. Izinkan origin Preview itu sebagai redirect Auth Supabase jika pengguna perlu login Google. Isi `TIPPO_SITE_URL` dengan origin Preview stabil yang sama; pengaturan origin yang berbeda akan ditolak CORS.
+5. Daftarkan **Notification URL** berikut pada konfigurasi pembayaran QRIS di dashboard DOKU sandbox. Ganti placeholder project ref:
+
+   ```text
+   https://<PROJECT_REF>.supabase.co/functions/v1/tippo-doku-sandbox/webhook
+   ```
+
+   Fungsi juga memasang URL tersebut pada `additional_info.override_notification_url` di permintaan Checkout. Pastikan konfigurasi channel menerima notifikasi. Tidak diperlukan JWT pengguna untuk panggilan DOKU; signature HMAC tetap wajib.
+6. Masuk ke akun uji di Preview Tippo, buka Paket & langganan, klik **Buat pembayaran sandbox**, lalu **Buka pembayaran DOKU**. Selesaikan simulasi di simulator DOKU. Klik **Cek status pembayaran** di Tippo untuk membaca status server setelah webhook tersimpan. Tombol cek hanya membaca database; aplikasi tidak melakukan polling cepat ke DOKU. Redirect kembali ke `/app?billing=sandbox` membuka panel langganan, tanpa menjadikan redirect sebagai bukti pembayaran.
+7. Setelah status Lunas (sandbox), ulangi notifikasi/cek status: simulasi masa Pro tidak boleh bertambah dua kali untuk invoice yang sama. **Uji perpanjangan Pro** membuat invoice baru. Periksa bahwa paket akun produksi tetap Gratis/Pro sesuai entitlement sebelumnya.
+
+Jika create timeout, invoice berstatus creating tetap disimpan dan retry memakai Request-Id serta body yang sama. Respons idempotensi DOKU 409 diterima bila memuat data Checkout yang cocok. Notifikasi FAILED adalah percobaan pembayaran gagal dan tidak membatalkan invoice Checkout; notifikasi SUCCESS tetap dapat diterima kemudian. Notifikasi EXPIRED mengakhiri invoice belum lunas; notifikasi duplikat tidak mengubah invoice paid.
+
+## Pengujian lokal
+
+Kode signature, handler HTTP dan migration diuji dengan PostgreSQL/PGlite lokal dan transport DOKU terkontrol. Ini bukan bukti kredensial merchant atau pembayaran simulator remote. Deno memeriksa entry Edge Function; Next.js lint/build memeriksa frontend dan shared types.
+
+```sh
+node --experimental-strip-types --test tests/doku-billing.test.ts tests/pro-invoice.test.ts tests/subscription.test.ts
+DENO_DIR=/tmp/tippo-deno-cache npx --cache /tmp/tippo-tool-cache --yes deno check --config supabase/functions/deno.json supabase/functions/tippo-doku-sandbox/index.ts
+NEXT_PUBLIC_DOKU_SANDBOX_ENABLED=true npm run build
+npm run start -- --port 3004
+# Di terminal kedua, setelah server siap:
+PLAYWRIGHT_DOKU_SANDBOX=true PLAYWRIGHT_BASE_URL=http://localhost:3004 npx playwright test tests/website.spec.ts --grep 'DOKU sandbox'
+```
+
+Jangan menjalankan build lain saat tes browser masih memakai server dari build tersebut. Tes browser sandbox memiliki flag tersendiri; tidak dijalankan pada build normal tanpa panel sandbox. Migration diuji lokal, tetapi tetap harus dipasang melalui SQL Editor proyek uji sebelum deployment remote dapat digunakan.
