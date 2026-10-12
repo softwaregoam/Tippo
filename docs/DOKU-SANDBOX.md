@@ -10,6 +10,8 @@ Pengguna memilih DOKU menggantikan InterActive pada 12 Oktober 2026. Belum ada k
 
 ## Langkah awal DOKU Checkout sandbox
 
+Jika belum memiliki akun uji, buka [pendaftaran sandbox DOKU](https://sandbox.doku.com/bo/sandbox-registration), isi nama lengkap, nama usaha (Tippo), email bisnis dan kata sandi, setujui ketentuan setelah dibaca, lalu daftarkan akun. Setelah berhasil, buka [login sandbox](https://sandbox.doku.com/bo/login). Akun sandbox terpisah dari akun produksi, sesuai [panduan pendaftaran resmi](https://developers.doku.com/get-started-with-doku-api/user-registration).
+
 1. Masuk ke dashboard DOKU untuk lingkungan sandbox, bukan produksi.
 2. Buka **Integrations > API Keys**, sesuai dokumentasi Retrieve Payment Credential. Pastikan Client ID dan Secret Key yang digunakan merupakan kredensial sandbox, serta channel QRIS tersedia pada akun uji.
 3. Simpan kredensial melalui pengaturan secrets backend. Nama aplikasi yang diusulkan: `DOKU_ENV=sandbox`, `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`. Nama ini untuk konfigurasi Tippo, bukan parameter body DOKU. Jangan menggunakan `NEXT_PUBLIC_*` untuk secret atau memasukkan nilainya ke chat/Git.
