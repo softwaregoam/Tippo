@@ -1186,3 +1186,21 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
  if(width<=600){await rows.last().locator("summary").click();await expect(rows.last().getByText("Mulai Pro",{exact:true})).toBeVisible();await expect(rows.last().getByText("Dibayar pada",{exact:true})).toBeVisible();}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
+
+test("DOKU production test panel stays hidden for unregistered accounts",async({page})=>{
+ test.skip(process.env.PLAYWRIGHT_DOKU_PRODUCTION_TEST!=="true","Requires production test build");
+ await authenticate(page);let requests=0,release!:()=>void;
+ const gate=new Promise<void>(resolve=>{release=resolve;});
+ await page.route(endpoint+"/functions/v1/tippo-doku-production-test/**",async route=>{
+  expect(route.request().method()).toBe("GET");requests++;await gate;
+  await route.fulfill({status:403,json:{error:"TEST_ACCOUNT_REQUIRED"}});
+ });
+ await page.goto("/app?billing=production-test");
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toBeVisible();
+ await expect.poll(()=>requests).toBe(1);
+ await expect(page.getByRole("region",{name:"Uji pembayaran produksi"})).toHaveCount(0);
+ const response=page.waitForResponse(r=>r.url().includes("tippo-doku-production-test/status"));release();await response;
+ await expect(page.getByRole("region",{name:"Uji pembayaran produksi"})).toHaveCount(0);
+ await expect(page.getByText("Akun ini tidak terdaftar sebagai penguji.",{exact:true})).toHaveCount(0);
+ await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toBeVisible();
+});

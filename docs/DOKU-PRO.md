@@ -38,6 +38,7 @@ Gunakan konfigurasi Checkout, bukan Direct API SNAP atau kolom email kegagalan n
 - Desktop memakai tabel invoice dan periode. Ponsel memakai daftar ringkas yang dapat dibuka untuk melihat tanggal pembayaran, periode Pro atau batas bayar. Tombol cek status, batalkan dan konfirmasinya berada dalam detail invoice dengan ukuran penuh; halaman tidak perlu digeser ke samping.
 - Status dibaca dari notifikasi yang sudah tersimpan. Jika pembayaran sudah dilakukan tetapi masih pending, cek HTTP Notification DOKU dan Logs Edge Function, lalu kirim ulang notifikasi melalui DOKU. Jangan menetapkan status paid/Pro secara manual untuk menutupi webhook yang gagal.
 - Invoice uji dan sandbox tidak memberikan entitlement produksi. Draf invoice lokal lama bukan transaksi DOKU dan tidak dimigrasikan menjadi tagihan.
+- Panel uji Rp10.000 hanya ditampilkan setelah backend mengonfirmasi akun ada di `DOKU_PRODUCTION_TEST_USER_IDS`. Panel tetap tersembunyi selama pemeriksaan dan untuk akun yang tidak terdaftar. Daftar penguji tidak dikirim ke frontend; status, pembuatan dan pembatalan pembayaran uji tetap dilindungi backend.
 
 ## Validasi setelah deployment
 

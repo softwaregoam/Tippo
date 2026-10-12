@@ -397,3 +397,13 @@ test("Pro period clamps a January renewal in Jakarta and browser cannot read for
   assert.deepEqual(billing.invoices!.map(item=>item.id),ids);
  }
  });
+
+test("unregistered test accounts cannot read, create or cancel test payments",async()=>{
+ let calls=0;
+ const handle=productionTestHandler({...config,environment:"production",allowedUsers:[a]},{authenticate:async()=>b,rpc:async()=>{calls++;throw new Error("unexpected database access");},send:async()=>{calls++;throw new Error("unexpected provider access");}});
+ for(const action of ["status","checkout","cancel"]){
+  const response=await handle(new Request("https://billing.test/"+action,{method:action==="status"?"GET":"POST",headers:{Authorization:"Bearer user-b"}}));
+  assert.equal(response.status,403);assert.equal((await response.json()).error,"TEST_ACCOUNT_REQUIRED");
+ }
+ assert.equal(calls,0);
+});
