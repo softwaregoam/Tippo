@@ -60,4 +60,8 @@ Dokumentasi publik belum mencantumkan signature/secret verifikasi webhook. Janga
 
 Tes invoice sukses, pending, kedaluwarsa dan gagal; QR dibuat ulang/double-click; sesi dan kepemilikan invoice; nominal dimanipulasi; webhook palsu/berulang; timeout provider; perpanjangan Pro sekali; dan isolasi sandbox dari produksi. Uji provider end-to-end baru dinyatakan lolos setelah fasilitas sandbox paid dikonfirmasi dan dijalankan.
 
-Belum ada kode pembayaran, migration, secret, deployment atau perubahan entitlement yang diterapkan melalui panduan ini.
+## Hasil uji koneksi provider
+
+Pada 12 Oktober 2026, GET ke endpoint sandbox yang dipakai halaman dokumentasi diuji dengan parameter demo publik, nomor transaksi `TIPPO-SBX-20261012-CHAT-001`, nominal Rp25.000 dan `useTip=no`. Respons HTTP 200, `status=success`, serta tersedia `qris_content`, `qris_request_date`, `qris_invoiceid` dan `qris_nmid`. Konten QR dan respons lengkap tidak disimpan ke Git.
+
+Hasil ini memverifikasi pembuatan QR melalui endpoint trial. Tidak ada pemindaian, pembayaran, pengecekan paid, webhook atau aktivasi Pro yang diuji. Belum ada kode pembayaran aplikasi, migration, secret, deployment atau perubahan entitlement yang diterapkan melalui panduan ini.
