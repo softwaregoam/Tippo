@@ -28,6 +28,7 @@ Gunakan konfigurasi Checkout, bukan Direct API SNAP atau kolom email kegagalan n
 ## Perilaku
 
 - Satu invoice aktif per akun; harga, periode dan pemilik ditentukan backend, bukan input browser.
+- Tombol utama pada kartu paket **Upgrade ke Pro · Rp25.000** membuat/menggunakan kembali invoice aktif dan langsung membuka popup DOKU. Akun Pro memakai tombol **Perpanjang Pro**. Tombol terkunci selama proses berjalan dan memenuhi lebar kartu pada ponsel. Jika kartu masih menampilkan “Pembayaran Pro sedang disiapkan”, pastikan `NEXT_PUBLIC_DOKU_PRO_ENABLED=true` pada Production dan lakukan redeploy baru; perubahan environment tidak mengubah bundle yang sudah terbit.
 - Nama/email pelanggan dibaca dari akun dan disimpan bersama body request yang tetap sama saat retry.
 - Nomor invoice TPR + 24 karakter hex, sesuai batas Checkout kartu kredit.
 - Pembayaran pertama menambah satu bulan kalender dalam zona waktu Jakarta dari waktu verifikasi. Jika Pro masih aktif, perpanjangan dihitung dari akhir masa aktif. Tidak ada penagihan atau auto-debit berulang.

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { RefreshCw, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient } from "@/lib/supabase";
@@ -14,7 +14,8 @@ class CheckoutFailure extends Error {
   constructor(message:string,billing:SandboxBilling|null,testDenied=false){super(message);this.billing=billing;this.testDenied=testDenied;}
 }
 
-export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged}:{account:{id:string;email?:string},mode?:SandboxBilling["environment"],onSubscriptionChanged?:()=>Promise<void>}) {
+export interface ProPaymentControls { upgrade:()=>Promise<void>; }
+export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,paymentRef,onBusyChange}:{account:{id:string;email?:string},mode?:SandboxBilling["environment"],onSubscriptionChanged?:()=>Promise<void>,paymentRef?:Ref<ProPaymentControls>,onBusyChange?:(busy:boolean)=>void}) {
   const production=mode!=="sandbox",livePro=mode==="production",testing=mode==="production-test";
   const parse=livePro?parseProductionBilling:testing?parseProductionTestBilling:parseSandboxBilling;
   const failure="Pembayaran belum dapat dimuat. Coba lagi sebentar.";
@@ -24,6 +25,8 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged}:
   const [testAllowed,setTestAllowed]=useState(false);
   const alive=useRef(false),lock=useRef(false);
   const popupCleanup=useRef<(()=>void)|null>(null);
+  useEffect(()=>{onBusyChange?.(busy);},[busy,onBusyChange]);
+  useImperativeHandle(paymentRef,()=>({upgrade:()=>openPayment(true)}));
   async function request(action:"checkout"|"status"|"cancel",signal?:AbortSignal,invoiceId?:string) {
     const client=getSupabaseClient();const session=await client?.auth.getSession();
     if(!client || session?.data.session?.user.id!==account.id)throw new Error("Masuk kembali sebelum membuka pembayaran.");
@@ -50,17 +53,25 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged}:
   const payable=invoice?.status==="pending" && Date.parse(invoice.expiresAt)>clock && (!production || (invoice.amount===(livePro?25000:10000) && invoice.number.length<=30));
   const displayedStatus=invoice && ["creating","pending"].includes(invoice.status) && Date.parse(invoice.expiresAt)<=clock?"expired":invoice?.status;
   const needsReview=production && invoice?.recoveryRequired===true && displayedStatus!=="expired";
-  async function openPayment(){
-    if(lock.current || !payable || !invoice?.checkoutUrl)return;
+  async function openPayment(create=false){
+    if(lock.current || !create && (!payable || !invoice?.checkoutUrl))return;
     const opener=document.activeElement instanceof HTMLElement?document.activeElement:null;
     lock.current=true;setBusy(true);setError("");
     try{
+      let current=invoice;
+      if(create){
+        const value=await request("checkout");if(!alive.current)return;
+        setBilling(value);current=value.invoice;
+      }
+      if(!current || current.status!=="pending" || !current.checkoutUrl || Date.parse(current.expiresAt)<=Date.now()){
+        document.getElementById(livePro?"invoice-pro":"production-test-payment")?.scrollIntoView({behavior:"smooth",block:"start"});return;
+      }
       await prepareDokuCheckout(mode);
-      if(!alive.current || Date.parse(invoice.expiresAt)<=Date.now())return;
-      popupCleanup.current=showDokuCheckout(invoice.checkoutUrl,mode,()=>{
+      if(!alive.current || Date.parse(current.expiresAt)<=Date.now())return;
+      popupCleanup.current=showDokuCheckout(current.checkoutUrl,mode,()=>{
         popupCleanup.current=null;if(alive.current)return load("status");
       },opener);
-    }catch(reason){if(alive.current)setError(reason instanceof Error?reason.message:failure);}
+    }catch(reason){if(alive.current){if(reason instanceof CheckoutFailure && reason.billing)setBilling(reason.billing);setError(reason instanceof Error?reason.message:failure);document.getElementById(livePro?"invoice-pro":"production-test-payment")?.scrollIntoView({behavior:"smooth",block:"start"});}}
     finally{lock.current=false;if(alive.current)setBusy(false);}
   }
   if(testing && !testAllowed)return null;

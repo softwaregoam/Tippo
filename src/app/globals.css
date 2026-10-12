@@ -905,6 +905,8 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .tippo-doku-dialog iframe { width:100%!important; height:100%!important; border:0; margin:0; border-radius:0; box-shadow:none; background:white; }
 @media (max-width:600px) { .tippo-doku-dialog { width:100vw; height:100dvh; margin:0; border-radius:0; } }
 .pro-history-mobile { display:none; }
+.subscription-upgrade { margin-top:auto; }
+@media (max-width:600px) { .subscription-upgrade { width:100%; white-space:normal; } }
 .pro-history-account,.pro-history-invoice,.pro-history-period { overflow-wrap:anywhere; white-space:normal; }
 .pro-history-period { min-width:140px; }
 .pro-history-confirmation { margin-top:16px; overflow-wrap:anywhere; }

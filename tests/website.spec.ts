@@ -1169,12 +1169,12 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
  await page.goto("/app?billing=production");
  const panel=page.getByRole("region",{name:"Invoice langganan Pro",exact:true});await expect(panel).toBeVisible();
  await expect(panel).toContainText("Rp25.000");await expect(panel).toContainText("Belum ada invoice pembayaran");
- await panel.getByRole("button",{name:"Bayar Pro Rp25.000"}).click();await expect(panel).toContainText("Menunggu pembayaran");
+ await page.getByRole("region",{name:"Paket Pro",exact:true}).getByRole("button",{name:"Upgrade ke Pro · Rp25.000",exact:true}).click();const popup=page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true});await expect(popup).toBeVisible();await expect(panel).toContainText("Menunggu pembayaran");
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
- await panel.getByRole("button",{name:"Buka pembayaran DOKU"}).click();const popup=page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true});await expect(popup).toBeVisible();
+ expect(page.context().pages()).toHaveLength(1);
  paid=true;await popup.frameLocator("iframe").getByRole("button",{name:"Selesai"}).click();await expect(popup).toHaveCount(0);
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");await expect(panel).toContainText("Periode invoice");
- await panel.getByRole("button",{name:"Perpanjang Pro",exact:true}).click();
+ await page.getByRole("region",{name:"Paket Pro",exact:true}).getByRole("button",{name:"Perpanjang Pro · Rp25.000",exact:true}).click();await expect(popup).toBeVisible();await popup.getByRole("button",{name:"Tutup pembayaran DOKU"}).click();await expect(popup).toHaveCount(0);
  const history=panel.getByRole("region",{name:"Riwayat berlangganan",exact:true});
  await expect(history).toContainText("Riwayat akun naya@example.test");
  const rows=width<=600?history.locator(".pro-history-mobile > li"):history.locator("tbody tr");await expect(rows).toHaveCount(2);
