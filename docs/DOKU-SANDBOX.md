@@ -1,5 +1,7 @@
 # Integrasi pembayaran Pro Tippo melalui DOKU — sandbox
 
+Untuk uji uang nyata Rp10 dengan kredensial terpisah, ikuti [panduan produksi uji](DOKU-PRODUCTION-TEST.md). Jangan mengganti kredensial fungsi sandbox dengan kredensial produksi.
+
 Pengguna memilih DOKU Checkout menggantikan InterActive pada 12 Oktober 2026. Backend dan tampilan sandbox sudah disiapkan dalam repository. Deployment fungsi, pemasangan secret, migration remote dan pembayaran simulator belum dijalankan. Tampilan pembayaran sandbox mati secara default; invoice draf lama tetap digunakan jika flag sandbox tidak diaktifkan.
 
 ## Pilihan integrasi

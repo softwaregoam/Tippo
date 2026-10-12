@@ -4,3 +4,7 @@ project_id = "tippo"
 # DOKU has no Supabase JWT. The handler validates DOKU signatures for webhook,
 # and verifies the user's JWT with auth.getUser for checkout/status.
 verify_jwt = false
+
+[functions.tippo-doku-production-test]
+# Authenticated tester allowlist; signed production notifications.
+verify_jwt = false

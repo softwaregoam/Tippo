@@ -1,4 +1,4 @@
-import { createDokuCheckout, digest, verifyDoku, type DokuInvoice } from "./doku.ts";
+import { CheckoutRejected, createDokuCheckout, digest, verifyDoku, type DokuInvoice, type DokuMode } from "./doku.ts";
 
 export interface BillingConfig { environment: string; clientId: string; secretKey: string; siteUrl: string; notificationUrl: string; }
 export interface BillingPorts {
@@ -7,8 +7,18 @@ export interface BillingPorts {
   send?: typeof fetch;
 }
 export function billingHandler(config: BillingConfig, ports: BillingPorts) {
+  return handler(config,ports,"sandbox",[]);
+}
+export function productionTestHandler(config: BillingConfig & {allowedUsers:string[]},ports:BillingPorts){
+  if(!config.allowedUsers.length || config.allowedUsers.some(id=>!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id)))throw new Error("TEST_ACCOUNTS_REQUIRED");
+  return handler(config,ports,"production-test",config.allowedUsers);
+}
+function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allowedUsers:string[]) {
   const site = new URL(config.siteUrl);
-  if (config.environment !== "sandbox" || !config.clientId || !config.secretKey || site.protocol !== "https:" || site.username || site.password) throw new Error("SANDBOX_CONFIG_REQUIRED");
+  if (config.environment !== (mode==="sandbox"?"sandbox":"production") || !config.clientId || !config.secretKey || site.protocol !== "https:" || site.username || site.password) throw new Error("BILLING_CONFIG_REQUIRED");
+  const prefix=mode==="sandbox"?"sandbox":"production_test";
+  const price=mode==="sandbox"?25000:10;
+  const numberPattern=mode==="sandbox"?/^TSBX-[A-F0-9]{32}$/:/^TPT-[A-F0-9]{32}$/;
   const target = new URL(config.notificationUrl).pathname;
   const json = (data: unknown, status = 200, cors = false) => new Response(JSON.stringify(data), { status, headers: {
     "Content-Type":"application/json", "Cache-Control":"no-store", ...(cors ? {"Access-Control-Allow-Origin":site.origin,"Vary":"Origin"} : {}),
@@ -18,7 +28,7 @@ export function billingHandler(config: BillingConfig, ports: BillingPorts) {
     // Public reachability check only. GET/HEAD cannot process a notification,
     // call the database or grant any subscription entitlement.
     if (action === "webhook" && (req.method === "GET" || req.method === "HEAD")) {
-      return new Response(req.method === "HEAD" ? null : JSON.stringify({status:"ok",environment:"sandbox"}),{status:200,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
+      return new Response(req.method === "HEAD" ? null : JSON.stringify({status:"ok",environment:mode}),{status:200,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
     }
     const origin = req.headers.get("Origin");
     if (origin && origin !== site.origin) return json({ error:"ORIGIN_NOT_ALLOWED" },403);
@@ -36,8 +46,8 @@ export function billingHandler(config: BillingConfig, ports: BillingPorts) {
         const invoice=payload?.order?.invoice_number, amount=payload?.order?.amount, status=payload?.transaction?.status;
         const original=payload?.transaction?.original_request_id;
         const currency=payload?.order?.currency;
-        if (typeof invoice!=="string" || !/^TSBX-[A-F0-9]{32}$/.test(invoice) || !Number.isSafeInteger(amount) || amount!==25000 || (currency!==undefined && currency!=="IDR") || !["SUCCESS","FAILED","PENDING","EXPIRED"].includes(status) || (original!==undefined && typeof original!=="string") || (payload?.service?.id!=="QRIS" && payload?.channel?.id!=="QRIS_DOKU")) return json({error:"INVALID_PAYMENT"},400);
-        const accepted=await ports.rpc("tippo_accept_sandbox_notification",{p_invoice:invoice,p_client_id:config.clientId,p_amount:amount,p_request_id:req.headers.get("Request-Id"),p_digest:await digest(raw),p_status:status,p_original_request:original??null});
+        if (typeof invoice!=="string" || !numberPattern.test(invoice) || !Number.isSafeInteger(amount) || amount!==price || (currency!==undefined && currency!=="IDR") || !["SUCCESS","FAILED","PENDING","EXPIRED"].includes(status) || (original!==undefined && typeof original!=="string") || (payload?.service?.id!=="QRIS" && payload?.channel?.id!=="QRIS_DOKU")) return json({error:"INVALID_PAYMENT"},400);
+        const accepted=await ports.rpc(`tippo_accept_${prefix}_notification`,{p_invoice:invoice,p_client_id:config.clientId,p_amount:amount,p_request_id:req.headers.get("Request-Id"),p_digest:await digest(raw),p_status:status,p_original_request:original??null});
         return json({received:true,matched:accepted===true});
       }
       if (action!=="checkout" && action!=="status") return json({error:"NOT_FOUND"},404,true);
@@ -46,15 +56,18 @@ export function billingHandler(config: BillingConfig, ports: BillingPorts) {
       if (!authorization?.startsWith("Bearer ")) return json({error:"UNAUTHORIZED"},401,true);
       const owner=await ports.authenticate(authorization.slice(7));
       if (!owner) return json({error:"UNAUTHORIZED"},401,true);
+      if(mode==="production-test" && !allowedUsers.includes(owner))return json({error:"TEST_ACCOUNT_REQUIRED"},403,true);
       if (action==="checkout") {
         // No owner, amount, duration, URL or environment is accepted from the browser.
-        const invoice=await ports.rpc("tippo_begin_sandbox_checkout",{p_owner:owner,p_client_id:config.clientId,p_callback:`${site.origin}/app?billing=sandbox`,p_notification:config.notificationUrl}) as DokuInvoice;
+        const invoice=await ports.rpc(`tippo_begin_${prefix}_checkout`,{p_owner:owner,p_client_id:config.clientId,p_callback:`${site.origin}/app?billing=${mode}`,p_notification:config.notificationUrl}) as DokuInvoice;
         if (!invoice.checkout_url && invoice.status==="creating") {
-          const checkout=await createDokuCheckout(invoice,config.clientId,config.secretKey,ports.send);
-          await ports.rpc("tippo_attach_sandbox_checkout",{p_id:invoice.id,p_owner:owner,p_url:checkout.url,p_expires:checkout.expiresAt});
+          let checkout;
+          try{checkout=await createDokuCheckout(invoice,config.clientId,config.secretKey,ports.send,mode);}
+          catch(error){if(error instanceof CheckoutRejected && mode==="production-test"){await ports.rpc("tippo_fail_production_test_checkout",{p_id:invoice.id,p_owner:owner});return json({error:"CHECKOUT_REJECTED"},400,true);}throw error;}
+          await ports.rpc(`tippo_attach_${prefix}_checkout`,{p_id:invoice.id,p_owner:owner,p_url:checkout.url,p_expires:checkout.expiresAt});
         }
       }
-      return json(await ports.rpc("tippo_get_sandbox_billing",{p_owner:owner}),200,true);
+      return json(await ports.rpc(`tippo_get_${prefix}_billing`,{p_owner:owner}),200,true);
     } catch {
       // Fail closed, retain creating invoices for a retry with the same DOKU Request-Id.
       // Never acknowledge a webhook when its DB transaction failed.

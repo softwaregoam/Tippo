@@ -1,5 +1,8 @@
 /** DOKU Checkout Non-SNAP. No credentials or production endpoint defaults. */
 export const DOKU_SANDBOX_ENDPOINT = "https://api-sandbox.doku.com/checkout/v1/payment";
+export type DokuMode = "sandbox" | "production-test";
+export const DOKU_PRODUCTION_ENDPOINT = "https://api.doku.com/checkout/v1/payment";
+export class CheckoutRejected extends Error { constructor(){super("CHECKOUT_REJECTED");} }
 const encoder = new TextEncoder();
 function base64(bytes: ArrayBuffer) { return btoa(String.fromCharCode(...new Uint8Array(bytes))); }
 export async function digest(body: string) { return base64(await crypto.subtle.digest("SHA-256", encoder.encode(body))); }
@@ -18,10 +21,11 @@ export async function verifyDoku(secret: string, client: string, target: string,
   for (let i = 0; i < expected.length; i++) difference |= expected.charCodeAt(i) ^ (supplied.charCodeAt(i) || 0);
   return difference === 0;
 }
-export function safeCheckoutUrl(value: unknown): string {
+export function safeCheckoutUrl(value: unknown, mode: DokuMode = "sandbox"): string {
   if (typeof value !== "string") throw new Error("INVALID_CHECKOUT_URL");
   const url = new URL(value);
-  if (url.protocol !== "https:" || url.hostname !== "sandbox.doku.com" || url.username || url.password || (url.port && url.port !== "443")) throw new Error("INVALID_CHECKOUT_URL");
+  const hosts=mode==="sandbox"?["sandbox.doku.com"]:["jokul.doku.com"];
+  if (url.protocol !== "https:" || !hosts.includes(url.hostname) || url.username || url.password || (url.port && url.port !== "443")) throw new Error("INVALID_CHECKOUT_URL");
   return url.href;
 }
 export function parseDokuExpiry(value: unknown): string {
@@ -31,16 +35,17 @@ export function parseDokuExpiry(value: unknown): string {
   return date.toISOString();
 }
 export interface DokuInvoice { id: string; owner_id: string; invoice_number: string; amount: number; request_id: string; request_body: string; status: string; checkout_url: string | null; }
-export async function createDokuCheckout(invoice: DokuInvoice, client: string, secret: string, send: typeof fetch = fetch) {
+export async function createDokuCheckout(invoice: DokuInvoice, client: string, secret: string, send: typeof fetch = fetch, mode: DokuMode = "sandbox") {
   const timestamp = new Date().toISOString().slice(0,19)+"Z";
-  const response = await send(DOKU_SANDBOX_ENDPOINT, { method: "POST", headers: {
+  const response = await send(mode==="sandbox"?DOKU_SANDBOX_ENDPOINT:DOKU_PRODUCTION_ENDPOINT, { method: "POST", headers: {
     "Content-Type":"application/json", "Client-Id":client, "Request-Id":invoice.request_id, "Request-Timestamp":timestamp,
     "Signature": await signDoku(secret,client,invoice.request_id,timestamp,"/checkout/v1/payment",invoice.request_body),
   }, body:invoice.request_body, signal:AbortSignal.timeout(15000), redirect:"error" });
   // DOKU documents 409 with the original response for an idempotent retry.
+  if (response.status===400 || response.status===422) throw new CheckoutRejected();
   if (!response.ok && response.status !== 409) throw new Error("CHECKOUT_UNAVAILABLE");
   const body = await response.json();
   const payment = body?.response?.payment;
   if (body?.response?.order?.invoice_number !== invoice.invoice_number || body?.response?.order?.amount !== invoice.amount) throw new Error("CHECKOUT_MISMATCH");
-  return { url: safeCheckoutUrl(payment?.url), expiresAt: parseDokuExpiry(payment?.expired_date) };
+  return { url: safeCheckoutUrl(payment?.url,mode), expiresAt: parseDokuExpiry(payment?.expired_date) };
 }
