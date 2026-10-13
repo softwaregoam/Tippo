@@ -1205,3 +1205,25 @@ for (const width of [390,1440]) for (const business of ["Jastip","Open PO"] as c
  expect(requests).toHaveLength(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
+
+
+for (const width of [390,1440]) for (const archived of [false,true]) test(`new PO order explains missing active products ${width} ${archived?"archived":"empty"}`,async({page})=>{
+ const data=structuredClone(fixture);
+ data.batches.push({...fixture.batches[0],id:"po-trip",type:"po"});
+ if(archived)data.products.push({id:"archived",name:"Roti",variant:"",sku:"",unitPrice:25000,unitCost:null,active:false});
+ const requests=await authenticate(page,{workspace:data});
+ await page.setViewportSize({width,height:844});await page.goto("/app");await openBusiness(page,"Open PO");await openSection(page,"Pesanan");
+ const add=page.getByRole("button",{name:"Tambah pesanan",exact:true});await add.click();
+ const info=page.getByRole("dialog",{name:"Belum ada produk aktif",exact:true});
+ await expect(info).toBeVisible();await expect(info).toContainText("Produk yang diarsipkan tidak bisa dipilih");
+ await expect(page.locator(".toast")).toHaveCount(0);await expect(page.getByRole("dialog",{name:"Pesanan PO baru",exact:true})).toHaveCount(0);
+ expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");
+ await info.getByRole("button",{name:"Nanti dulu"}).click();await expect(info).toHaveCount(0);
+ await expect(page.getByRole("heading",{level:1})).toHaveText("Pesanan Open PO.");
+ await add.click();await info.getByRole("button",{name:"Tambah produk",exact:true}).click();
+ await expect(info).toHaveCount(0);await expect(page.getByRole("heading",{level:1})).toHaveText("Produk Open PO.");
+ await expect(page.getByRole("dialog",{name:"Produk baru",exact:true})).toHaveCount(0);
+ await expect(page.getByRole("button",{name:"Tambah produk",exact:true})).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>document.body.style.position)).not.toBe("fixed");
+ expect(requests).toHaveLength(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+});
