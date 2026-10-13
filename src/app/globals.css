@@ -963,3 +963,16 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .catalog-controls .catalog-actions { width:100%; }
  .excel-import-button { width:100%; }
 }
+
+
+.mobile-row-name { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.mobile-row-title-label { color:var(--muted); font-size:12px; font-weight:400; }
+.mobile-row-name strong { color:var(--ink); font-size:16px; line-height:1.5; }
+.product-mobile-attributes { display:grid; gap:6px; margin-top:4px; }
+.product-mobile-attributes > span { display:grid; grid-template-columns:64px minmax(0,1fr); gap:10px; }
+.product-mobile-attributes > span > span:first-child { color:var(--muted); font-size:12px; line-height:1.8; }
+.product-mobile-attributes > span > span:last-child { color:var(--ink); overflow-wrap:anywhere; }
+.product-mobile-attributes > span > span.muted { color:var(--muted); }
+.product-mobile-price { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; margin-top:6px; }
+.product-mobile-price > span { color:var(--muted); font-size:12px; }
+.product-mobile-price strong { font-size:16px; }
