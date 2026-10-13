@@ -535,7 +535,7 @@ details.form-section[open]>summary::after { transform: rotate(225deg); margin-bo
 }
 @media(max-width:760px) {
   .sidebar { transform: translateX(-100%); visibility: hidden; width: min(280px,calc(100vw - 44px)); }
-  .sidebar.is-open { transform: translateX(0); visibility: visible; }
+  .sidebar.is-open { transform: translateX(0); visibility: visible; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
   .sidebar .sidebar-close { display: inline-flex; position: absolute; right: 14px; top: 24px; }
   .sidebar-scrim { position: fixed; inset: 0; background: var(--tone-surface-18312880); z-index: 35; display: block; border: none; }
   .main-shell { margin-left: 0; }

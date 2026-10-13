@@ -188,11 +188,15 @@ test("registration uses Supabase signup and waits for email confirmation",async(
 });
 test("mobile workspace navigation traps focus, closes with Escape and resets on resize", async ({page}) => {
   await page.setViewportSize({width:390,height:844});
-  await page.goto("/demo");
+  await authenticate(page);await page.goto("/app");
   const menu = page.getByRole("button",{name:"Buka navigasi",exact:true});
   const sidebar = page.locator("#workspace-navigation");
+  await page.evaluate(()=>window.scrollTo(0,240));await menu.scrollIntoViewIfNeeded();const originalScroll=await page.evaluate(()=>window.scrollY);
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded","true");
+  await expect.poll(()=>page.evaluate(()=>document.body.style.position)).toBe("fixed");const lockedScroll=await page.evaluate(()=>window.scrollY);
+  await page.mouse.move(380,800);await page.mouse.wheel(0,600);await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  expect(await page.evaluate(()=>document.body.style.top)).toBe(`${-originalScroll}px`);expect(await page.evaluate(()=>window.scrollY)).toBe(lockedScroll);
   await expect(sidebar.getByRole("button",{name:"Tutup navigasi",exact:true})).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(sidebar.getByRole("button",{name:"Paket & langganan",exact:true})).toBeFocused();
@@ -201,11 +205,14 @@ test("mobile workspace navigation traps focus, closes with Escape and resets on 
   await page.keyboard.press("Escape");
   await expect(menu).toBeFocused();
   await expect(sidebar).not.toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>document.body.style.position)).toBe("");await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBe(originalScroll);
   await menu.click();
   await page.setViewportSize({width:1024,height:900});
   await page.setViewportSize({width:390,height:844});
   await expect(sidebar).not.toBeVisible();
   await expect(menu).toHaveAttribute("aria-expanded","false");
+  await expect.poll(()=>page.evaluate(()=>document.body.style.position)).toBe("");
+  await menu.click();await page.locator(".sidebar-scrim").click({position:{x:380,y:800}});await expect(sidebar).not.toBeVisible();await expect.poll(()=>page.evaluate(()=>document.body.style.position)).toBe("");
   await page.evaluate(() => document.documentElement.style.fontSize = "200%");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });

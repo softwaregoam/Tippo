@@ -2,14 +2,14 @@
 
 import { useEffect } from "react";
 
-/** One document lock, shared by native dialogs and custom order forms. */
+/** One document lock, shared by dialogs, order forms and mobile navigation. */
 export function ModalScrollLock() {
   useEffect(() => {
     const body = document.body, root = document.documentElement;
     const baselineOverflow = body.style.overflow;
     let unlock: (() => void) | null = null;
     function sync() {
-      const open = document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]');
+      const open = document.querySelector('dialog[open], [role="dialog"][aria-modal="true"], [data-scroll-lock="true"]');
       if (open && !unlock) {
         const x = window.scrollX, y = window.scrollY;
         const saved = { position: body.style.position, top: body.style.top, left: body.style.left, width: body.style.width, rootOverflow: root.style.overflow, rootBehavior: root.style.scrollBehavior };
@@ -31,7 +31,7 @@ export function ModalScrollLock() {
       } else if (!open && unlock) { unlock(); unlock = null; }
     }
     const observer = new MutationObserver(sync);
-    observer.observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ["open", "role", "aria-modal"] });
+    observer.observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ["open", "role", "aria-modal", "data-scroll-lock"] });
     sync();
     return () => { observer.disconnect(); unlock?.(); };
   }, []);
