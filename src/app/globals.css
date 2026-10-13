@@ -917,6 +917,19 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 @media (max-width:600px) { .subscription-upgrade { width:100%; white-space:normal; } }
 .pro-history-account,.pro-history-invoice,.pro-history-period { overflow-wrap:anywhere; white-space:normal; }
 .pro-history-period { min-width:140px; }
+.orders-table.pro-history-table th,.orders-table.pro-history-table td { padding-left:16px; padding-right:16px; text-align:left; }
+.billing-status-creating { color:#245798; background:#eaf2ff; }
+.billing-status-pending { color:#785500; background:#fff4ce; }
+.billing-status-paid { color:#246044; background:#e7f4eb; }
+.billing-status-expired { color:#9a461b; background:#fff0e5; }
+.billing-status-cancelled { color:#535b65; background:#edf0f3; }
+.billing-status-error { color:#a42e38; background:#fdebee; }
+:root[data-theme="dark"] .billing-status-creating { color:#adc9f1; background:#25354b; }
+:root[data-theme="dark"] .billing-status-pending { color:#f0d47a; background:#40371e; }
+:root[data-theme="dark"] .billing-status-paid { color:#a0d5b6; background:#243b2e; }
+:root[data-theme="dark"] .billing-status-expired { color:#ffc397; background:#452e21; }
+:root[data-theme="dark"] .billing-status-cancelled { color:#c4cbd3; background:#343a42; }
+:root[data-theme="dark"] .billing-status-error { color:#ffb2bb; background:#49292f; }
 .pro-history-confirmation { margin-top:16px; overflow-wrap:anywhere; }
 .pro-history-confirmation p { margin-bottom:12px; }
 @media (max-width:600px) {

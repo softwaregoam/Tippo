@@ -13,7 +13,7 @@ export function SubscriptionHistory({invoices,livePro,email,busy,clock,cancelId,
  const status=(item:SandboxInvoice)=>["creating","pending"].includes(item.status) && Date.parse(item.expiresAt)<=clock?"expired":item.status;
  const canCancel=(item:SandboxInvoice)=>["creating","pending"].includes(status(item));
  const money=(item:SandboxInvoice)=>"Rp"+item.amount.toLocaleString("id-ID");
- const badge=(item:SandboxInvoice)=><span className={`status-tag ${status(item)==="paid"?"order-status-done":"order-status-new"}`}>{labels[status(item)]}</span>;
+ const badge=(item:SandboxInvoice)=><span className={`status-tag billing-status-${status(item)}`}>{labels[status(item)]}</span>;
  const shortDate=(value:string)=>new Date(value).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric",timeZone:"Asia/Jakarta"});
  const actions=(item:SandboxInvoice)=>canCancel(item)?<div className="pro-invoice-actions">{livePro && <Button className="btn btn-secondary" disabled={busy} onClick={onCheck}>Cek status</Button>}<Button className="btn btn-secondary" disabled={busy} onClick={()=>onCancel(item.id)}>Batalkan</Button></div>:"—";
  const selected=invoices.find(item=>item.id===cancelId);
@@ -25,7 +25,7 @@ export function SubscriptionHistory({invoices,livePro,email,busy,clock,cancelId,
    <p className="field-hint">{livePro?"20 invoice terbaru milik akunmu. Pembatalan invoice tidak mengakhiri Pro yang masih aktif.":"20 invoice terbaru. Pembatalan membutuhkan Order Cancellation aktif di DOKU dan metode pembayaran yang didukung. Pembayaran lunas tidak dapat dibatalkan."}</p>
    {livePro && <ul className="pro-history-mobile" aria-label="Daftar invoice akunmu">{invoices.map(item=><li key={item.id}><details>
     <summary><span className="pro-history-summary"><strong>{money(item)} · 1 bulan</strong>{badge(item)}<span className="field-hint">{shortDate(item.createdAt)}</span><span className="pro-history-number">{item.number}</span></span><ChevronDown size={18} aria-hidden="true"/></summary>
-    <div className="pro-history-details"><dl><dt>Tanggal invoice</dt><dd>{formatProInvoiceDate(item.createdAt)}</dd><dt>Status</dt><dd>{labels[status(item)]}</dd>
+    <div className="pro-history-details"><dl><dt>Tanggal invoice</dt><dd>{formatProInvoiceDate(item.createdAt)}</dd><dt>Status</dt><dd>{badge(item)}</dd>
      {item.paidAt && <><dt>Dibayar pada</dt><dd>{formatProInvoiceDate(item.paidAt)}</dd></>}
      {item.periodStart && item.periodEnd?<><dt>Mulai Pro</dt><dd>{formatProInvoiceDate(item.periodStart)}</dd><dt>Sampai</dt><dd>{formatProInvoiceDate(item.periodEnd)}</dd></>:canCancel(item)?<><dt>Batas bayar</dt><dd>{formatProInvoiceDate(item.expiresAt)}</dd></>:null}
     </dl>{canCancel(item) && actions(item)}{cancelId===item.id && confirmation}</div>
