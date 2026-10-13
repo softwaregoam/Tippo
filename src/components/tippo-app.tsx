@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { OrderForm } from "@/components/order-form";
 import { PoOrderForm } from "@/components/po-order-form";
-import { ModeWorkspace } from "@/components/mode-workspace";
+import { ModeWorkspace, ProductForm } from "@/components/mode-workspace";
 import {MobileDataList} from "@/components/mobile-data-list";
 import { OrdersTable } from "@/components/orders-table";
 import { HppPanel } from "@/components/hpp-panel";
@@ -91,6 +91,8 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const [search, setSearch] = useState("");
   const [orderModal, setOrderModal] = useState<{ type: Batch["type"]; order?: Order; batchId?: string; productId?: string } | null>(null);
   const [batchModal, setBatchModal] = useState<{ type: Batch["type"]; batch?: Batch } | null>(null);
+  const [productModal, setProductModal] = useState<Product | "new" | null>(null);
+  const [batchRequired, setBatchRequired] = useState<Batch["type"] | null>(null);
   const [poWorkspaceVersion, setPoWorkspaceVersion] = useState(0);
   const [customerModal, setCustomerModal] = useState<Customer | "new" | null>(null);
   const [selectedHpp, setSelectedHpp] = useState("batch-korea-oct");
@@ -223,13 +225,12 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const hppBatch = modeBatches.find((b) => b.id === selectedHpp) ?? modeBatches[0];
   function startOrder(type: Batch["type"] = mode, batchId?: string, productId?: string) {
     setSaveError("");
-    const quota = canCreateOrders(data, subscription, 1, new Date(), type);
-    if (!quota.allowed) { go("subscription"); notify(quota.message); return; }
     if (!data.batches.some((batch) => batch.type === type && batch.status === "open")) {
-      setBatchModal({ type });
-      notify(`Buat batch ${type === "po" ? "PO" : "jastip"} aktif terlebih dahulu.`);
+      setBatchRequired(type);
       return;
     }
+    const quota = canCreateOrders(data, subscription, 1, new Date(), type);
+    if (!quota.allowed) { go("subscription"); notify(quota.message); return; }
     if (type === "po" && !data.products.some((product) => product.active)) {
       go("products"); setPoWorkspaceVersion((value) => value + 1);
       notify("Tambahkan produk aktif ke master sebelum mencatat pesanan PO.");
@@ -334,7 +335,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
           </div>
         </header>
         <main className="main-content">
-          <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary" onClick={() => startOrder()}><Plus size={17} />{mode === "po" ? "Pesanan PO baru" : "Pesanan jastip baru"}</Button>}</div>}</div>
+          <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
 
           {!isPro && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak barang</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
             <div key={page}>
@@ -368,13 +369,12 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
 
 
               {(page === "products" || page === "batches" || page === "orders") && <ModeWorkspace key={mode + page + poWorkspaceVersion} tab={page} type={mode} data={data}
-                onNewBatch={() => setBatchModal({ type: mode })}
                 onEditBatch={(batch) => setBatchModal({ type: batch.type, batch })}
                 onNewOrder={(batchId, productId) => startOrder(mode, batchId, productId)}
                 onEditOrder={editOrder} onStatus={updateStatus} onRefund={refundOrder}
                 onBatchStatus={(batch, status) => persist({ ...data, batches: data.batches.map((b) => b.id === batch.id ? { ...b, status } : b) }, "Status batch diperbarui")}
                 onHpp={(batch) => { setSelectedHpp(batch.id); go("hpp"); }}
-                onSaveProduct={saveProduct} onImportProducts={importProducts}
+                onEditProduct={setProductModal} onImportProducts={importProducts}
                 onProductStatus={(product) => persist({ ...data, products: data.products.map((p) => p.id === product.id ? { ...p, active: !p.active } : p) }, product.active ? "Produk diarsipkan. Histori pesanan tetap tersedia." : "Produk aktif kembali")}
                 onImport={importOrders} importAllowed={isPro} productLimit={!isPro ? 5 : undefined} onUpgrade={() => go("subscription")}
               />}
@@ -393,6 +393,8 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
         </main>
       </div>
       {orderModal && (orderModal.type === "po" ? <PoOrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} onSave={saveOrder} onClose={() => setOrderModal(null)} /> : <OrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} defaultBatchId={orderModal.batchId} onSave={saveOrder} onClose={() => setOrderModal(null)} />)}
+      {productModal && <ProductForm categories={[...new Set(data.products.map(product => product.category?.trim()).filter((category): category is string => Boolean(category)))]} product={productModal === "new" ? undefined : productModal} onClose={() => setProductModal(null)} onSave={async (product) => { const saved = await saveProduct(product); if (saved) setProductModal(null); return saved; }} />}
+      {batchRequired && <SimpleModal title={batchRequired === "po" ? "Belum ada batch yang dibuka" : "Belum ada perjalanan yang dibuka"} onClose={() => setBatchRequired(null)}><div className="modal-body"><p>{batchRequired === "po" ? "Buat batch baru dengan status Dibuka terlebih dahulu agar kamu bisa mencatat pesanan. Batch yang sudah ditutup atau selesai tidak bisa menerima pesanan baru." : "Buat perjalanan baru dengan status Dibuka terlebih dahulu agar kamu bisa mencatat pesanan jastip. Perjalanan yang sudah ditutup atau selesai tidak bisa menerima pesanan baru."}</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setBatchRequired(null)}>Nanti dulu</Button><Button className="btn btn-primary" onClick={() => { setBatchModal({ type: batchRequired }); setBatchRequired(null); }}><Plus size={17} />{batchRequired === "po" ? "Buat batch" : "Buat perjalanan"}</Button></div></SimpleModal>}
       {batchModal && <BatchForm type={batchModal.type} batch={batchModal.batch} onSave={async (batch) => { if (await persist({ ...data, batches: data.batches.some((b) => b.id === batch.id) ? data.batches.map((b) => b.id === batch.id ? batch : b) : [batch, ...data.batches] }, "Batch berhasil disimpan")) setBatchModal(null); }} onClose={() => setBatchModal(null)} />}
       {customerModal && <CustomerForm customer={customerModal === "new" ? undefined : customerModal} onClose={() => setCustomerModal(null)} onSave={async (customer) => {
         const exists = data.customers.some((entry) => entry.id === customer.id);

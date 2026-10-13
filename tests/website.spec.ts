@@ -285,7 +285,7 @@ test("account saves await Supabase, ignore local Pro and keep demo data separate
   await page.goto("/app");await expect(page).toHaveTitle("Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();await expect(page.locator(".cloud-toolbar, .owner")).toHaveCount(0);await page.getByRole("button",{name:"Menu akun",exact:true}).click();await expect(page.getByText("Titipan Naya",{exact:true})).toBeVisible();await page.keyboard.press("Escape");
   await expect(page.getByLabel("Pilih bulan ringkasan")).toBeDisabled();
   await openSection(page,"Pesanan");
-  await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();
+  await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
   await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama barang",{exact:true}).fill("Tote Canvas");await dialog.getByLabel("Harga jual / barang",{exact:true}).fill("150000");await dialog.getByLabel("Harga beli / barang",{exact:true}).fill("100000");
   await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).not.toBeVisible();expect(requests).toHaveLength(1);expect(requests[0].p_data.orders[0].items[0].product).toBe("Tote Canvas");
@@ -332,7 +332,7 @@ test("sign out clears the local session even when remote logout fails", async ({
 });
 test("failed account save retains form inputs and never announces a successful save",async({page})=>{
   await authenticate(page,{failSave:true}); await page.goto("/app");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();
-  await openSection(page,"Pesanan");await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
+  await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
   await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama barang",{exact:true}).fill("Belum tersimpan");await dialog.getByLabel("Harga jual / barang",{exact:true}).fill("50000");await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).toBeVisible();await expect(dialog.getByLabel("Nama barang",{exact:true})).toHaveValue("Belum tersimpan");await expect(dialog.getByRole("alert")).toBeVisible();await expect(dialog.getByRole("alert")).toContainText("perangkat lain");await expect(page.locator(".cloud-error")).toContainText("perangkat lain");await expect(page.getByText("Pesanan baru berhasil dicatat",{exact:true})).toHaveCount(0);
 });
 test("missing remote database displays a recovery screen instead of demo transactions",async({page})=>{
@@ -348,7 +348,7 @@ test("sidebar minimizes on desktop and keeps mobile navigation usable", async ({
   await page.getByRole("button",{name:"Minimalkan sidebar"}).click();
   await expect(page.locator(".sidebar")).toHaveCSS("width","76px");
   await openBusiness(page,"Jastip");
-  await expect(page.getByRole("button",{name:"Pesanan jastip baru",exact:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Tambah pesanan",exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Perluas sidebar"}).click();
   await expect(page.locator(".sidebar")).toHaveCSS("width","228px");
   await page.getByRole("button",{name:"Minimalkan sidebar"}).click();
@@ -386,7 +386,7 @@ test.describe("selection toggle", () => {
     await expect(filter).toBeFocused();
     await openBusiness(page, "Jastip");
     await openSection(page, "Pesanan");
-    await page.getByRole("button", { name: "Pesanan jastip baru", exact: true }).click();
+    await page.getByRole("button", { name: "Tambah pesanan", exact: true }).click();
     const form = page.getByRole("dialog", { name: "Pesanan jastip baru", exact: true });
     const customer = form.locator('button[aria-label="Pelanggan"]');
     await customer.tap();
@@ -416,18 +416,18 @@ for (const width of [390,1440]) test(`data forms do not focus editable fields wh
   await expect(form.getByLabel("Nama pelanggan",{exact:true})).toBeFocused();
   await page.keyboard.press("Escape");
   await openBusiness(page,"Jastip");
-  await page.getByRole("button",{name:"Batch jastip baru",exact:true}).click();
+  await page.getByRole("button",{name:"Tambah perjalanan",exact:true}).click();
   form=page.getByRole("dialog",{name:"Batch jastip baru",exact:true});
   await expect(form.getByRole("button",{name:"Tutup",exact:true})).toBeFocused();
   await checkCalendarOnly(page,form.getByLabel("Tutup pesanan",{exact:true}),form);
   await page.keyboard.press("Escape");
   await openBusiness(page,"Open PO");
-  await page.getByRole("button",{name:"Produk baru",exact:true}).click();
+  await page.getByRole("button",{name:"Tambah produk",exact:true}).click();
   form=page.getByRole("dialog",{name:"Produk baru",exact:true});
   await expect(form.getByRole("button",{name:"Tutup produk",exact:true})).toBeFocused();
   await page.keyboard.press("Escape");
   await openSection(page,"Batch PO");
-  await page.getByRole("button",{name:"Batch PO baru",exact:true}).first().click();
+  await page.getByRole("button",{name:"Tambah batch",exact:true}).first().click();
   form=page.getByRole("dialog",{name:"Batch PO baru",exact:true});
   await expect(form.getByRole("button",{name:"Tutup",exact:true})).toBeFocused();
   await checkCalendarOnly(page,form.getByLabel("Tutup pesanan",{exact:true}),form);
@@ -439,7 +439,7 @@ for(const width of [390,1440]) test(`product categories are selected or added on
   const requests=await authenticate(page,{workspace:data});
   await page.setViewportSize({width,height:844});
   await page.goto("/app");await openBusiness(page,"Open PO");
-  await page.getByRole("button",{name:"Produk baru",exact:true}).click();
+  await page.getByRole("button",{name:"Tambah produk",exact:true}).click();
   let form=page.getByRole("dialog",{name:"Produk baru",exact:true});
   await expect(form.getByRole("textbox",{name:"Kategori (opsional)",exact:true})).toHaveCount(0);
   const category=form.getByRole("combobox",{name:"Kategori (opsional)",exact:true});
@@ -462,7 +462,7 @@ for(const width of [390,1440]) test(`product categories are selected or added on
   await form.getByLabel("Harga jual / unit",{exact:true}).fill("50000");
   await form.getByRole("button",{name:"Simpan produk",exact:false}).click();
   await expect(form).toHaveCount(0);expect(requests[0].p_data.products[0]).toMatchObject({name:"Kaos baru",category:"Pakaian"});
-  await page.getByRole("button",{name:"Produk baru",exact:true}).click();
+  await page.getByRole("button",{name:"Tambah produk",exact:true}).click();
   form=page.getByRole("dialog",{name:"Produk baru",exact:true});
   await expect(form.getByRole("textbox",{name:"Kategori (opsional)",exact:true})).toHaveCount(0);
   await chooseOption(form.getByRole("combobox",{name:"Kategori (opsional)",exact:true}),"Pakaian");
@@ -549,7 +549,7 @@ test("custom selections support keyboard, touch and Escape without closing the o
   await expect(filter).toHaveText("Diarsipkan");await expect(filter).toBeFocused();
   await page.setViewportSize({width:390,height:844});
   await chooseOption(filter, "all");await expect(filter).toHaveText("Semua produk");
-  await page.getByRole("button",{name:"Pesanan PO baru",exact:true}).click();
+  await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
   const form=page.getByRole("dialog",{name:"Pesanan PO baru",exact:true});
   const product=form.getByLabel("Produk",{exact:true});
   expect(await form.locator("form").evaluate((el)=>new FormData(el as HTMLFormElement).get("batchId"))).toBe(await form.getByLabel("Batch PO").getAttribute("data-value"));
@@ -835,8 +835,8 @@ for(const width of [320,768,1440])for(const theme of ["light","dark"])test(`busi
  await switcher.getByRole("button",{name:"Open PO",exact:true}).focus();await page.keyboard.press("Enter");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");await expect(page.locator(".stats-grid")).toContainText("Rp 100.000");await expect(page.locator(".payments-card")).not.toContainText("Refund pesanan bulan ini");await expect(page.locator(".unpaid-card")).toContainText("Bima PO");await expect(page.locator(".unpaid-card")).not.toContainText("Alya");await expect(page.locator(".recent-card")).not.toContainText("Titipan Jastip");await expect(page.locator(".quota-banner")).toContainText("Open PO 1 / 5");expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--primary"))).not.toBe(jastipAccent);await expect(page.locator(".current-month-chart")).toHaveAttribute("aria-label",/100\.000.*50\.000/);
  await page.screenshot({path:`docs/preview-business-po-${width}-${theme}.png`,fullPage:true});
  await openSection(page,"HPP & Margin");await hpp.click();await expect(page.getByRole("option",{name:"PO Mingguan",exact:true})).toBeVisible();await expect(page.getByRole("option",{name:"Jastip Seoul",exact:true})).toHaveCount(0);await page.keyboard.press("Escape");
- await openSection(page,"Pesanan");await page.getByRole("button",{name:"Pesanan PO baru",exact:true}).click();const form=page.getByRole("dialog",{name:"Pesanan PO baru",exact:true});await expect(form).toBeVisible();await expect(form.getByLabel("Batch PO",{exact:true})).toHaveAttribute("data-value","po-business");await page.keyboard.press("Escape");
- await page.reload();await openNavigation(page);await expect(switcher.getByRole("button",{name:"Open PO",exact:true})).toHaveAttribute("aria-pressed","true");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");await switcher.getByRole("button",{name:"Jastip",exact:true}).click();await expect(page.locator(".recent-card")).toContainText("Titipan Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();await expect(page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true})).toBeVisible();await page.keyboard.press("Escape");await openSection(page,"Ringkasan");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+ await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();const form=page.getByRole("dialog",{name:"Pesanan PO baru",exact:true});await expect(form).toBeVisible();await expect(form.getByLabel("Batch PO",{exact:true})).toHaveAttribute("data-value","po-business");await page.keyboard.press("Escape");
+ await page.reload();await openNavigation(page);await expect(switcher.getByRole("button",{name:"Open PO",exact:true})).toHaveAttribute("aria-pressed","true");await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");await switcher.getByRole("button",{name:"Jastip",exact:true}).click();await expect(page.locator(".recent-card")).toContainText("Titipan Jastip");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();await expect(page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true})).toBeVisible();await page.keyboard.press("Escape");await openSection(page,"Ringkasan");expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
  await page.screenshot({path:`docs/preview-business-jastip-${width}-${theme}.png`,fullPage:true});
 });
 test("HPP save in one business preserves the other business transactions",async({page})=>{
@@ -931,7 +931,7 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   data.products.push({id:"discount-product",name:"Roti Diskon",variant:"",sku:"DIS",unitPrice:25000,unitCost:12000,active:true});
   const requests=await authenticate(page,{workspace:data});
   await page.setViewportSize({width,height:1000}); await page.goto("/app"); await openBusiness(page,business); await openSection(page,"Pesanan");
-  await page.getByRole("button",{name:business==="Jastip"?"Pesanan jastip baru":"Pesanan PO baru",exact:true}).click();
+  await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
   let form=page.getByRole("dialog",{name:business==="Jastip"?"Pesanan jastip baru":"Pesanan PO baru",exact:true});
   const date=form.locator('input[type="date"]');
   await expect(date).toHaveValue("");
@@ -1175,4 +1175,30 @@ test("DOKU production test panel stays hidden for unregistered accounts",async({
  await expect(page.getByRole("region",{name:"Uji pembayaran produksi"})).toHaveCount(0);
  await expect(page.getByText("Akun ini tidak terdaftar sebagai penguji.",{exact:true})).toHaveCount(0);
  await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toBeVisible();
+});
+
+
+for (const width of [390,1440]) for (const business of ["Jastip","Open PO"] as const) test(`new order explains missing open batch ${business} ${width}`,async({page})=>{
+ const type=business==="Open PO"?"po":"jastip";
+ const data=structuredClone(fixture);
+ data.batches=[
+  {...fixture.batches[0],id:"closed",type,status:"closed"},
+  {...fixture.batches[0],id:"done",type,status:"completed"},
+  {...fixture.batches[0],id:"other-business",type:type==="po"?"jastip":"po",status:"open"},
+ ];
+ const requests=await authenticate(page,{workspace:data});
+ await page.setViewportSize({width,height:844});await page.goto("/app");await openBusiness(page,business);await openSection(page,"Pesanan");
+ const add=page.getByRole("button",{name:"Tambah pesanan",exact:true});await add.click();
+ const info=page.getByRole("dialog",{name:business==="Open PO"?"Belum ada batch yang dibuka":"Belum ada perjalanan yang dibuka",exact:true});
+ await expect(info).toBeVisible();await expect(info).toContainText("status Dibuka");
+ await expect(page.locator(".toast")).toHaveCount(0);
+ await expect(page.getByRole("dialog",{name:/Pesanan .* baru/})).toHaveCount(0);
+ expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");
+ await info.getByRole("button",{name:"Nanti dulu"}).click();await expect(info).toHaveCount(0);
+ await add.click();await info.getByRole("button",{name:type==="po"?"Buat batch":"Buat perjalanan",exact:true}).click();
+ await expect(info).toHaveCount(0);
+ const form=page.getByRole("dialog",{name:type==="po"?"Batch PO baru":"Batch jastip baru",exact:true});
+ await expect(form).toBeVisible();await expect(form.getByLabel("Nama batch",{exact:true})).toHaveValue("");
+ expect(requests).toHaveLength(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });

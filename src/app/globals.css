@@ -92,6 +92,7 @@ svg { flex-shrink: 0; }
 .eyebrow { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 10px; line-height: 1.6; letter-spacing: .8px; }
 .heading-dot { color: var(--primary); }
 .page-heading p { color: var(--muted); font-size: 14px; margin-top: 10px; line-height: 1.8; }
+.page-create-button { min-height:44px; flex-shrink:0; }
 .heading-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .month-picker { border: 1px solid var(--control-border); background: var(--paper); padding: 0 12px; min-height: 44px; border-radius: 7px; display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .month-picker .select-trigger { border: 0; appearance: none; background: none; font-size: 16px; font-weight: 500; width: 136px; min-height: 44px; outline-offset: 4px; }
@@ -510,6 +511,7 @@ details.form-section[open]>summary::after { transform: rotate(225deg); margin-bo
 @media(max-width:960px) {
   .page-heading { flex-direction: column; align-items: flex-start; gap: 18px; }
   .heading-actions { width: 100%; }
+  .heading-actions .page-create-button { width:100%; }
   .dashboard-middle { grid-template-columns: 1fr; }
   .workspace-welcome { grid-template-columns: 1fr; gap: 20px; }
   .workspace-welcome p { max-width: none; }
