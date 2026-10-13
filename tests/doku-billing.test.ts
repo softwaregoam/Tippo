@@ -40,6 +40,8 @@ before(async()=>{
  const delivery=await readFile(new URL("../supabase/migrations/202610120008_doku_checkout_delivery.sql",import.meta.url),"utf8");await db.exec(delivery);await db.exec(delivery);
  const customers=await readFile(new URL("../supabase/migrations/202610120009_doku_test_customers_cancellation.sql",import.meta.url),"utf8");await db.exec(customers);await db.exec(customers);
   const pro=await readFile(new URL("../supabase/migrations/202610120010_doku_pro_billing.sql",import.meta.url),"utf8");await db.exec(pro);await db.exec(pro);
+ await db.exec("create publication supabase_realtime");
+ const realtime=await readFile(new URL("../supabase/migrations/202610130011_doku_pro_realtime.sql",import.meta.url),"utf8");await db.exec(realtime);await db.exec(realtime);
  await db.query("update auth.users set email=$1,raw_user_meta_data=$2 where id=$3",["tester@example.test",JSON.stringify({full_name:"Pelanggan Tes"}),c]);
 });
 after(()=>db.close());
@@ -406,4 +408,12 @@ test("unregistered test accounts cannot read, create or cancel test payments",as
   assert.equal(response.status,403);assert.equal((await response.json()).error,"TEST_ACCOUNT_REQUIRED");
  }
  assert.equal(calls,0);
+});
+
+
+test("Pro realtime publishes invoices without broadening private column access",async()=>{
+ const published=await db.query("select tablename from pg_publication_tables where pubname='supabase_realtime'");
+ assert.deepEqual(published.rows,[{tablename:"tippo_pro_invoices"}]);
+ const permissions=await db.query("select has_column_privilege('authenticated','public.tippo_pro_invoices','status','select') as status, has_column_privilege('authenticated','public.tippo_pro_invoices','request_body','select') as body, has_column_privilege('authenticated','public.tippo_pro_invoices','client_id','select') as client, relrowsecurity from pg_class where oid='public.tippo_pro_invoices'::regclass");
+ assert.deepEqual(permissions.rows,[{status:true,body:false,client:false,relrowsecurity:true}]);
 });

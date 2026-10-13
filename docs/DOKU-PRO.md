@@ -5,7 +5,7 @@ Tippo Pro Rp25.000 untuk satu bulan kalender memakai popup resmi DOKU. Invoice p
 ## Pemasangan
 
 1. Dalam folder checkout Tippo, jalankan `git pull origin main`.
-2. Di Supabase → SQL Editor, jalankan seluruh [migration 010](../supabase/migrations/202610120010_doku_pro_billing.sql). Migration workspace utama harus sudah terpasang. Migration billing uji 001–009 tetap dipertahankan bila fitur tes masih dipakai.
+2. Di Supabase → SQL Editor, jalankan seluruh [migration 010](../supabase/migrations/202610120010_doku_pro_billing.sql). Lalu jalankan [migration 011](../supabase/migrations/202610130011_doku_pro_realtime.sql) untuk mengaktifkan pembaruan status invoice melalui Realtime. Migration workspace utama harus sudah terpasang. Migration billing uji 001–009 tetap dipertahankan bila fitur tes masih dipakai.
 3. Di Supabase → Edge Functions → Secrets, tambahkan **DOKU_PRO_ENABLED=true**. Gunakan kembali `DOKU_PRODUCTION_CLIENT_ID`, `DOKU_PRODUCTION_SECRET_KEY`, dan `TIPPO_SITE_URL=https://tippo.vercel.app` yang sudah benar. Jangan memasukkan secret ke Vercel/NEXT_PUBLIC atau kode. Variabel Supabase bawaan tetap dipakai fungsi.
 4. Deploy kedua fungsi di bawah. Fungsi tes tetap dipertahankan; pembaruannya mengarahkan invoice uji baru ke URL notifikasi bersama ketika Pro diaktifkan. Endpoint webhook lama tetap menerima notifikasi invoice uji lama.
 
@@ -54,3 +54,10 @@ NEXT_PUBLIC_DOKU_PRO_ENABLED=true NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED=true 
 npm run start -- --port 3137
 PLAYWRIGHT_DOKU_PRO_ENABLED=true PLAYWRIGHT_DOKU_PRODUCTION_TEST=true PLAYWRIGHT_BASE_URL=http://localhost:3137 npx playwright test tests/website.spec.ts --grep 'DOKU (Pro|production)'
 ```
+
+
+## Pembaruan pembayaran melalui Realtime
+
+Jalankan `supabase/migrations/202610130011_doku_pro_realtime.sql` pada SQL Editor proyek Supabase produksi sebelum menggunakan notifikasi otomatis. Migrasi dapat dijalankan ulang dan hanya menambahkan tabel `tippo_pro_invoices` ke publication `supabase_realtime`; aturan akses per akun dan pembatasan kolom tetap berlaku.
+
+Halaman langganan mendengarkan update invoice milik akun yang masuk. Event Realtime memicu satu pemeriksaan ke Edge Function; notifikasi sukses hanya tampil setelah invoice yang sebelumnya belum lunas dikonfirmasi paid dan masa Pro diverifikasi server. Popup ditutup, notifikasi sukses tampil selama dua detik, kemudian halaman langganan dimuat ulang sekali. Menutup popup yang belum dibayar hanya mengecek status sekali. Tidak ada polling pembayaran berkala. Saat koneksi Realtime tersambung kembali, status diperiksa sekali untuk mengambil konfirmasi yang terlewat. Invoice lama yang sudah lunas saat halaman dibuka tidak memicu notifikasi atau refresh berulang.

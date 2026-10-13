@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
-import { RefreshCw, ReceiptText } from "lucide-react";
+import { Check, RefreshCw, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient } from "@/lib/supabase";
 import { parseSandboxBilling, parseProductionTestBilling, parseProductionBilling, type SandboxBilling } from "@/lib/doku-billing";
@@ -30,6 +30,8 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   const [historyOpener,setHistoryOpener]=useState<HTMLElement|null>(null);
   const alive=useRef(false),lock=useRef(false);
   const popupCleanup=useRef<(()=>void)|null>(null);
+  const watchedInvoices=useRef(new Set<string>());
+  const realtimePending=useRef(false);
   useEffect(()=>{onBusyChange?.(busy || refreshPending);},[busy,refreshPending,onBusyChange]);
   useImperativeHandle(paymentRef,()=>({upgrade:()=>openPayment(true),showHistory:()=>{setHistoryOpener(document.activeElement instanceof HTMLElement?document.activeElement:null);setHistoryOpen(true);if(!lock.current)void load("status");}}));
   async function request(action:"checkout"|"status"|"cancel",signal?:AbortSignal,invoiceId?:string) {
@@ -41,32 +43,49 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   }
   useEffect(()=>{
     alive.current=true;lock.current=true;const controller=new AbortController();
+    const client=getSupabaseClient();
+    const channel=livePro && client?client.channel(`pro-invoices:${account.id}`).on("postgres_changes",{event:"UPDATE",schema:"public",table:"tippo_pro_invoices",filter:`owner_id=eq.${account.id}`},payload=>{
+      if(payload.new.owner_id===account.id && payload.new.status==="paid" && watchedInvoices.current.has(payload.new.id))queuePaymentSync();
+    }).subscribe(status=>{if(status==="SUBSCRIBED")queuePaymentSync();}):null;
     const timer=setInterval(()=>setClock(Date.now()),30000);
-    request("status",controller.signal).then(async value=>{if(alive.current){setBilling(value);if(testing)setTestAllowed(true);if(livePro && value.proUntil)await onSubscriptionChanged?.();}}).catch(reason=>{if(alive.current && !controller.signal.aborted){if(reason instanceof CheckoutFailure && reason.testDenied)setTestAllowed(false);setError(reason instanceof Error?reason.message:failure);}}).finally(()=>{lock.current=false;if(alive.current)setBusy(false);});
-    return()=>{alive.current=false;controller.abort();clearInterval(timer);if(reloadTimer.current)clearTimeout(reloadTimer.current);reloadTimer.current=null;popupCleanup.current?.();popupCleanup.current=null;};
+    request("status",controller.signal).then(async value=>{if(alive.current){await applyBilling(value);if(testing)setTestAllowed(true);}}).catch(reason=>{if(alive.current && !controller.signal.aborted){if(reason instanceof CheckoutFailure && reason.testDenied)setTestAllowed(false);setError(reason instanceof Error?reason.message:failure);}}).finally(()=>{lock.current=false;if(alive.current){setBusy(false);flushPaymentSync();}});
+    return()=>{alive.current=false;controller.abort();clearInterval(timer);realtimePending.current=false;if(channel && client)void client.removeChannel(channel);if(reloadTimer.current)clearTimeout(reloadTimer.current);reloadTimer.current=null;popupCleanup.current?.();popupCleanup.current=null;};
     // The component is keyed by account ID; never reuses another owner's state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[account.id,mode]);
   async function load(action:"checkout"|"status"|"cancel",invoiceId?:string) {
     if(lock.current)return;lock.current=true;setBusy(true);setError("");
-    try{const value=await request(action,undefined,invoiceId);if(alive.current){setBilling(value);if(action==="cancel")setCancelId(null);if(livePro && value.proUntil)await onSubscriptionChanged?.();}}
+    try{const value=await request(action,undefined,invoiceId);if(alive.current){await applyBilling(value);if(action==="cancel")setCancelId(null);}}
     catch(reason){if(alive.current){if(reason instanceof CheckoutFailure && reason.testDenied)setTestAllowed(false);if(reason instanceof CheckoutFailure && reason.billing)setBilling(reason.billing);setError(reason instanceof Error && !reason.message.startsWith("Invalid")?reason.message:failure);}}
-    finally{lock.current=false;if(alive.current)setBusy(false);}
+    finally{lock.current=false;if(alive.current){setBusy(false);flushPaymentSync();}}
   }
-  async function handlePaymentClose() {
-    if(!livePro){await load("status");return;}
-    if(reloadTimer.current)return;
+  function queuePaymentSync() {
+    if(!alive.current || !livePro || reloadTimer.current)return;
+    realtimePending.current=true;flushPaymentSync();
+  }
+  function flushPaymentSync() {
+    if(!alive.current || lock.current || reloadTimer.current || !realtimePending.current)return;
+    realtimePending.current=false;void load("status");
+  }
+  async function applyBilling(value:SandboxBilling) {
+    if(!alive.current)return;
+    const invoices=value.invoices ?? (value.invoice?[value.invoice]:[]);
+    if(livePro)for(const item of invoices)if(["creating","pending"].includes(item.status))watchedInvoices.current.add(item.id);
+    setBilling(value);
+    if(livePro && value.proUntil)await onSubscriptionChanged?.();
+    const confirmed=livePro && value.proUntil && Date.parse(value.proUntil)>Date.now() && invoices.some(item=>item.status==="paid" && watchedInvoices.current.has(item.id));
+    if(!alive.current || !confirmed || reloadTimer.current)return;
     setRefreshPending(true);
+    realtimePending.current=false;
+    popupCleanup.current?.();popupCleanup.current=null;
     reloadTimer.current=setTimeout(()=>{
       reloadTimer.current=null;
       if(!alive.current)return;
-      // Keep the subscription page open when its local navigation state resets on reload.
-      const url=new URL(window.location.href);
-      url.searchParams.set("billing","production");
-      window.history.replaceState(window.history.state,"",url);
-      window.location.reload();
-    },3000);
+      const url=new URL(window.location.href);url.searchParams.set("billing","production");
+      window.history.replaceState(window.history.state,"",url);window.location.reload();
+    },2000);
   }
+  async function handlePaymentClose() {await load("status");}
   const invoice=billing?.invoice;
   const labels={creating:"Menyiapkan pembayaran",pending:"Menunggu pembayaran",paid:livePro?"Lunas":testing?"Lunas (uji produksi)":"Lunas (sandbox)",expired:"Kedaluwarsa",error:"Belum berhasil",cancelled:"Dibatalkan"};
   const payable=invoice?.status==="pending" && Date.parse(invoice.expiresAt)>clock && (!production || (invoice.amount===(livePro?25000:10000) && invoice.number.length<=30));
@@ -80,7 +99,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
       let current=invoice;
       if(create){
         const value=await request("checkout");if(!alive.current)return;
-        setBilling(value);current=value.invoice;
+        await applyBilling(value);current=value.invoice;
       }
       if(!current || current.status!=="pending" || !current.checkoutUrl || Date.parse(current.expiresAt)<=Date.now()){
         document.getElementById(livePro?"invoice-pro":"production-test-payment")?.scrollIntoView({behavior:"smooth",block:"start"});return;
@@ -91,11 +110,11 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
         popupCleanup.current=null;if(alive.current)return handlePaymentClose();
       },opener);
     }catch(reason){if(alive.current){if(reason instanceof CheckoutFailure && reason.billing)setBilling(reason.billing);setError(reason instanceof Error?reason.message:failure);document.getElementById(livePro?"invoice-pro":"production-test-payment")?.scrollIntoView({behavior:"smooth",block:"start"});}}
-    finally{lock.current=false;if(alive.current)setBusy(false);}
+    finally{lock.current=false;if(alive.current){setBusy(false);flushPaymentSync();}}
   }
   if(testing && !testAllowed)return null;
   if(livePro)return <>
-    {refreshPending && <div className="card pro-invoice-body" role="status"><p>Halaman akan diperbarui sebentar lagi untuk memuat status langganan terbaru.</p></div>}
+    {refreshPending && <div className="toast" role="status"><Check size={18} aria-hidden="true" /><span>Pembayaran berhasil, Pro sudah aktif.</span></div>}
     {!historyOpen && (error || needsReview) && <div id="invoice-pro" className="card pro-invoice-body">{error && <p className="error-message" role="alert">{error}</p>}{needsReview && <p className="field-hint">Pembayaran perlu diperiksa. Buka Riwayat langganan untuk cek status atau batalkan invoice yang belum lunas.</p>}</div>}
     {historyOpen && <SubscriptionHistoryDialog busy={busy} opener={historyOpener} onCheck={()=>void load("status")} onClose={()=>{setHistoryOpen(false);setCancelId(null);}}>
       {error && <p className="error-message" role="alert">{error}</p>}
