@@ -1198,7 +1198,10 @@ for (const width of [390,1440]) for (const business of ["Jastip","Open PO"] as c
  await add.click();await info.getByRole("button",{name:type==="po"?"Buat batch":"Buat perjalanan",exact:true}).click();
  await expect(info).toHaveCount(0);
  const form=page.getByRole("dialog",{name:type==="po"?"Batch PO baru":"Batch jastip baru",exact:true});
- await expect(form).toBeVisible();await expect(form.getByLabel("Nama batch",{exact:true})).toHaveValue("");
+ await expect(form).toHaveCount(0);
+ await expect(page.getByRole("heading",{level:1})).toHaveText(type==="po"?"Batch PO.":"Perjalanan Jastip.");
+ await expect(page.getByRole("button",{name:type==="po"?"Tambah batch":"Tambah perjalanan",exact:true})).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>document.body.style.position)).not.toBe("fixed");
  expect(requests).toHaveLength(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
