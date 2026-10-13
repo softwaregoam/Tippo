@@ -576,7 +576,7 @@ test("customer dialog restores keyboard focus after cancel and save", async ({pa
 for(const failSave of [false,true])test(`product Excel import ${failSave?"retains preview on RPC failure":"saves atomically to the account"}`,async({page})=>{
   const requests=await authenticate(page,{failSave,pro:true});
   await page.goto("/app");await openBusiness(page,"Open PO");
-  await page.getByRole("button",{name:"Import produk Excel",exact:true}).click();
+  await page.getByRole("button",{name:"Import Excel",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Import produk Excel",exact:true});
   const ExcelJS=(await import("exceljs")).default;const book=new ExcelJS.Workbook();const sheet=book.addWorksheet("Produk");sheet.addRow(["produk","varian","sku_produk","harga_jual","harga_beli"]);sheet.addRow(["Produk akun","","SKU-A",150000,100000]);
   await dialog.getByLabel("File Excel produk").setInputFiles({name:"produk.xlsx",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",buffer:Buffer.from(await book.xlsx.writeBuffer())});
@@ -586,7 +586,8 @@ for(const failSave of [false,true])test(`product Excel import ${failSave?"retain
   expect(requests).toHaveLength(1);expect(requests[0].p_data.products[0]).toMatchObject({name:"Produk akun",unitPrice:150000,unitCost:100000});expect(requests[0].p_data.orders).toHaveLength(0);expect(requests[0].p_expected_version).toBe(0);
 });
 
-test("cloud Free account cannot unlock Excel imports with a local demo Pro entitlement",async({page})=>{
+for(const width of [390,1440]) test(`cloud Free account cannot unlock Excel imports with a local demo Pro entitlement ${width}`,async({page})=>{
+  await page.setViewportSize({width,height:844});
   const requests=await authenticate(page);
   await page.goto("/app");
   await expect(page.locator(".sidebar-plan-badge")).toHaveText("Gratis");
@@ -599,7 +600,7 @@ test("cloud Free account cannot unlock Excel imports with a local demo Pro entit
   }
   await openBusiness(page,"Open PO");
   await openSection(page,"Produk");
-  await page.getByRole("button",{name:"Import produk Excel",exact:true}).click();
+  await page.getByRole("button",{name:"Import Excel",exact:true}).click();
   await expect(page.getByRole("region",{name:"Paket Pro"})).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(requests).toHaveLength(0);
