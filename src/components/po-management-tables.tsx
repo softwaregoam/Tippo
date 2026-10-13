@@ -20,16 +20,16 @@ export function BatchesTable({ title, batches, orders, data, onEdit, onStatus }:
  const [changing, setChanging] = useState<Batch | null>(null);
  const count = (batch: Batch) => orders.filter(order => order.batchId === batch.id && order.status !== "cancelled").length;
  const badge = (batch: Batch) => <span className={`status-tag batch-status-${batch.status}`}>{batchStatusLabels[batch.status]}</span>;
- const statusAction = (batch: Batch) => batch.status === "completed"
+ const statusAction = (batch: Batch, mobile=false) => batch.status === "completed"
    ? null
-   : <button className="icon-button" data-close-detail aria-label={`${batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} ${batch.name}`} title={batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} onClick={() => setChanging(batch)}>{batch.status === "open" ? <CircleArrowRight size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}</button>;
+   : <button className={mobile?"btn btn-secondary":"icon-button"} data-close-detail aria-label={`${batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} ${batch.name}`} title={batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} onClick={() => setChanging(batch)}>{batch.status === "open" ? <CircleArrowRight size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}{mobile && <span>{batch.status === "open" ? "Tutup batch" : "Selesaikan batch"}</span>}</button>;
  return <>
    <MobileDataList entries={batches.map(batch => ({
      id: batch.id, title: batch.name, subtitle: batch.origin || "Lokasi belum diisi",
      meta: `${new Date(`${batch.closeDate}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} · ${count(batch)} pesanan`,
      status: batchStatusLabels[batch.status],
      statusClassName: `status-tag batch-status-${batch.status}`,
-     details: <><dl className="mobile-detail-fields"><dt>Lokasi / supplier</dt><dd>{batch.origin || "Belum diisi"}</dd><dt>Tutup pesanan</dt><dd>{batch.closeDate}</dd><dt>Jumlah pesanan</dt><dd>{count(batch)}</dd><dt>Status</dt><dd>{badge(batch)}</dd></dl><button className="btn btn-secondary product-mobile-action" data-close-detail onClick={()=>setRecapBatch(batch)}><ClipboardList size={16}/>{recapLabel(batch)}</button>{statusAction(batch)}<button className="btn btn-primary" data-close-detail onClick={() => onEdit(batch)}>Edit batch</button></>,
+     details: <><dl className="mobile-detail-fields"><dt>Lokasi / supplier</dt><dd>{batch.origin || "Belum diisi"}</dd><dt>Tutup pesanan</dt><dd>{batch.closeDate}</dd><dt>Jumlah pesanan</dt><dd>{count(batch)}</dd><dt>Status</dt><dd>{badge(batch)}</dd></dl><button className="btn btn-secondary product-mobile-action" data-close-detail onClick={()=>setRecapBatch(batch)}><ClipboardList size={16}/>{recapLabel(batch)}</button><div className={`batch-mobile-actions ${batch.status==="completed"?"single":""}`}>{statusAction(batch,true)}<button className="btn btn-primary" data-close-detail onClick={() => onEdit(batch)}><Pencil size={16} aria-hidden="true"/>Edit batch</button></div></>,
    }))} />
    <div className="card management-table-wrap desktop-data-table"><table className="management-table" aria-label={title}>
      <thead><tr>{["Nama batch", "Lokasi / supplier", "Tutup pesanan", "Pesanan", "Status", "Aksi"].map(label => <th scope="col" key={label} className={label === "Pesanan" ? "center-cell" : undefined}>{label}</th>)}</tr></thead>

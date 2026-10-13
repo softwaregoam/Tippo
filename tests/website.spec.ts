@@ -883,7 +883,7 @@ for (const [business,width] of [["Open PO",1440],["Jastip",1440],["Open PO",390]
   if(width<600)await page.getByRole("button",{name:`Detail ${batch.name}`,exact:true}).click();
   await expect(page.getByRole("button",{name:new RegExp(`^(Tutup batch|Selesaikan batch) ${batch.name}$`)})).toHaveCount(0);
   await expect(page.getByRole("img",{name:`Status terkunci ${batch.name}`,exact:true})).toHaveCount(0);
-  const actions=width<600?page.getByRole("dialog",{name:`Detail ${batch.name}`,exact:true}).locator(".modal-body"):page.getByRole("row").filter({hasText:batch.name}).locator(".management-actions");
+  const actions=width<600?page.getByRole("dialog",{name:`Detail ${batch.name}`,exact:true}).locator(".batch-mobile-actions"):page.getByRole("row").filter({hasText:batch.name}).locator(".management-actions");
   await expect(actions.getByRole("button")).toHaveCount(1);await expect(actions.getByRole("button",{name:width<600?"Edit batch":`Edit batch ${batch.name}`,exact:true})).toBeVisible();
   await page.screenshot({path:`docs/preview-batch-locked-${business==="Open PO"?"po":"jastip"}-${width}.png`});
   if(width<600)await page.getByRole("button",{name:"Tutup detail",exact:true}).click();

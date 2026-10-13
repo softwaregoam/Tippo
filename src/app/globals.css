@@ -1001,3 +1001,9 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .shopping-recap-dialog .modal-body { padding:18px 16px; }
  .shopping-recap-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+.batch-mobile-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
+.batch-mobile-actions.single { grid-template-columns:minmax(0,1fr); }
+.batch-mobile-actions .btn { width:100%; min-width:0; }
+.batch-mobile-actions svg { flex-shrink:0; }
