@@ -1128,6 +1128,7 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
   await route.fulfill({json:{environment:"production",proUntil:paid?expiry:null,invoice:rows[0]??null,invoices:rows}});
  });
  await page.goto("/app?billing=production");
+ await page.locator(".quota-banner").getByRole("button",{name:"Upgrade Pro",exact:true}).click();await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toBeFocused();expect(created).toBe(0);
  const panel=page.getByRole("dialog",{name:"Riwayat langganan",exact:true});
  const historyButton=page.getByRole("button",{name:"Riwayat langganan",exact:true});await expect(historyButton).toBeVisible();await historyButton.click();await expect(panel).toBeVisible();
  await expect(page.getByRole("region",{name:"Invoice langganan Pro",exact:true})).toHaveCount(0);await expect(page.getByRole("button",{name:"Lihat invoice Pro",exact:true})).toHaveCount(0);await expect(page.getByRole("button",{name:"Buat draf invoice Pro",exact:true})).toHaveCount(0);

@@ -906,6 +906,8 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 @media (max-width:600px) { .tippo-doku-dialog { width:100vw; height:100dvh; margin:0; border-radius:0; } }
 .pro-history-mobile { display:none; }
 .subscription-upgrade { margin-top:auto; }
+#tippo-pro-plan { scroll-margin-top:96px; }
+#tippo-pro-plan:focus { outline:2px solid var(--primary); outline-offset:3px; }
 .subscription-tools { display:flex; justify-content:flex-end; }
 .subscription-history-dialog { width:min(1050px,calc(100vw - 48px)); max-width:none; max-height:calc(100dvh - 48px); padding:0; margin:auto; background:var(--paper); }
 .subscription-history-dialog[open] { display:flex; flex-direction:column; }

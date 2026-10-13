@@ -104,6 +104,17 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const [saveError, setSaveError] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [proFocusRequest,setProFocusRequest]=useState(0);
+  const handledProFocus=useRef(0);
+  useEffect(()=>{
+    if(page!=="subscription" || proFocusRequest===handledProFocus.current)return;
+    const frame=requestAnimationFrame(()=>{
+      const target=document.getElementById("tippo-pro-plan");if(!target)return;
+      handledProFocus.current=proFocusRequest;target.focus({preventScroll:true});
+      target.scrollIntoView({block:"start",behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"});
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[page,proFocusRequest]);
 
   useEffect(() => {
     document.documentElement.dataset.businessMode = mode;
@@ -325,7 +336,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
         <main className="main-content">
           <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary" onClick={() => startOrder()}><Plus size={17} />{mode === "po" ? "Pesanan PO baru" : "Pesanan jastip baru"}</Button>}</div>}</div>
 
-          {!isPro && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak barang</span></div><Button className="btn btn-secondary" onClick={() => go("subscription")}><Crown size={15} />Upgrade Pro</Button></div>}
+          {!isPro && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak barang</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
             <div key={page}>
               {page === "dashboard" && <>
                 <div className="stats-grid">

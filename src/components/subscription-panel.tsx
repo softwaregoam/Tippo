@@ -67,7 +67,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
         <p className="field-hint">Kuota pesanan kembali tersedia setiap tanggal 1 pukul 00.00 WIB. Pesanan yang dibatalkan tetap terhitung.</p>
         {plan === "pro" && !live ? <Button className="btn btn-secondary" onClick={returnToFree}>Kembali ke Gratis</Button> : plan === "free" ? <span className="status-tag">Paket aktif</span> : null}
       </section>
-      <section className="card subscription-plan pro-plan" aria-label="Paket Pro">
+      <section id="tippo-pro-plan" tabIndex={-1} className="card subscription-plan pro-plan" aria-label="Paket Pro">
         <div className="subscription-plan-title"><Crown size={23} /><h2>Pro</h2></div>
         <p className="subscription-price">Rp{PRO_MONTHLY_PRICE.toLocaleString("id-ID")}<span> / bulan</span></p>
         <ul className="subscription-features">
