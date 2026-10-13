@@ -874,11 +874,12 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .desktop-data-table { display:none; }
  .mobile-data-list { display:block; }
  .mobile-data-row { width:100%; display:flex; flex-direction:column; gap:7px; padding:16px; text-align:left; color:var(--ink); background:var(--paper); border:0; border-bottom:1px solid var(--border); font-size:14px; min-height:88px; }
- .mobile-row-heading { display:flex; justify-content:space-between; align-items:start; gap:12px; }
- .mobile-row-heading strong { min-width:0; overflow-wrap:anywhere; }
- .mobile-row-heading small { flex-shrink:0; background:var(--tone-surface-edf5f1); padding:4px 7px; border-radius:4px; color:var(--primary); }
- .mobile-row-subtitle { color:var(--muted); overflow-wrap:anywhere; }
- .mobile-row-meta { display:flex; justify-content:space-between; align-items:center; color:var(--primary); gap:8px; }
+ .mobile-row-heading { width:100%; display:flex; justify-content:space-between; align-items:start; gap:12px; }
+ .mobile-row-heading strong { flex:1; min-width:0; overflow-wrap:anywhere; color:var(--ink); font-size:16px; line-height:1.5; }
+ .mobile-row-heading small { margin-left:auto; flex-shrink:0; background:var(--tone-surface-edf5f1); padding:4px 7px; border-radius:4px; color:var(--primary); }
+ .mobile-row-subtitle { width:100%; color:var(--muted); overflow-wrap:anywhere; }
+ .mobile-row-meta { width:100%; display:flex; justify-content:space-between; align-items:center; color:var(--primary); gap:8px; }
+ .mobile-row-meta > svg { flex-shrink:0; }
 }
 
 .batch-status-body { display: grid; gap: 20px; }
@@ -965,9 +966,6 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 }
 
 
-.product-mobile-list .mobile-row-heading,.product-mobile-list .mobile-row-subtitle,.product-mobile-list .mobile-row-meta { width:100%; }
-.product-mobile-list .mobile-row-heading strong { flex:1; color:var(--ink); font-size:16px; line-height:1.5; }
-.product-mobile-list .mobile-row-heading small { margin-left:auto; }
 .product-mobile-attributes { display:grid; gap:6px; margin-top:4px; }
 .product-mobile-attributes > span { display:grid; grid-template-columns:64px minmax(0,1fr); gap:10px; }
 .product-mobile-attributes > span > span:first-child { color:var(--muted); font-size:12px; line-height:1.8; }
