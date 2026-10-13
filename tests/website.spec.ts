@@ -1124,16 +1124,16 @@ test("DOKU production popup script failure can retry without creating another in
 for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and cancellation at ${width}px`,async({page})=>{
  test.skip(process.env.PLAYWRIGHT_DOKU_PRO_ENABLED!=="true","Requires real Pro billing build");
  await page.setViewportSize({width,height:900});await authenticate(page);await mockDokuPopup(page);
- let created=0,paid=false,cancelled=false,checks=0;
+ let created=0,paid=false,verified=false,cancelled=false,checks=0,settlementChecks=0;
  const expiry="2099-01-01T00:00:00Z";
- const invoice=(renewal=false)=>({id:renewal?"22222222-2222-4222-8222-222222222222":"11111111-1111-4111-8111-111111111111",number:"TPR"+(renewal?"B":"A").repeat(24),amount:25000,currency:"IDR",status:renewal?(cancelled?"cancelled":"pending"):paid?"paid":"pending",checkoutUrl:cancelled&&renewal?null:"https://checkout.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:!renewal&&paid?"2026-10-12T01:00:00Z":null,customerName:"Titipan Naya",customerEmail:"naya@example.test",periodStart:!renewal&&paid?"2098-12-01T00:00:00Z":null,periodEnd:!renewal&&paid?expiry:null});
- await page.route(endpoint+"/rest/v1/rpc/get_tippo_workspace",route=>route.fulfill({json:{data:fixture,version:0,subscription:{tier:paid?"pro":"free",expiresAt:paid?expiry:null},usage:[]}}));
+ const invoice=(renewal=false)=>({id:renewal?"22222222-2222-4222-8222-222222222222":"11111111-1111-4111-8111-111111111111",number:"TPR"+(renewal?"B":"A").repeat(24),amount:25000,currency:"IDR",status:renewal?(cancelled?"cancelled":"pending"):verified?"paid":"pending",checkoutUrl:cancelled&&renewal?null:"https://checkout.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:!renewal&&verified?"2026-10-12T01:00:00Z":null,customerName:"Titipan Naya",customerEmail:"naya@example.test",periodStart:!renewal&&verified?"2098-12-01T00:00:00Z":null,periodEnd:!renewal&&verified?expiry:null});
+ await page.route(endpoint+"/rest/v1/rpc/get_tippo_workspace",route=>route.fulfill({json:{data:fixture,version:0,subscription:{tier:verified?"pro":"free",expiresAt:verified?expiry:null},usage:[]}}));
  await page.route(endpoint+"/functions/v1/tippo-doku-pro/**",async route=>{
   if(route.request().url().endsWith("/checkout")){expect(route.request().postDataJSON()).toEqual({});created++;}
   if(route.request().url().endsWith("/cancel")){expect(route.request().postDataJSON()).toEqual({invoiceId:"22222222-2222-4222-8222-222222222222"});cancelled=true;}
-  if(route.request().url().endsWith("/status"))checks++;
+  if(route.request().url().endsWith("/status")){checks++;if(paid && created===1 && ++settlementChecks>=3)verified=true;}
   const rows=created===0?[]:created===1?[invoice()]:[invoice(true),invoice()];
-  await route.fulfill({json:{environment:"production",proUntil:paid?expiry:null,invoice:rows[0]??null,invoices:rows}});
+  await route.fulfill({json:{environment:"production",proUntil:verified?expiry:null,invoice:rows[0]??null,invoices:rows}});
  });
  await page.goto("/app?billing=production");
  await page.locator(".quota-banner").getByRole("button",{name:"Upgrade Pro",exact:true}).click();await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toBeFocused();expect(created).toBe(0);
@@ -1145,7 +1145,9 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
  expect(page.context().pages()).toHaveLength(1);
  paid=true;await popup.frameLocator("iframe").getByRole("button",{name:"Selesai"}).click();await expect(popup).toHaveCount(0);
- await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");await historyButton.click();await expect(panel).toBeVisible();await expect(panel.getByRole("region",{name:"Riwayat berlangganan",exact:true})).toContainText("Lunas");await panel.getByRole("button",{name:"Tutup riwayat langganan"}).click();await expect(panel).toHaveCount(0);
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
+ await expect(page.getByRole("status").filter({hasText:"Menunggu konfirmasi pembayaran"})).toBeVisible();
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro",{timeout:15000});expect(settlementChecks).toBe(3);await historyButton.click();await expect(panel).toBeVisible();await expect(panel.getByRole("region",{name:"Riwayat berlangganan",exact:true})).toContainText("Lunas");await panel.getByRole("button",{name:"Tutup riwayat langganan"}).click();await expect(panel).toHaveCount(0);
  await page.getByRole("region",{name:"Paket Pro",exact:true}).getByRole("button",{name:"Perpanjang Pro · Rp25.000",exact:true}).click();await expect(popup).toBeVisible();await popup.getByRole("button",{name:"Tutup pembayaran DOKU"}).click();await expect(popup).toHaveCount(0);
  await historyButton.click();await expect(panel).toBeVisible();expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");
  const history=panel.getByRole("region",{name:"Riwayat berlangganan",exact:true});
@@ -1227,4 +1229,28 @@ for (const width of [390,1440]) for (const archived of [false,true]) test(`new P
  await expect(page.getByRole("button",{name:"Tambah produk",exact:true})).toBeVisible();
  await expect.poll(()=>page.evaluate(()=>document.body.style.position)).not.toBe("fixed");
  expect(requests).toHaveLength(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+});
+
+
+test("DOKU Pro pending payment stays Free and polling stops when leaving subscriptions",async({page})=>{
+ test.skip(process.env.PLAYWRIGHT_DOKU_PRO_ENABLED!=="true","Requires real Pro billing build");
+ await authenticate(page);await mockDokuPopup(page);await page.clock.install();
+ let created=false,checks=0;
+ await page.route(endpoint+"/functions/v1/tippo-doku-pro/**",async route=>{
+  if(route.request().url().endsWith("/checkout"))created=true;
+  if(route.request().url().endsWith("/status"))checks++;
+  const invoice=created?{id:"11111111-1111-4111-8111-111111111111",number:"TPR"+"A".repeat(24),amount:25000,currency:"IDR",status:"pending",checkoutUrl:"https://checkout.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:null}:null;
+  await route.fulfill({json:{environment:"production",proUntil:null,invoice,invoices:invoice?[invoice]:[]}});
+ });
+ await page.goto("/app?billing=production");
+ await page.getByRole("button",{name:"Upgrade ke Pro · Rp25.000",exact:true}).click();
+ const popup=page.getByRole("dialog",{name:"Pembayaran DOKU",exact:true});
+ await popup.frameLocator("iframe").getByRole("button",{name:"Selesai"}).click();await expect(popup).toHaveCount(0);
+ await expect.poll(()=>checks).toBe(2);
+ await expect(page.getByRole("status").filter({hasText:"Menunggu konfirmasi pembayaran"})).toBeVisible();
+ await page.clock.runFor(3100);await expect.poll(()=>checks).toBe(3);
+ await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Gratis");
+ await openSection(page,"Pesanan");const stoppedAt=checks;
+ await page.clock.runFor(10000);expect(checks).toBe(stoppedAt);
+ await expect(page.locator(".quota-banner")).toContainText("Upgrade Pro");
 });

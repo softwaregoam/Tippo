@@ -25,6 +25,8 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   const [cancelId,setCancelId]=useState<string|null>(null);
   const [testAllowed,setTestAllowed]=useState(false);
   const [historyOpen,setHistoryOpen]=useState(false);
+  const [paymentNotice,setPaymentNotice]=useState("");
+  const verification=useRef<{controller:AbortController;timer:ReturnType<typeof setTimeout>|null}|null>(null);
   const [historyOpener,setHistoryOpener]=useState<HTMLElement|null>(null);
   const alive=useRef(false),lock=useRef(false);
   const popupCleanup=useRef<(()=>void)|null>(null);
@@ -33,7 +35,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   async function request(action:"checkout"|"status"|"cancel",signal?:AbortSignal,invoiceId?:string) {
     const client=getSupabaseClient();const session=await client?.auth.getSession();
     if(!client || session?.data.session?.user.id!==account.id)throw new Error("Masuk kembali sebelum membuka pembayaran.");
-    const response=await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/tippo-doku-${livePro?"pro":mode}/${action}`,{method:action==="status"?"GET":"POST",headers:{Authorization:`Bearer ${session.data.session.access_token}`,apikey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,"Content-Type":"application/json"},...(action!=="status"?{body:JSON.stringify(action==="cancel"?{invoiceId}:{})}:{}),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000)});
+    const response=await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/tippo-doku-${livePro?"pro":mode}/${action}`,{method:action==="status"?"GET":"POST",cache:"no-store",headers:{Authorization:`Bearer ${session.data.session.access_token}`,apikey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,"Content-Type":"application/json"},...(action!=="status"?{body:JSON.stringify(action==="cancel"?{invoiceId}:{})}:{}),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000)});
     if(!response.ok){const body=await response.json().catch(()=>({}));if(testing && response.status===403 && body.error==="TEST_ACCOUNT_REQUIRED")throw new CheckoutFailure("Akun ini tidak terdaftar sebagai penguji.",null,true);let rejectedBilling:SandboxBilling|null=null;if(production && body.billing){try{rejectedBilling=parse(body.billing);}catch{}}const providerCode=typeof body.providerCode==="string" && /^[A-Za-z0-9_-]{1,80}$/.test(body.providerCode)?body.providerCode:null;const providerMessage=typeof body.providerMessage==="string"?body.providerMessage.slice(0,300):null;const providerStatus=[400,401,403,422].includes(body.providerStatus)?body.providerStatus:null;const cancellationMessage=body.error==="CANCELLATION_REJECTED"?"DOKU menolak pembatalan"+(providerMessage?": "+providerMessage:". Aktifkan Order Cancellation dan periksa metode pembayaran."):body.error==="CANCELLATION_NOT_AVAILABLE"?"Invoice tidak dapat dibatalkan atau sedang diproses. Cek status pembayaran sebelum mencoba lagi.":body.error==="CANCELLATION_UNCONFIRMED"?"Pembatalan belum terkonfirmasi. Periksa DOKU dan cek status sebelum mencoba lagi.":null;const reviewMessage=body.error==="CHECKOUT_RECONCILIATION_REQUIRED"?"Request ID sudah tercatat di DOKU. Periksa invoice ini di dashboard DOKU; link pembayaran belum berhasil disimpan.":body.error==="CHECKOUT_RESPONSE_INVALID"?"Respons pembayaran DOKU belum dapat dipakai: "+(typeof body.providerIssue==="string"?body.providerIssue:"format tidak sesuai")+(typeof body.checkoutHost==="string"?" (host "+body.checkoutHost+")":"")+". Periksa invoice ini sebelum membuat pembayaran lain.":null;throw new CheckoutFailure(cancellationMessage??reviewMessage??(body.error==="CHECKOUT_REJECTED"?"Permintaan pembayaran ditolak DOKU"+(providerCode?" (kode "+providerCode+")":providerStatus?" (HTTP "+providerStatus+")":"")+(providerMessage?": "+providerMessage:". Periksa konfigurasi Checkout dan metode pembayaran."):response.status===403?"Akun ini belum diizinkan melakukan uji produksi.":response.status===401?"Sesi berakhir. Masuk kembali untuk melanjutkan.":failure),rejectedBilling);}
     return parse(await response.json());
   }
@@ -41,15 +43,42 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
     alive.current=true;lock.current=true;const controller=new AbortController();
     const timer=setInterval(()=>setClock(Date.now()),30000);
     request("status",controller.signal).then(async value=>{if(alive.current){setBilling(value);if(testing)setTestAllowed(true);if(livePro && value.proUntil)await onSubscriptionChanged?.();}}).catch(reason=>{if(alive.current && !controller.signal.aborted){if(reason instanceof CheckoutFailure && reason.testDenied)setTestAllowed(false);setError(reason instanceof Error?reason.message:failure);}}).finally(()=>{lock.current=false;if(alive.current)setBusy(false);});
-    return()=>{alive.current=false;controller.abort();clearInterval(timer);popupCleanup.current?.();popupCleanup.current=null;};
+    return()=>{alive.current=false;controller.abort();clearInterval(timer);stopPaymentVerification();popupCleanup.current?.();popupCleanup.current=null;};
     // The component is keyed by account ID; never reuses another owner's state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[account.id,mode]);
-  async function load(action:"checkout"|"status"|"cancel",invoiceId?:string) {
+  async function load(action:"checkout"|"status"|"cancel",invoiceId?:string,signal?:AbortSignal) {
     if(lock.current)return;lock.current=true;setBusy(true);setError("");
-    try{const value=await request(action,undefined,invoiceId);if(alive.current){setBilling(value);if(action==="cancel")setCancelId(null);if(livePro && value.proUntil)await onSubscriptionChanged?.();}}
-    catch(reason){if(alive.current){if(reason instanceof CheckoutFailure && reason.testDenied)setTestAllowed(false);if(reason instanceof CheckoutFailure && reason.billing)setBilling(reason.billing);setError(reason instanceof Error && !reason.message.startsWith("Invalid")?reason.message:failure);}}
+    try{const value=await request(action,signal,invoiceId);if(alive.current && !signal?.aborted){setBilling(value);if(action==="cancel"){setCancelId(null);stopPaymentVerification();}if(livePro && value.proUntil)await onSubscriptionChanged?.();return value;}}
+    catch(reason){if(alive.current && !signal?.aborted){if(reason instanceof CheckoutFailure && reason.testDenied)setTestAllowed(false);if(reason instanceof CheckoutFailure && reason.billing)setBilling(reason.billing);setError(reason instanceof Error && !reason.message.startsWith("Invalid")?reason.message:failure);}}
     finally{lock.current=false;if(alive.current)setBusy(false);}
+  }
+  function stopPaymentVerification() {
+    const current=verification.current;
+    verification.current=null;
+    if(current){current.controller.abort();if(current.timer)clearTimeout(current.timer);}
+    if(alive.current)setPaymentNotice("");
+  }
+  async function verifyPayment(invoiceId:string) {
+    if(!livePro){await load("status");return;}
+    stopPaymentVerification();
+    const current={controller:new AbortController(),timer:null as ReturnType<typeof setTimeout>|null};
+    verification.current=current;
+    const signal=AbortSignal.any([current.controller.signal,AbortSignal.timeout(90000)]);
+    setPaymentNotice("Menunggu konfirmasi pembayaran. Status Pro akan diperbarui otomatis.");
+    const check=async()=>{
+      if(!alive.current || verification.current!==current)return;
+      const value=await load("status",undefined,signal);
+      if(!alive.current || verification.current!==current)return;
+      const target=value?.invoices?.find(item=>item.id===invoiceId) ?? (value?.invoice?.id===invoiceId?value.invoice:null);
+      if(target && (target.status==="paid" && value?.proUntil || ["cancelled","expired","error"].includes(target.status) || Date.parse(target.expiresAt)<=Date.now())){
+        stopPaymentVerification();return;
+      }
+      if(signal.aborted){stopPaymentVerification();setPaymentNotice("Pembayaran belum terkonfirmasi. Buka Riwayat langganan untuk cek status kembali.");return;}
+      current.timer=setTimeout(()=>void check(),3000);
+    };
+    // Return after the first check so popup focus is restored without waiting for the webhook.
+    await check();
   }
   const invoice=billing?.invoice;
   const labels={creating:"Menyiapkan pembayaran",pending:"Menunggu pembayaran",paid:livePro?"Lunas":testing?"Lunas (uji produksi)":"Lunas (sandbox)",expired:"Kedaluwarsa",error:"Belum berhasil",cancelled:"Dibatalkan"};
@@ -58,6 +87,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   const needsReview=production && invoice?.recoveryRequired===true && displayedStatus!=="expired";
   async function openPayment(create=false){
     if(lock.current || !create && (!payable || !invoice?.checkoutUrl))return;
+    stopPaymentVerification();
     const opener=document.activeElement instanceof HTMLElement?document.activeElement:null;
     lock.current=true;setBusy(true);setError("");
     try{
@@ -72,13 +102,14 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
       await prepareDokuCheckout(mode);
       if(!alive.current || Date.parse(current.expiresAt)<=Date.now())return;
       popupCleanup.current=showDokuCheckout(current.checkoutUrl,mode,()=>{
-        popupCleanup.current=null;if(alive.current)return load("status");
+        popupCleanup.current=null;if(alive.current)return verifyPayment(current.id);
       },opener);
     }catch(reason){if(alive.current){if(reason instanceof CheckoutFailure && reason.billing)setBilling(reason.billing);setError(reason instanceof Error?reason.message:failure);document.getElementById(livePro?"invoice-pro":"production-test-payment")?.scrollIntoView({behavior:"smooth",block:"start"});}}
     finally{lock.current=false;if(alive.current)setBusy(false);}
   }
   if(testing && !testAllowed)return null;
   if(livePro)return <>
+    {paymentNotice && <div className="card pro-invoice-body" role="status"><p>{paymentNotice}</p></div>}
     {!historyOpen && (error || needsReview) && <div id="invoice-pro" className="card pro-invoice-body">{error && <p className="error-message" role="alert">{error}</p>}{needsReview && <p className="field-hint">Pembayaran perlu diperiksa. Buka Riwayat langganan untuk cek status atau batalkan invoice yang belum lunas.</p>}</div>}
     {historyOpen && <SubscriptionHistoryDialog busy={busy} opener={historyOpener} onCheck={()=>void load("status")} onClose={()=>{setHistoryOpen(false);setCancelId(null);}}>
       {error && <p className="error-message" role="alert">{error}</p>}
