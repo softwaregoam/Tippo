@@ -965,9 +965,9 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 }
 
 
-.mobile-row-name { display:flex; flex-direction:column; gap:4px; min-width:0; }
-.mobile-row-title-label { color:var(--muted); font-size:12px; font-weight:400; }
-.mobile-row-name strong { color:var(--ink); font-size:16px; line-height:1.5; }
+.product-mobile-list .mobile-row-heading,.product-mobile-list .mobile-row-subtitle,.product-mobile-list .mobile-row-meta { width:100%; }
+.product-mobile-list .mobile-row-heading strong { flex:1; color:var(--ink); font-size:16px; line-height:1.5; }
+.product-mobile-list .mobile-row-heading small { margin-left:auto; }
 .product-mobile-attributes { display:grid; gap:6px; margin-top:4px; }
 .product-mobile-attributes > span { display:grid; grid-template-columns:64px minmax(0,1fr); gap:10px; }
 .product-mobile-attributes > span > span:first-child { color:var(--muted); font-size:12px; line-height:1.8; }
