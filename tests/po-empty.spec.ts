@@ -10,7 +10,7 @@ test("new PO starts empty, marks required fields and rejects incomplete orders",
     await expect(form.getByLabel(label,{exact:true})).toHaveAttribute("data-value","");
     await expect(form.getByLabel(label,{exact:true})).toHaveAttribute("aria-required","true");
   }
-  for(const label of ["Jumlah barang","Tanggal pesanan","Sudah dibayar (DP / lunas)"])await expect(form.getByLabel(label,{exact:true})).toHaveValue("");
+  for(const label of ["Jumlah produk","Tanggal pesanan","Sudah dibayar (DP / lunas)"])await expect(form.getByLabel(label,{exact:true})).toHaveValue("");
   await expect(form.locator(".required-mark")).toHaveCount(5);
   await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();
   await expect(form.getByText("Pilih batch PO yang aktif.",{exact:true})).toBeVisible();
@@ -19,8 +19,8 @@ test("new PO starts empty, marks required fields and rejects incomplete orders",
   await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"new");
   await expect(form.getByLabel("Nama pelanggan",{exact:true})).toHaveValue("");
   await expect(form.getByLabel("Nama pelanggan",{exact:true})).toHaveAttribute("required","");
-  await form.getByRole("button",{name:"Tambah barang",exact:true}).click();
-  const second=form.getByRole("group",{name:"Barang 2",exact:true});
+  await form.getByRole("button",{name:"Tambah produk",exact:true}).click();
+  const second=form.getByRole("group",{name:"Produk 2",exact:true});
   await expect(second.getByLabel("Produk",{exact:true})).toHaveAttribute("data-value","");
-  await expect(second.getByLabel("Jumlah barang",{exact:true})).toHaveValue("");
+  await expect(second.getByLabel("Jumlah produk",{exact:true})).toHaveValue("");
 });

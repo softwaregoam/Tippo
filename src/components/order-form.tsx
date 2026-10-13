@@ -183,10 +183,10 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
       const field = name as keyof typeof textLimits;
       if (fields[field].length > limit) nextErrors[field] = `Maksimal ${limit} karakter.`;
     }
-    if (items.length < 1 || items.length > 100) nextErrors.items = "Isi 1 sampai 100 barang dalam satu pesanan.";
+    if (items.length < 1 || items.length > 100) nextErrors.items = "Isi 1 sampai 100 produk dalam satu pesanan.";
     for (const item of items) {
       const rowErrors: Partial<Record<ItemField, string>> = {};
-      if (!item.product.trim()) rowErrors.product = "Isi nama barang atau makanan.";
+      if (!item.product.trim()) rowErrors.product = "Isi nama produk atau makanan.";
       for (const [name, limit] of Object.entries(itemTextLimits)) {
         const field = name as keyof typeof itemTextLimits;
         if (item[field].length > limit) rowErrors[field] = `Maksimal ${limit} karakter.`;
@@ -197,7 +197,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
         if (item[name].trim() === "" || !Number.isSafeInteger(value) || value < 0) rowErrors[name] = "Masukkan angka bulat minimal 0.";
       }
       if (!rowErrors.quantity && Number(item.quantity) < 1) rowErrors.quantity = "Jumlah minimal 1.";
-      if (!rowErrors.unitPrice && !rowErrors.quantity && !Number.isSafeInteger(Number(item.quantity) * Number(item.unitPrice))) rowErrors.unitPrice = "Total harga barang terlalu besar.";
+      if (!rowErrors.unitPrice && !rowErrors.quantity && !Number.isSafeInteger(Number(item.quantity) * Number(item.unitPrice))) rowErrors.unitPrice = "Total harga produk terlalu besar.";
       if (item.unitCost.trim() !== "" && !rowErrors.unitCost && !rowErrors.quantity && !Number.isSafeInteger(Number(item.quantity) * Number(item.unitCost))) rowErrors.unitCost = "Total harga beli terlalu besar.";
       if (Object.keys(rowErrors).length) nextItemErrors[item.id] = rowErrors;
     }
@@ -215,7 +215,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.date) || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== fields.date) nextErrors.date = "Pilih tanggal yang valid.";
     const totalQuantity = draft.items.reduce((total, item) => total + item.quantity, 0);
     const totalCost = draft.items.reduce((total, item) => total + (item.unitCost ?? 0) * item.quantity, 0);
-    if (!Number.isSafeInteger(revenue) || !Number.isSafeInteger(totalQuantity) || !Number.isSafeInteger(totalCost)) nextErrors.items = "Total pesanan terlalu besar. Kurangi jumlah atau harga barang.";
+    if (!Number.isSafeInteger(revenue) || !Number.isSafeInteger(totalQuantity) || !Number.isSafeInteger(totalCost)) nextErrors.items = "Total pesanan terlalu besar. Kurangi jumlah atau harga produk.";
     setErrors(nextErrors); setItemErrors(nextItemErrors);
     if (Object.keys(nextErrors).length || Object.keys(nextItemErrors).length) {
       const firstField = Object.keys(nextErrors).find((name) => name !== "items");
@@ -260,7 +260,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
   return <div className="modal-backdrop">
     <div className="modal order-dialog" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="order-form-title" aria-describedby="order-form-description" style={{ maxWidth: 760 }}>
       <div className="modal-header">
-        <div><span className="eyebrow">JASTIP</span><h2 id="order-form-title">{order ? "Edit pesanan jastip" : "Pesanan jastip baru"}</h2><p className="muted" id="order-form-description">Satu pesanan dapat berisi beberapa barang atau makanan untuk satu pelanggan.</p></div>
+        <div><span className="eyebrow">JASTIP</span><h2 id="order-form-title">{order ? "Edit pesanan jastip" : "Pesanan jastip baru"}</h2><p className="muted" id="order-form-description">Satu pesanan dapat berisi beberapa produk atau makanan untuk satu pelanggan.</p></div>
         <button className="icon-button" type="button" onClick={onClose} aria-label="Tutup formulir pesanan"><X size={20} /></button>
       </div>
       <form onSubmit={submit} noValidate>
@@ -290,33 +290,33 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
             </>}
           </div></section>
           <div className="form-section order-section">
-            <h3><span className="order-section-number">2</span>Barang / makanan</h3>
-            <p className="field-hint" style={{ marginTop: 6 }}>Varian, warna, dan ukuran dicatat pada masing-masing barang.</p>
+            <h3><span className="order-section-number">2</span>Produk / makanan</h3>
+            <p className="field-hint" style={{ marginTop: 6 }}>Varian, warna, dan ukuran dicatat pada masing-masing produk.</p>
             {errors.items && <p className="error-message" role="alert">{errors.items}</p>}
             {items.map((item, index) => <fieldset key={item.id} className="order-item-card">
               <legend className="field-label" style={{ padding: "0 6px" }}>Produk {index + 1}</legend>
               <div className="order-item-heading">
                 <span className="field-hint">Subtotal {formatCurrency(previewAmount(item.quantity) * previewAmount(item.unitPrice))}</span>
-                <button type="button" className="icon-button delete-item" aria-label={`Hapus barang ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
+                <button type="button" className="icon-button delete-item" aria-label={`Hapus produk ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
               </div>
               <div className="form-grid jastip-item-grid">
-                {itemField(item, index, "product", "Nama barang")}
-                {itemField(item, index, "quantity", "Jumlah barang")}
+                {itemField(item, index, "product", "Nama produk")}
+                {itemField(item, index, "quantity", "Jumlah produk")}
                 {itemField(item, index, "variant", "Varian (opsional)")}
                 {itemField(item, index, "color", "Warna (opsional)")}
                 {itemField(item, index, "size", "Ukuran (opsional)")}
-                {itemField(item, index, "unitPrice", "Harga jual / barang")}
-                {itemField(item, index, "unitCost", "Harga beli / barang", "Kosongkan jika belum tahu. HPP ditandai belum lengkap.")}
+                {itemField(item, index, "unitPrice", "Harga jual / produk")}
+                {itemField(item, index, "unitCost", "Harga beli / produk", "Kosongkan jika belum tahu. HPP ditandai belum lengkap.")}
               </div>
             </fieldset>)}
             <Button className="btn btn-primary add-order-item" type="button" onClick={addItem} disabled={items.length >= 100} style={{ marginTop: 14 }}><Plus size={16} />Tambah produk</Button>
-            {items.length >= 100 && <p className="field-hint">Maksimal 100 barang per pesanan.</p>}
+            {items.length >= 100 && <p className="field-hint">Maksimal 100 produk per pesanan.</p>}
           </div>
           <div className="form-section order-section">
             <h3><span className="order-section-number">3</span>Diskon, ongkir & catatan</h3>
             <OrderDiscountFields id="order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} total={orderSubtotal(draft) + draft.shippingCharge} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />
             <div className="form-grid" style={{ marginTop: 12 }}>
-              {amountField("serviceFee", "Fee jastip / pesanan", "Total fee untuk semua barang pada pesanan ini.")}
+              {amountField("serviceFee", "Fee jastip / pesanan", "Total fee untuk semua produk pada pesanan ini.")}
               {amountField("shippingCharge", "Ongkir yang ditagihkan")}
 
 
@@ -330,7 +330,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
             <div className="summary-cell"><span>Estimasi laba</span><strong style={margin !== null && margin < 0 ? { color: "var(--danger)" } : undefined}>{margin === null ? "Belum lengkap" : formatCurrency(margin)}</strong></div>
             <div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div>
           </div>
-          <p className="field-hint" style={{ marginTop: 10 }}>HPP dihitung dari harga beli per barang dan jumlahnya. Satu barang yang belum memiliki harga beli membuat HPP pesanan belum lengkap.</p>
+          <p className="field-hint" style={{ marginTop: 10 }}>HPP dihitung dari harga beli per produk dan jumlahnya. Satu produk yang belum memiliki harga beli membuat HPP pesanan belum lengkap.</p>
         </div>
         <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || !canUseSelectedBatch}>{order ? <Check size={17} /> : <Plus size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
       </form>

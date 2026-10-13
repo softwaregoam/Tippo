@@ -25,7 +25,7 @@ for (const theme of ["light", "dark"]) {
     await page.getByRole("button",{name:"Batch jastip baru",exact:true}).first().click();
     await checkBackdrop("Batch jastip baru","Nama batch");
     await page.getByRole("button",{name:"Pesanan jastip baru",exact:true}).click();
-    await checkBackdrop("Pesanan jastip baru","Nama barang");
+    await checkBackdrop("Pesanan jastip baru","Nama produk");
     await navigate("Open PO");
     await page.getByRole("button",{name:"Produk baru",exact:true}).click();
     await checkBackdrop("Produk baru","Nama produk");

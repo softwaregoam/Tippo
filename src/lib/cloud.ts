@@ -16,7 +16,7 @@ export function cloudErrorMessage(error: { code?: string; message?: string }): s
   if (/TIPPO_CONFLICT/.test(message)) return "Data berubah di perangkat lain. Muat data terbaru sebelum menyimpan kembali.";
   if (/TIPPO_ORDER_LIMIT/.test(message)) return "Kuota 5 pesanan bulan ini sudah terpakai untuk jenis pesanan ini.";
   if (/TIPPO_PRODUCT_LIMIT/.test(message)) return "Paket Gratis maksimal 5 produk Open PO, termasuk produk arsip.";
-  if (/TIPPO_INVALID/.test(message)) return "Data belum valid. Periksa barang, pembayaran, dan batch pesanan.";
+  if (/TIPPO_INVALID/.test(message)) return "Data belum valid. Periksa produk, pembayaran, dan batch pesanan.";
   if (error.code === "PGRST202" || error.code === "42P01" || /schema cache/.test(message)) return "Workspace belum siap. Pengelola perlu mengaktifkan database Tippo terlebih dahulu.";
   return "Data belum tersimpan. Periksa koneksi internet, lalu coba lagi. Isianmu tetap tersedia.";
 }

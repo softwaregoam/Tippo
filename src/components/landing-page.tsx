@@ -27,9 +27,9 @@ const exampleOrders: Record<"jastip" | "po", Order> = {
 };
 
 const questions = [
-  ["Apa bedanya Jastip dan Open PO?", "Jastip cocok untuk barang titipan dengan varian, warna, ukuran, dan fee jasa. Open PO memakai master produk, sehingga kamu cukup memilih produk dan jumlahnya saat mencatat pesanan. Ganti mode melalui switch Jastip / Open PO; masing-masing memiliki menu dan ringkasan sendiri."],
+  ["Apa bedanya Jastip dan Open PO?", "Jastip cocok untuk produk titipan dengan varian, warna, ukuran, dan fee jasa. Open PO memakai master produk, sehingga kamu cukup memilih produk dan jumlahnya saat mencatat pesanan. Ganti mode melalui switch Jastip / Open PO; masing-masing memiliki menu dan ringkasan sendiri."],
   ["Apakah ringkasan Jastip dan Open PO digabung?", "Tidak. Penjualan, HPP, pembayaran, tagihan, dan grafik bulanan hanya menampilkan usaha yang sedang dipilih. Jastip memakai aksen teal, Open PO memakai jingga hangat. Akun, kontak pelanggan, profil bisnis, cadangan data, dan langganan tetap digunakan bersama."],
-  ["Satu pesanan bisa berisi beberapa barang?", "Bisa. Tambahkan beberapa barang atau makanan dalam satu pesanan. Pembayaran, ongkir, dan invoice tetap menjadi satu. Kuota menghitung pesanan, bukan jumlah barang."],
+  ["Satu pesanan bisa berisi beberapa produk?", "Bisa. Tambahkan beberapa produk atau makanan dalam satu pesanan. Pembayaran, ongkir, dan invoice tetap menjadi satu. Kuota menghitung pesanan, bukan jumlah produk."],
   ["Bagaimana batas paket Gratis dihitung?", "Kamu mendapat 5 pesanan Jastip dan 5 pesanan Open PO secara terpisah setiap bulan, serta maksimal 5 produk Open PO termasuk produk yang diarsipkan. Kuota pesanan kembali tersedia tanggal 1 pukul 00.00 WIB. Pesanan yang dibatalkan tetap terhitung."],
   ["Bisa pindahkan pesanan dari Excel?", "Bisa, dengan paket Pro. Tersedia template produk, pesanan Jastip, dan pesanan Open PO. Pilih mode usaha lalu buka Pesanan untuk import pesanan, atau Produk pada Open PO untuk import katalog. Unduh template, isi data, lalu unggah. Baris dengan nomor pesanan yang sama digabung menjadi satu pesanan. Kamu bisa memeriksa hasilnya sebelum menyimpan."],
   ["Bagaimana status batch atau perjalanan diubah?", "Dari daftar Batch PO atau Perjalanan, gunakan ikon Tutup batch atau Selesaikan batch lalu konfirmasi. Alurnya Dibuka, Ditutup, lalu Selesai. Batch yang ditutup tidak bisa dibuka kembali; status Selesai terkunci. Status pesanan di dalamnya tetap diatur secara terpisah."],
@@ -101,7 +101,7 @@ export function LandingPage() {
               <Link href="/daftar" className="landing-button primary">Buat akun gratis</Link>
 
             </div>
-            <p className="hero-start-note">Gratis 5 pesanan Jastip + 5 pesanan Open PO setiap bulan.<br />Satu pesanan boleh berisi banyak barang.</p>
+            <p className="hero-start-note">Gratis 5 pesanan Jastip + 5 pesanan Open PO setiap bulan.<br />Satu pesanan boleh berisi banyak produk.</p>
           </div>
 
           <div className={`order-ledger ${preview === "po" ? "ledger-po" : ""}`}>
@@ -117,9 +117,9 @@ export function LandingPage() {
                 <h2>{preview === "jastip" ? "Setiap titipan punya detailnya." : "Produk siap, pesanan lebih ringkas."}</h2>
               </div>
               <div className="ledger-items">
-                <div className="ledger-column-labels"><span>Barang / jumlah</span><span>Subtotal</span></div>
+                <div className="ledger-column-labels"><span>Produk / jumlah</span><span>Subtotal</span></div>
                 {example.items.map((item) => <div className="ledger-product" key={item.id}><div><strong>{item.product}</strong><span>{item.quantity} × {formatCurrency(item.unitPrice)}</span></div><strong>{formatCurrency(item.quantity * item.unitPrice)}</strong></div>)}
-                <p className="ledger-item-note">{preview === "jastip" ? "Varian, warna, dan ukuran bisa dicatat per barang." : "Harga dan HPP mengikuti master produk yang dipilih."}</p>
+                <p className="ledger-item-note">{preview === "jastip" ? "Varian, warna, dan ukuran bisa dicatat per produk." : "Harga dan HPP mengikuti master produk yang dipilih."}</p>
               </div>
               <dl className="ledger-calculation">
                 {preview === "jastip" && <div><dt>Fee jastip</dt><dd>{formatCurrency(example.serviceFee)}</dd></div>}
@@ -143,8 +143,8 @@ export function LandingPage() {
             <article className="mode-note">
               <span className="mode-note-context">Titipan belanja</span>
               <h3>Jastip</h3>
-              <p>Untuk barang yang kamu belikan atas titipan pelanggan.</p>
-              <ul><li>Kelompokkan pesanan dalam perjalanan.</li><li>Isi varian, warna, dan ukuran per barang.</li><li>Catat harga beli serta fee jastip.</li><li>Periksa ringkasan dan tagihan Jastip.</li></ul>
+              <p>Untuk produk yang kamu belikan atas titipan pelanggan.</p>
+              <ul><li>Kelompokkan pesanan dalam perjalanan.</li><li>Isi varian, warna, dan ukuran per produk.</li><li>Catat harga beli serta fee jastip.</li><li>Periksa ringkasan dan tagihan Jastip.</li></ul>
             </article>
             <article className="mode-note mode-note-po">
               <span className="mode-note-context">Produk dari katalog</span>
@@ -160,14 +160,14 @@ export function LandingPage() {
             <div className="working-heading">
               <p className="section-label">Saat pesanan mulai ramai</p>
               <h2 id="working-title">Satu pesanan,<br />semua barangnya.</h2>
-              <p>Pembayaran, ongkir, dan sisa tagihan mengikuti pesanan. Detail barang tetap bisa kamu periksa satu per satu.</p>
+              <p>Pembayaran, ongkir, dan sisa tagihan mengikuti pesanan. Detail produk tetap bisa kamu periksa satu per satu.</p>
               <Link href="/daftar" className="landing-text-link">Mulai catat pesanan</Link>
             </div>
             <div className="working-list">
               <article><h3>Isi cepat atau impor Excel</h3><p>Dengan Pro, gunakan template sesuai jenis usaha. Baris dengan nomor pesanan yang sama akan menjadi satu pesanan. Periksa pratinjau sebelum menyimpan.</p></article>
-              <article><h3>Lengkapi modal, cek margin</h3><p>HPP memakai harga beli per barang dan jumlahnya. Tippo menandai biaya yang belum lengkap agar kamu tahu pesanan mana yang perlu diperiksa.</p></article>
+              <article><h3>Lengkapi modal, cek margin</h3><p>HPP memakai harga beli per produk dan jumlahnya. Tippo menandai biaya yang belum lengkap agar kamu tahu pesanan mana yang perlu diperiksa.</p></article>
               <article><h3>Periksa ringkasan usaha terpilih</h3><p>Penjualan, HPP, margin, pembayaran, dan tagihan mengikuti mode Jastip atau Open PO yang aktif. Grafik kedua usaha tidak digabung. Paket Gratis menampilkan bulan berjalan.</p></article>
-              <article><h3>Salin invoice ke WhatsApp</h3><p>Invoice memuat seluruh barang, pembayaran, dan sisa tagihan. Kamu salin lalu tempel ke chat pelanggan. HPP serta catatan internal tetap di catatanmu.</p></article>
+              <article><h3>Salin invoice ke WhatsApp</h3><p>Invoice memuat seluruh produk, pembayaran, dan sisa tagihan. Kamu salin lalu tempel ke chat pelanggan. HPP serta catatan internal tetap di catatanmu.</p></article>
             </div>
           </div>
         </section>
@@ -189,7 +189,7 @@ export function LandingPage() {
             <tbody>{planRows.map(([feature, free, pro]) => <tr key={feature}><th scope="row">{feature}</th><td>{free}</td><td>{pro}</td></tr>)}</tbody>
           </table>
           <div className="plan-notes">
-            <p>Multi-barang, perhitungan HPP, dan invoice tersedia di kedua paket. Template dan import Excel tersedia khusus Pro. Kuota pesanan Gratis reset setiap tanggal 1 pukul 00.00 WIB.</p>
+            <p>Beberapa produk per pesanan, perhitungan HPP, dan invoice tersedia di kedua paket. Template dan import Excel tersedia khusus Pro. Kuota pesanan Gratis reset setiap tanggal 1 pukul 00.00 WIB.</p>
             <p><strong>Pembayaran Pro sedang disiapkan.</strong> Belum bisa berlangganan. Kamu dapat mulai dengan paket Gratis.</p>
           </div>
         </section>

@@ -180,11 +180,11 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
         <div className="hpp-notice" style={{ padding: 14, marginTop: 4, marginBottom: 18 }}>
           <FileSpreadsheet size={22} className="notice-icon" style={{ flexShrink: 0 }} />
           <div>
-            <strong>Satu baris untuk satu barang</strong>
-            <p>Isi nomor_pesanan yang sama untuk menggabungkan barang menjadi satu pesanan. Pelanggan, tanggal, fee, ongkir, dan DP pada baris lanjutan boleh kosong untuk mengikuti pesanan yang sama.</p>
+            <strong>Satu baris untuk satu produk</strong>
+            <p>Isi nomor_pesanan yang sama untuk menggabungkan produk menjadi satu pesanan. Pelanggan, tanggal, fee, ongkir, dan DP pada baris lanjutan boleh kosong untuk mengikuti pesanan yang sama.</p>
             <p>{type === "po"
               ? "Isi SKU produk, atau nama dan varian yang cocok dengan master. Harga jual dan harga beli otomatis dari master saat impor."
-              : "Isi barang, jumlah, harga jual, serta varian, warna, atau ukuran jika ada. Harga beli boleh kosong jika belum diketahui."}</p>
+              : "Isi produk, jumlah, harga jual, serta varian, warna, atau ukuran jika ada. Harga beli boleh kosong jika belum diketahui."}</p>
           </div>
         </div>
         <div className="field">
@@ -200,7 +200,7 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
             onChange={(event) => { void chooseFile(event.target.files?.[0]); }}
             aria-describedby="excel-import-file-hint"
           />
-          <span className="field-hint" id="excel-import-file-hint">Format .xlsx, maksimal 5 MB dan 1.000 baris barang; 100 barang per pesanan. Nomor pesanan kosong membuat pesanan tersendiri. Impor menambahkan pesanan baru.</span>
+          <span className="field-hint" id="excel-import-file-hint">Format .xlsx, maksimal 5 MB dan 1.000 baris produk; 100 produk per pesanan. Nomor pesanan kosong membuat pesanan tersendiri. Impor menambahkan pesanan baru.</span>
         </div>
         {busy === "reading" && <p role="status">Membaca dan memeriksa file Excel…</p>}
         {error && <p className="error-message" role="alert">{error}</p>}
@@ -211,7 +211,7 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
           <p role="status" className="field-hint" style={{ marginBottom: 12 }}>
             {preview.rowCount} pesanan · {preview.validCount} valid · {problemRows} perlu diperbaiki
           </p>
-          <p className="field-hint" style={{ marginBottom: 12 }}>{preview.sourceRowCount} baris barang dikelompokkan berdasarkan nomor_pesanan. Fee, ongkir, dan DP dihitung sekali per pesanan.</p>
+          <p className="field-hint" style={{ marginBottom: 12 }}>{preview.sourceRowCount} baris produk dikelompokkan berdasarkan nomor_pesanan. Fee, ongkir, dan DP dihitung sekali per pesanan.</p>
           {preview.errors.length > 0 && <div className="error-message" role="alert">
             {preview.errors.map((message, index) => <p key={`${index}-${message}`}>{message}</p>)}
           </div>}
@@ -219,7 +219,7 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
             <div className="table-wrap" style={{ maxHeight: 320, overflowY: "auto" }} tabIndex={0} role="region" aria-label="Pratinjau baris Excel">
               <table className="orders-table">
                 <caption className="sr-only">Pesanan dari Excel yang akan ditambahkan; baris bermasalah perlu diperbaiki di file.</caption>
-                <thead><tr><th scope="col">Baris / nomor</th><th scope="col">Pelanggan</th><th scope="col">{type === "po" ? "Produk" : "Barang"}</th><th scope="col" className="numeric-cell center-cell">Jumlah</th><th scope="col" className="numeric-cell">Tagihan</th><th scope="col">Validasi</th></tr></thead>
+                <thead><tr><th scope="col">Baris / nomor</th><th scope="col">Pelanggan</th><th scope="col">Produk</th><th scope="col" className="numeric-cell center-cell">Jumlah</th><th scope="col" className="numeric-cell">Tagihan</th><th scope="col">Validasi</th></tr></thead>
                 <tbody>{preview.rows.map((row) => <tr key={row.rowNumber}>
                   <td style={{ whiteSpace: "normal", minWidth: 100 }}>{row.rowNumbers.join(", ")}{row.orderNumber && <div className="field-hint" style={{ overflowWrap: "anywhere" }}>{row.orderNumber}</div>}</td>
                   <td style={{ whiteSpace: "normal", minWidth: 120 }}>{row.customer || "Belum terisi"}</td>

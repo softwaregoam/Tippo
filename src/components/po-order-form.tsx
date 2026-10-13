@@ -187,14 +187,14 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
       const field = name as keyof typeof textLimits;
       if (fields[field].length > limit) nextErrors[field] = `Maksimal ${limit} karakter.`;
     }
-    if (items.length < 1 || items.length > 100) nextErrors.items = "Isi 1 sampai 100 barang dalam satu pesanan.";
+    if (items.length < 1 || items.length > 100) nextErrors.items = "Isi 1 sampai 100 produk dalam satu pesanan.";
     for (const item of items) {
       const rowErrors: Partial<Record<"productId" | "quantity", string>> = {};
       if (!canUseProduct(item)) rowErrors.productId = "Pilih produk aktif dari master produk.";
       const quantity = Number(item.quantity);
       if (item.quantity.trim() === "" || !Number.isSafeInteger(quantity) || quantity < 1) rowErrors.quantity = "Jumlah harus berupa angka bulat minimal 1.";
       const itemDraft = draft.items.find((entry) => entry.id === item.id)!;
-      if (!rowErrors.quantity && (!Number.isSafeInteger(quantity * itemDraft.unitPrice) || (itemDraft.unitCost !== null && !Number.isSafeInteger(quantity * itemDraft.unitCost)))) rowErrors.quantity = "Total harga terlalu besar. Kurangi jumlah barang.";
+      if (!rowErrors.quantity && (!Number.isSafeInteger(quantity * itemDraft.unitPrice) || (itemDraft.unitCost !== null && !Number.isSafeInteger(quantity * itemDraft.unitCost)))) rowErrors.quantity = "Total harga terlalu besar. Kurangi jumlah produk.";
       if (Object.keys(rowErrors).length) nextItemErrors[item.id] = rowErrors;
     }
     for (const name of ["paid", "shippingCharge", "serviceFee"] as const) {
@@ -211,7 +211,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.date) || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== fields.date) nextErrors.date = "Pilih tanggal yang valid.";
     const totalQuantity = draft.items.reduce((total, item) => total + item.quantity, 0);
     const totalCost = draft.items.reduce((total, item) => total + (item.unitCost ?? 0) * item.quantity, 0);
-    if (!Number.isSafeInteger(revenue) || !Number.isSafeInteger(totalQuantity) || !Number.isSafeInteger(totalCost)) nextErrors.items = "Total pesanan terlalu besar. Kurangi jumlah barang.";
+    if (!Number.isSafeInteger(revenue) || !Number.isSafeInteger(totalQuantity) || !Number.isSafeInteger(totalCost)) nextErrors.items = "Total pesanan terlalu besar. Kurangi jumlah produk.";
     setErrors(nextErrors); setItemErrors(nextItemErrors);
     if (Object.keys(nextErrors).length || Object.keys(nextItemErrors).length) {
       if (["shippingCharge", "serviceFee", "notes"].some((field) => nextErrors[field as keyof Fields]) && detailsRef.current) detailsRef.current.open = true;
@@ -288,7 +288,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
                 <legend className="field-label" style={{ padding: "0 6px" }}>Produk {index + 1}</legend>
                 <div className="order-item-heading">
                   <span className="field-hint">Subtotal {formatCurrency(itemDraft.quantity * itemDraft.unitPrice)}</span>
-                  <button type="button" className="icon-button delete-item" aria-label={`Hapus barang ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
+                  <button type="button" className="icon-button delete-item" aria-label={`Hapus produk ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
                 </div>
                 <div className="form-grid">
                   <div className="field" >
@@ -298,22 +298,22 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
                       {available.map((product) => <SelectOption key={product.id} value={product.id}>{original && product.id === original.productId ? itemLabel(original) : productLabel(product)}{product.sku ? ` · ${product.sku}` : ""}{!product.active ? " · diarsipkan" : ""}</SelectOption>)}
                     </Select>
                     {rowErrors?.productId && <span id={`${productId}-error`} className="error-message">{rowErrors.productId}</span>}
-                    {usesOriginalSnapshot(item) && <span className="field-hint">Nama dan harga memakai data saat pesanan dibuat. Perubahan master tidak mengubah barang ini.</span>}
+                    {usesOriginalSnapshot(item) && <span className="field-hint">Nama dan harga memakai data saat pesanan dibuat. Perubahan master tidak mengubah produk ini.</span>}
                   </div>
                   <div className="field">
-                    <label className="field-label" htmlFor={quantityId}>Jumlah barang<span className="required-mark" aria-hidden="true"> *</span></label>
-                    <NumberInput aria-label="Jumlah barang" required id={quantityId} name={`item-${item.id}-quantity`} className="input" inputMode="numeric" min="1" step="1" placeholder="Contoh: 2" value={item.quantity} onValueChange={(value) => updateItem(item.id, "quantity", value)} aria-invalid={Boolean(rowErrors?.quantity)} aria-describedby={rowErrors?.quantity ? `${quantityId}-error` : undefined} />
+                    <label className="field-label" htmlFor={quantityId}>Jumlah produk<span className="required-mark" aria-hidden="true"> *</span></label>
+                    <NumberInput aria-label="Jumlah produk" required id={quantityId} name={`item-${item.id}-quantity`} className="input" inputMode="numeric" min="1" step="1" placeholder="Contoh: 2" value={item.quantity} onValueChange={(value) => updateItem(item.id, "quantity", value)} aria-invalid={Boolean(rowErrors?.quantity)} aria-describedby={rowErrors?.quantity ? `${quantityId}-error` : undefined} />
                     {rowErrors?.quantity && <span id={`${quantityId}-error`} className="error-message">{rowErrors.quantity}</span>}
                   </div>
                     <dl id={pricesId} className="po-product-prices order-full-width" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, padding: "10px 12px", borderRadius: 6 }}>
-                      <div><dt className="field-hint">Harga jual / barang</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{canUseProduct(item) ? formatCurrency(itemDraft.unitPrice) : "Pilih produk"}</dd></div>
-                      <div><dt className="field-hint">Harga beli / barang</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{!canUseProduct(item) ? "Pilih produk" : itemDraft.unitCost === null ? "Belum diisi" : formatCurrency(itemDraft.unitCost)}</dd></div>
+                      <div><dt className="field-hint">Harga jual / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{canUseProduct(item) ? formatCurrency(itemDraft.unitPrice) : "Pilih produk"}</dd></div>
+                      <div><dt className="field-hint">Harga beli / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{!canUseProduct(item) ? "Pilih produk" : itemDraft.unitCost === null ? "Belum diisi" : formatCurrency(itemDraft.unitCost)}</dd></div>
                     </dl>
                 </div>
               </fieldset>;
             })}
             <Button className="btn btn-primary add-order-item" type="button" onClick={addItem} disabled={items.length >= 100 || !hasActiveProducts} style={{ marginTop: 14 }}><Plus size={16} />Tambah produk</Button>
-            {items.length >= 100 && <p className="field-hint">Maksimal 100 barang per pesanan.</p>}
+            {items.length >= 100 && <p className="field-hint">Maksimal 100 produk per pesanan.</p>}
           </div>
           <section className="order-section">
             <h3><span className="order-section-number">3</span>Diskon, ongkir & catatan</h3>
@@ -327,7 +327,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
           </section>
           <section className="order-section"><h3><span className="order-section-number">4</span>Pembayaran</h3><div className="order-payment"><p className="payment-total">Total tagihan <strong>{formatCurrency(revenue)}</strong></p><div className="form-grid">{amountField("paid", "Sudah dibayar (DP / lunas)")}</div></div></section>
           <div className="summary-strip" aria-live="polite"><div className="summary-cell"><span>Total tagihan</span><strong>{formatCurrency(revenue)}</strong></div><div className="summary-cell"><span>Estimasi HPP</span><strong>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</strong></div><div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div></div>
-          <p className="field-hint" style={{ marginTop: 10 }}>HPP dihitung dari harga beli per barang dan jumlahnya. Sudah dibayar adalah total pembayaran sampai saat ini.</p>
+          <p className="field-hint" style={{ marginTop: 10 }}>HPP dihitung dari harga beli per produk dan jumlahnya. Sudah dibayar adalah total pembayaran sampai saat ini.</p>
         </div>
         <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || (!order && (!hasOpenBatch || !hasActiveProducts))}>{order ? <Check size={17} /> : <Plus size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
       </form>

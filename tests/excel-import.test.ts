@@ -124,7 +124,7 @@ test("conflicting shared values invalidate a grouped order and every error ident
 test("100 item group limit and globally unique preview IDs protect atomic validation", async () => {
   const data = workspace();
   const tooMany = await previewOrderImport(await workbookBuffer(MULTI_JASTIP, Array.from({ length: 101 }, () => multiJastipRow())), "jastip", "jastip", data);
-  assert.match(tooMany.rows[0].errors.join(" "), /100 barang/);
+  assert.match(tooMany.rows[0].errors.join(" "), /100 produk/);
   assert.throws(() => buildImport(tooMany, data));
   data.orders[0].items[0].id = "excel-preview-item-2-0";
   const preview = await previewOrderImport(await workbookBuffer(MULTI_JASTIP, [multiJastipRow(), multiJastipRow()]), "jastip", "jastip", data);

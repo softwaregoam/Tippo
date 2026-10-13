@@ -214,7 +214,7 @@ function validateGroup(entries: SourceEntry[], number: string, type: BatchType, 
   const notes = stringField(common, "catatan", commonErrors, false, 1000);
   if (date && !validDate(date)) commonErrors.push("tanggal: gunakan tanggal valid dengan format YYYY-MM-DD.");
   if (customerName === EXAMPLE_CUSTOMER || customerName === "CONTOH \u2014 ganti nama pelanggan") commonErrors.push("Ganti atau hapus baris contoh sebelum mengimpor.");
-  if (entries.length > MAX_ITEMS) commonErrors.push("Maksimal 100 barang dalam satu pesanan.");
+  if (entries.length > MAX_ITEMS) commonErrors.push("Maksimal 100 produk dalam satu pesanan.");
   addRowErrors(errors, firstRow, commonErrors);
   const items: NormalizedImportItem[] = [];
   const labels: string[] = [];
@@ -365,7 +365,7 @@ export async function previewOrderImport(buffer: ArrayBuffer, type: BatchType, b
     await workbook.xlsx.load(buffer);
     const sheet = workbook.getWorksheet("Pesanan") ?? workbook.worksheets[0];
     if (!sheet) { preview.errors.push("File tidak memiliki lembar pesanan."); return preview; }
-    if (sheet.rowCount > MAX_ROWS + 1) { preview.errors.push("Maksimal 1.000 baris barang, di luar baris judul. Hapus baris kosong tambahan jika ada."); return preview; }
+    if (sheet.rowCount > MAX_ROWS + 1) { preview.errors.push("Maksimal 1.000 baris produk, di luar baris judul. Hapus baris kosong tambahan jika ada."); return preview; }
     const headers = readHeaders(sheet, type, preview.errors);
     if (preview.errors.length) return preview;
     const groups = new Map<string, { number: string; entries: SourceEntry[] }>();
@@ -457,18 +457,18 @@ export async function createOrderTemplate(type: BatchType, data: AppData): Promi
   guide.getColumn(1).width = 110;
   const instructions = [
     "Template pesanan Tippo", "Isi lembar Pesanan saja. Ganti atau hapus baris CONTOH sebelum mengimpor.",
-    "Pilih batch tujuan yang aktif di aplikasi. Maksimal 1.000 baris barang dan ukuran file 5 MB; maksimal 100 barang per pesanan.",
-    "Satu baris untuk satu barang. Isi nomor_pesanan yang sama untuk menggabungkan beberapa barang menjadi satu pesanan.",
+    "Pilih batch tujuan yang aktif di aplikasi. Maksimal 1.000 baris produk dan ukuran file 5 MB; maksimal 100 produk per pesanan.",
+    "Satu baris untuk satu produk. Isi nomor_pesanan yang sama untuk menggabungkan beberapa produk menjadi satu pesanan.",
     "nomor_pesanan kosong berarti baris tersebut menjadi pesanan tersendiri. Nomor hanya untuk pengelompokan file; impor selalu menambah pesanan baru.",
-    "nama_pelanggan dan tanggal wajib untuk setiap pesanan; jumlah wajib pada setiap baris barang. Tanggal: YYYY-MM-DD atau tanggal Excel.",
+    "nama_pelanggan dan tanggal wajib untuk setiap pesanan; jumlah wajib pada setiap baris produk. Tanggal: YYYY-MM-DD atau tanggal Excel.",
     "Baris lanjutan boleh mengosongkan pelanggan, telepon, tanggal, fee_jastip, ongkir, dp dan catatan untuk mewarisi nilai. Jika diisi ulang, nilainya harus sama.",
-    "Fee, ongkir dan DP dihitung sekali per pesanan, bukan pada setiap barang.",
+    "Fee, ongkir dan DP dihitung sekali per pesanan, bukan pada setiap produk.",
     "Simpan telepon sebagai teks agar angka 0 di depan tidak hilang. Telepon boleh kosong.",
     "Nilai uang dalam rupiah bulat tanpa pemisah ribuan. DP tidak boleh melebihi total tagihan.",
     "Kolom kosong: harga_beli berarti belum diketahui; ongkir, fee_jastip dan dp berarti 0.",
     "Formula tidak didukung. Tempel nilai biasa. Semua baris harus valid agar impor tersimpan sekaligus.",
     "Nama dan telepon pelanggan yang sudah ada harus cocok; impor tidak mengubah data pelanggan lama.",
-    type === "po" ? "Open PO: isi SKU unik, atau nama produk dan varian persis seperti master aktif di lembar Produk. Harga/HPP otomatis dari master; jangan tambah kolom harga." : "Jastip: produk dan harga_jual wajib pada setiap barang. Varian, warna dan ukuran opsional; harga_beli boleh kosong, fee_jastip merupakan total fee untuk satu pesanan.",
+    type === "po" ? "Open PO: isi SKU unik, atau nama produk dan varian persis seperti master aktif di lembar Produk. Harga/HPP otomatis dari master; jangan tambah kolom harga." : "Jastip: produk dan harga_jual wajib pada setiap produk. Varian, warna dan ukuran opsional; harga_beli boleh kosong, fee_jastip merupakan total fee untuk satu pesanan.",
     "Semua pesanan diimpor dengan status Baru. Periksa pratinjau sebelum menyimpan.",
   ];
   for (const instruction of instructions) guide.addRow([instruction]);

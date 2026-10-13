@@ -167,8 +167,8 @@ test(`homepage interactions and mobile navigation lead to real routes ${width} $
   await expect(page.locator("details[open]")).toContainText("Tidak. Penjualan, HPP, pembayaran, tagihan, dan grafik bulanan hanya menampilkan usaha yang sedang dipilih.");
   await expect(page.locator('[aria-labelledby="testimonials-title"]')).toContainText("Belum merupakan ulasan pelanggan asli.");
   await expect(page.locator(".testimonials-list figure")).toHaveCount(2);
-  await page.locator("summary").filter({hasText:"Satu pesanan bisa berisi beberapa barang?"}).click();
-  await expect(page.getByText("Bisa. Tambahkan beberapa barang",{exact:false})).toBeVisible();
+  await page.locator("summary").filter({hasText:"Satu pesanan bisa berisi beberapa produk?"}).click();
+  await expect(page.getByText("Bisa. Tambahkan beberapa produk",{exact:false})).toBeVisible();
   await page.setViewportSize({width:390,height:844}); await page.getByRole("button",{name:"Buka menu",exact:true}).click();
   await page.getByRole("navigation",{name:"Navigasi website"}).getByRole("link",{name:"Harga",exact:true}).click();
   await expect(page.getByRole("button",{name:"Buka menu",exact:true})).toBeVisible();
@@ -287,7 +287,7 @@ test("account saves await Supabase, ignore local Pro and keep demo data separate
   await openSection(page,"Pesanan");
   await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
-  await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama barang",{exact:true}).fill("Tote Canvas");await dialog.getByLabel("Harga jual / barang",{exact:true}).fill("150000");await dialog.getByLabel("Harga beli / barang",{exact:true}).fill("100000");
+  await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama produk",{exact:true}).fill("Tote Canvas");await dialog.getByLabel("Harga jual / produk",{exact:true}).fill("150000");await dialog.getByLabel("Harga beli / produk",{exact:true}).fill("100000");
   await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).not.toBeVisible();expect(requests).toHaveLength(1);expect(requests[0].p_data.orders[0].items[0].product).toBe("Tote Canvas");
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("tippo.workspace.v1")!).orders)).toEqual([]);
   await page.getByRole("button",{name:"Paket & langganan",exact:true}).click();await expect(page.getByRole("button",{name:"Coba Pro (demo)"})).toHaveCount(0);await expect(page.getByRole("link",{name:"Lihat invoice Pro",exact:true})).toBeVisible();
@@ -333,7 +333,7 @@ test("sign out clears the local session even when remote logout fails", async ({
 test("failed account save retains form inputs and never announces a successful save",async({page})=>{
   await authenticate(page,{failSave:true}); await page.goto("/app");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();
   await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
-  await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama barang",{exact:true}).fill("Belum tersimpan");await dialog.getByLabel("Harga jual / barang",{exact:true}).fill("50000");await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).toBeVisible();await expect(dialog.getByLabel("Nama barang",{exact:true})).toHaveValue("Belum tersimpan");await expect(dialog.getByRole("alert")).toBeVisible();await expect(dialog.getByRole("alert")).toContainText("perangkat lain");await expect(page.locator(".cloud-error")).toContainText("perangkat lain");await expect(page.getByText("Pesanan baru berhasil dicatat",{exact:true})).toHaveCount(0);
+  await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama produk",{exact:true}).fill("Belum tersimpan");await dialog.getByLabel("Harga jual / produk",{exact:true}).fill("50000");await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).toBeVisible();await expect(dialog.getByLabel("Nama produk",{exact:true})).toHaveValue("Belum tersimpan");await expect(dialog.getByRole("alert")).toBeVisible();await expect(dialog.getByRole("alert")).toContainText("perangkat lain");await expect(page.locator(".cloud-error")).toContainText("perangkat lain");await expect(page.getByText("Pesanan baru berhasil dicatat",{exact:true})).toHaveCount(0);
 });
 test("missing remote database displays a recovery screen instead of demo transactions",async({page})=>{
   await authenticate(page,{missing:true});await page.goto("/app");await expect(page.getByRole("heading",{name:"Ruang usahamu belum terbuka."})).toBeVisible();await expect(page.locator(".workspace-wait-card [role=alert]")).toContainText("mengaktifkan database");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toHaveCount(0);
@@ -485,7 +485,7 @@ for(const width of [320,1440]) for(const theme of ["light","dark"]) test(`help o
     if(width<600) await expect(page.locator(".sidebar")).not.toBeVisible();
   }
   await openHelp();
-  await expect(page.getByRole("region",{name:"Panduan Jastip",exact:true})).toContainText("Nama barang, varian, warna, ukuran");
+  await expect(page.getByRole("region",{name:"Panduan Jastip",exact:true})).toContainText("Nama produk, varian, warna, ukuran");
   await page.getByRole("navigation",{name:"Daftar isi panduan"}).getByRole("link",{name:"Pertanyaan umum",exact:true}).click();
   const question=page.locator("summary").filter({hasText:"Bagaimana batas diskon dihitung?"});
   await question.focus();await page.keyboard.press("Enter");
@@ -744,9 +744,9 @@ test("customers use a searchable table with address and edit action",async({page
 
 test("dashboard recent orders are read only while Jastip retains actions",async({page})=>{
  const data=structuredClone(fixture);
- data.orders.push({id:"recent-test",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"new",paid:0,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"recent-item",product:"Barang Ringkasan",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});
+ data.orders.push({id:"recent-test",batchId:"trip",customerId:"aly",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}),createdAt:new Date().toISOString(),status:"new",paid:0,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"recent-item",product:"Produk Ringkasan",productId:null,variant:"",color:"",size:"",quantity:1,unitPrice:25000,unitCost:12000}]});
  await authenticate(page,{workspace:data}); await page.goto("/app"); const recent=page.locator(".recent-card");
- await expect(recent).toContainText("Barang Ringkasan"); await expect(recent).toContainText("Tercatat");
+ await expect(recent).toContainText("Produk Ringkasan"); await expect(recent).toContainText("Tercatat");
  await expect(recent.getByRole("button")).toHaveCount(0); await expect(recent.getByRole("combobox")).toHaveCount(0);
  await expect(recent.getByRole("columnheader",{name:"Tindakan"})).toHaveCount(0);
  const alignment=await recent.locator("table").evaluate(t=>{
@@ -756,8 +756,8 @@ test("dashboard recent orders are read only while Jastip retains actions",async(
  });
  expect(alignment).toBeLessThan(1); await recent.screenshot({path:"docs/preview-dashboard-orders-readonly.png"});
  await openBusiness(page,"Jastip"); await openSection(page,"Pesanan");
- await expect(page.getByRole("button",{name:"Edit pesanan Barang Ringkasan"})).toBeVisible();
- await expect(page.getByRole("button",{name:"Ubah status pesanan Barang Ringkasan untuk Alya"})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Edit pesanan Produk Ringkasan"})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Ubah status pesanan Produk Ringkasan untuk Alya"})).toBeVisible();
 });
 
 test("product status actions confirm archive and restore and preserve status on cancel",async({page})=>{
@@ -937,14 +937,14 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   await expect(date).toHaveValue("");
   await expect(form.getByLabel("Pelanggan",{exact:true})).toHaveAttribute("data-value", "");
   await expect(form.getByLabel("Pelanggan",{exact:true})).toHaveText("Pilih pelanggan");
-  await expect(form.getByLabel("Jumlah barang",{exact:true})).toHaveValue("");
+  await expect(form.getByLabel("Jumlah produk",{exact:true})).toHaveValue("");
   await expect(form.getByRole("button",{name:/^Tutup formulir pesanan/})).toBeFocused();
   await expect(page.getByRole("listbox")).toHaveCount(0);
   if(width<600) {
     const customerPlaceholder=form.getByLabel("Pelanggan",{exact:true}).locator('span').first();
     expect(await customerPlaceholder.evaluate(element=>element.scrollWidth<=element.clientWidth+1)).toBe(true);
     await form.locator('.order-context').screenshot({path:`docs/preview-empty-order-context-${business==="Jastip"?"jastip":"po"}-${width}.png`});
-    await expect(form.getByLabel("Jumlah barang",{exact:true})).toHaveAttribute("placeholder","Contoh: 2");
+    await expect(form.getByLabel("Jumlah produk",{exact:true})).toHaveAttribute("placeholder","Contoh: 2");
   }
   await date.fill(""); await expect(form.locator('.date-picker-display')).toHaveText("Pilih tanggal");
   if(width===1440) {
@@ -959,7 +959,7 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   await date.fill("2026-10-11"); await expect(form.locator('.date-picker-display')).toHaveText("11/10/2026");
   await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"new");
   await expect(form.getByLabel("Alamat (opsional)",{exact:true})).toHaveAttribute("placeholder","Alamat lengkap pelanggan");
-  await expect(form.getByLabel("Jumlah barang",{exact:true})).toHaveAttribute("placeholder","Contoh: 2");
+  await expect(form.getByLabel("Jumlah produk",{exact:true})).toHaveAttribute("placeholder","Contoh: 2");
   if(width<600) {
     await date.fill("");
     const placeholderFits=await form.locator('.date-picker-display > span').evaluate(element=>element.scrollWidth<=element.clientWidth+1);
@@ -969,15 +969,15 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   }
   await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");
   if(business==="Jastip") {
-    await form.getByLabel("Nama barang",{exact:true}).fill("Roti Diskon");
-    await form.getByLabel("Harga jual / barang",{exact:true}).fill("25000");
-    await form.getByLabel("Harga beli / barang",{exact:true}).fill("12000");
+    await form.getByLabel("Nama produk",{exact:true}).fill("Roti Diskon");
+    await form.getByLabel("Harga jual / produk",{exact:true}).fill("25000");
+    await form.getByLabel("Harga beli / produk",{exact:true}).fill("12000");
   } else {
     await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");
     await chooseOption(form.getByLabel("Produk",{exact:true}),"discount-product");
     await form.locator('input[type="date"]').fill("2026-10-11");
   }
-  await form.getByLabel("Jumlah barang",{exact:true}).fill("2");
+  await form.getByLabel("Jumlah produk",{exact:true}).fill("2");
   await form.locator('input[name="shippingCharge"]').fill("5000");
   await chooseOption(form.getByLabel("Jenis diskon",{exact:true}),"percent");
   await form.getByLabel("Diskon",{exact:true}).fill("101");
@@ -1023,9 +1023,9 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   await expect(form.getByRole("button",{name:"Bayar sebagian",exact:true})).toBeDisabled();
   await form.locator('input[name="shippingCharge"]').fill("0");
   await expect(form.getByLabel("Diskon",{exact:true})).toHaveValue("50.000");
-  await form.getByLabel("Jumlah barang",{exact:true}).fill("1");
+  await form.getByLabel("Jumlah produk",{exact:true}).fill("1");
   await expect(form.getByLabel("Diskon",{exact:true})).toHaveValue("25.000");
-  await form.getByLabel("Jumlah barang",{exact:true}).fill("2");
+  await form.getByLabel("Jumlah produk",{exact:true}).fill("2");
   await form.locator('input[name="shippingCharge"]').fill("5000");
   await form.getByLabel("Diskon",{exact:true}).fill("10000");
   await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();

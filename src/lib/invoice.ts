@@ -41,7 +41,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer): 
       `   ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
     ]),
     "",
-    `Subtotal barang: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
+    `Subtotal produk: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
     `Fee jastip: ${formatCurrency(order.serviceFee)}`,
     ...(orderDiscount(order) > 0 ? [`Diskon${order.discount?.type === "percent" ? ` (${order.discount.value}%)` : ""}: -${formatCurrency(orderDiscount(order))}`] : []),
     `Ongkir: ${formatCurrency(order.shippingCharge)}`,

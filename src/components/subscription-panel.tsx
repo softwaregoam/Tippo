@@ -46,7 +46,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
     <section className="card subscription-status" aria-label="Paket aktif">
       <div className="card-header"><div><h2>Paketmu: {plan === "pro" ? (live ? "Pro" : "Pro (demo)") : "Gratis"}</h2><p>Periode kuota {currentMonth} · waktu Jakarta</p></div><span className="type-badge">{plan === "pro" ? (live ? "PRO" : "PRO DEMO") : "GRATIS"}</span></div>
       <div className="subscription-usage">
-        <div><strong>{jastipUsed}{plan === "free" ? ` / ${FREE_ORDER_LIMIT}` : ""}</strong><span>Pesanan Jastip bulan ini</span><small>Satu pesanan boleh berisi banyak barang.</small></div>
+        <div><strong>{jastipUsed}{plan === "free" ? ` / ${FREE_ORDER_LIMIT}` : ""}</strong><span>Pesanan Jastip bulan ini</span><small>Satu pesanan boleh berisi banyak produk.</small></div>
         <div><strong>{poUsed}{plan === "free" ? ` / ${FREE_ORDER_LIMIT}` : ""}</strong><span>Pesanan Open PO bulan ini</span><small>Kuota PO terpisah dari kuota Jastip.</small></div>
         <div><strong>{data.products.length}{plan === "free" ? ` / ${FREE_PRODUCT_LIMIT}` : ""}</strong><span>Produk master PO</span><small>Produk yang diarsipkan tetap termasuk batas produk.</small></div>
       </div>
@@ -62,7 +62,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
           <li><Check size={16} /><span>{FREE_ORDER_LIMIT} pesanan Jastip dan {FREE_ORDER_LIMIT} pesanan Open PO per bulan</span></li>
           <li><Check size={16} /><span>Maksimal {FREE_PRODUCT_LIMIT} produk master Open PO</span></li>
           <li><Check size={16} /><span>Ringkasan bulan berjalan</span></li>
-          <li><Check size={16} /><span>Banyak barang per pesanan dan invoice WhatsApp</span></li>
+          <li><Check size={16} /><span>Banyak produk per pesanan dan invoice WhatsApp</span></li>
         </ul>
         <p className="field-hint">Kuota pesanan kembali tersedia setiap tanggal 1 pukul 00.00 WIB. Pesanan yang dibatalkan tetap terhitung.</p>
         {plan === "pro" && !live ? <Button className="btn btn-secondary" onClick={returnToFree}>Kembali ke Gratis</Button> : plan === "free" ? <span className="status-tag">Paket aktif</span> : null}

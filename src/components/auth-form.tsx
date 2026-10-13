@@ -101,9 +101,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" | "forgot" | "rese
         <section className="auth-story" aria-labelledby="auth-story-title">
           <p className="auth-story-kicker">Jastip &amp; Open PO</p>
           <h2 id="auth-story-title">Catatan yang pas untuk cara jualanmu.</h2>
-          <p>Barang titipan atau produk sendiri, mulai dengan alur yang sesuai. Rincian barang tetap dalam satu pesanan pelanggan.</p>
+          <p>Produk titipan atau produk sendiri, mulai dengan alur yang sesuai. Rincian produk tetap dalam satu pesanan pelanggan.</p>
           <dl className="auth-flow-list">
-            <div><dt>Jastip<span>Titipan belanja</span></dt><dd>Catat barang, varian, warna, ukuran, dan biaya belinya.</dd></div>
+            <div><dt>Jastip<span>Titipan belanja</span></dt><dd>Catat produk, varian, warna, ukuran, dan biaya belinya.</dd></div>
             <div><dt className="auth-po-label">Open PO<span>Produk dari katalog</span></dt><dd>Pilih produk yang sudah kamu buat, isi jumlah, lalu catat pembayaran.</dd></div>
           </dl>
           <p className="auth-story-note">Isi biaya untuk menghitung HPP. Salin invoice saat pelanggan perlu rincian tagihan.</p>

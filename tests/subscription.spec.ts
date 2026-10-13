@@ -77,10 +77,10 @@ async function usageLedger(page: Page) {
 }
 
 async function fillJastipItem(group: Locator, name: string, price = "50000") {
-  await group.getByLabel("Nama barang", { exact: true }).fill(name);
-  await group.getByLabel("Jumlah barang", { exact: true }).fill("1");
-  await group.getByLabel("Harga jual / barang", { exact: true }).fill(price);
-  await group.getByLabel("Harga beli / barang", { exact: true }).fill("25000");
+  await group.getByLabel("Nama produk", { exact: true }).fill(name);
+  await group.getByLabel("Jumlah produk", { exact: true }).fill("1");
+  await group.getByLabel("Harga jual / produk", { exact: true }).fill(price);
+  await group.getByLabel("Harga beli / produk", { exact: true }).fill("25000");
 }
 
 async function restoreBackup(page: Page, data: AppData) {
@@ -102,11 +102,11 @@ test("Free allows five customer orders per mode and multiple items consume one s
   await page.getByRole("button", { name: "Pesanan jastip baru", exact: true }).click();
   const form = page.getByRole("dialog", { name: "Pesanan jastip baru" });
   await chooseOption(form.getByLabel("Pelanggan", { exact: true }), customer.id);
-  const first = form.getByRole("group", { name: "Barang 1", exact: true });
+  const first = form.getByRole("group", { name: "Produk 1", exact: true });
   await fillJastipItem(first, "Nasi ayam kelima");
   await first.getByLabel("Varian (opsional)", { exact: true }).fill("Pedas");
-  await form.getByRole("button", { name: "Tambah barang", exact: true }).click();
-  const second = form.getByRole("group", { name: "Barang 2", exact: true });
+  await form.getByRole("button", { name: "Tambah produk", exact: true }).click();
+  const second = form.getByRole("group", { name: "Produk 2", exact: true });
   await fillJastipItem(second, "Kaos kelima", "75000");
   await second.getByLabel("Warna (opsional)", { exact: true }).fill("Navy");
   await second.getByLabel("Ukuran (opsional)", { exact: true }).fill("M");
@@ -127,10 +127,10 @@ test("Free allows five customer orders per mode and multiple items consume one s
   await poForm.getByLabel("Tanggal pesanan").fill("2026-10-08");
   await chooseOption(poForm.getByLabel("Pelanggan", { exact: true }), customer.id);
   await chooseOption(poForm.getByLabel("Produk", { exact: true }), initial.products[0].id);
-  await poForm.getByLabel("Jumlah barang", { exact: true }).fill("2");
-  await poForm.getByRole("button", { name: "Tambah barang", exact: true }).click();
-  await chooseOption(poForm.getByRole("group", { name: "Barang 2", exact: true }).getByLabel("Produk", { exact: true }), initial.products[1].id);
-  await poForm.getByRole("group", {name:"Barang 2",exact:true}).getByLabel("Jumlah barang").fill("1");
+  await poForm.getByLabel("Jumlah produk", { exact: true }).fill("2");
+  await poForm.getByRole("button", { name: "Tambah produk", exact: true }).click();
+  await chooseOption(poForm.getByRole("group", { name: "Produk 2", exact: true }).getByLabel("Produk", { exact: true }), initial.products[1].id);
+  await poForm.getByRole("group", {name:"Produk 2",exact:true}).getByLabel("Jumlah produk").fill("1");
   await poForm.getByRole("button", { name: "Simpan pesanan", exact: true }).click();
   await expect(poForm).not.toBeVisible();
   await expect(page.locator(".quota-banner")).toContainText("Jastip 5 / 5 · Open PO 5 / 5");
@@ -252,7 +252,7 @@ test("quota becomes available at Jakarta midnight on the first without deleting 
   const form = page.getByRole("dialog", { name: "Pesanan jastip baru" });
   await expect(form.getByLabel("Tanggal pesanan", { exact: true })).toHaveValue("2026-11-01");
   await chooseOption(form.getByLabel("Pelanggan", { exact: true }), customer.id);
-  await fillJastipItem(form.getByRole("group", { name: "Barang 1", exact: true }), "Titipan bulan baru");
+  await fillJastipItem(form.getByRole("group", { name: "Produk 1", exact: true }), "Titipan bulan baru");
   await form.getByRole("button", { name: "Simpan pesanan", exact: true }).click();
   await expect(form).not.toBeVisible();
   await expect(page.locator(".quota-banner")).toContainText("Jastip 1 / 5");

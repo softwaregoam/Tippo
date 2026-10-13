@@ -14,7 +14,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
         "Buka Pesanan untuk mencatat pembelian pelanggan dari produk yang sudah kamu simpan.",
       ] : [
         "Buka Perjalanan, lalu buat batch untuk satu perjalanan atau kegiatan titip belanja. Isi nama batch dan tanggal tutup pesanan.",
-        "Buka Pesanan untuk mencatat titipan pelanggan. Nama barang, varian, warna, ukuran, dan harga diisi langsung pada pesanan.",
+        "Buka Pesanan untuk mencatat titipan pelanggan. Nama produk, varian, warna, ukuran, dan harga diisi langsung pada pesanan.",
         "Satu pesanan bisa berisi beberapa produk. Gunakan Tambah produk untuk mencatat produk berikutnya.",
       ], destination: po ? "products" : "batches", action: po ? "Buka Produk" : "Buka Perjalanan",
     },
@@ -31,8 +31,8 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
     {
       id: "hpp", title: "Periksa HPP dan margin",
       steps: [
-        "Buka HPP & Margin dan pilih batch yang ingin diperiksa. Lengkapi harga beli per barang yang belum diketahui, lalu simpan.",
-        "HPP barang dihitung dari harga beli dikalikan jumlah barang. Jika ongkir supplier atau kemasan ingin masuk HPP, sertakan dalam harga beli per barang.",
+        "Buka HPP & Margin dan pilih batch yang ingin diperiksa. Lengkapi harga beli per produk yang belum diketahui, lalu simpan.",
+        "HPP produk dihitung dari harga beli dikalikan jumlah produk. Jika ongkir supplier atau kemasan ingin masuk HPP, sertakan dalam harga beli per produk.",
         "Ringkasan menampilkan penjualan, estimasi margin, pembayaran, dan sisa tagihan untuk usaha serta bulan yang dipilih. Periksa HPP yang belum lengkap sebelum menilai margin.",
       ], destination: "hpp", action: "Buka HPP & Margin",
     },
@@ -57,7 +57,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
     ["Apakah data Jastip dan Open PO digabung?", "Ringkasan, pesanan, batch, dan HPP mengikuti usaha yang sedang dipilih. Kontak pelanggan, profil bisnis, pengaturan data, dan langganan dipakai bersama dalam akun."],
     ["Mengapa batch tidak muncul pada pilihan pesanan baru?", "Hanya batch atau perjalanan yang masih dibuka yang bisa dipilih untuk pesanan baru. Batch PO yang sudah ditutup atau selesai tidak ditampilkan. Pada Jastip, perjalanan yang sudah ditutup atau selesai tidak bisa dipilih untuk pesanan baru."],
     ["Apakah perubahan harga produk mengubah pesanan lama?", "Tidak. Harga produk disalin saat pesanan dibuat dan tersimpan pada pesanan tersebut. Perubahan master produk digunakan untuk pesanan berikutnya."],
-    ["Bagaimana batas diskon dihitung?", "Diskon persen maksimal 100% dari subtotal barang dan fee, tidak termasuk ongkir. Diskon rupiah maksimal total tagihan sebelum diskon, termasuk ongkir. Nominal input otomatis dibatasi sesuai batas tersebut."],
+    ["Bagaimana batas diskon dihitung?", "Diskon persen maksimal 100% dari subtotal produk dan fee, tidak termasuk ongkir. Diskon rupiah maksimal total tagihan sebelum diskon, termasuk ongkir. Nominal input otomatis dibatasi sesuai batas tersebut."],
     ["Apa yang berubah setelah refund dicatat?", "Pembayaran yang masih diterima berkurang dan riwayat refund tersimpan. Pada pesanan aktif, total tagihan tetap sehingga sisa tagihan bisa bertambah. Pilihan refund seluruh pembayaran dan batalkan pesanan juga mengubah status menjadi Dibatalkan."],
     ["Mengapa saya tidak bisa memakai import Excel?", "Import template tersedia pada paket Pro. Paket Gratis tetap bisa mencatat produk dan pesanan secara manual."],
     ["Apa batas paket Gratis?", "Kamu bisa mencatat 5 pesanan Jastip dan 5 pesanan Open PO per bulan, serta menyimpan maksimal 5 produk Open PO termasuk produk yang diarsipkan. Kuota pesanan dihitung berdasarkan bulan pencatatan dan tidak kembali karena pesanan dibatalkan."],
