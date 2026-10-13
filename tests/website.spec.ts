@@ -446,7 +446,7 @@ for(const width of [390,1440]) test(`product categories are selected or added on
   await expect(category).toHaveText("Pilih kategori");
   await chooseOption(category,"Makanan");await expect(category).toHaveText("Makanan");
   await category.click();await expect(page.getByRole("option",{name:"Pilih kategori tersimpan",exact:true})).toHaveCount(0);await page.keyboard.press("Escape");
-  const toggle=form.getByRole("switch",{name:"Kategori manual",exact:true});
+  const toggle=form.getByRole("switch",{name:"Tambah Kategori",exact:true});
   await expect(toggle).toHaveAttribute("aria-checked","false");
   await toggle.click();
   await expect(category).toHaveCount(0);

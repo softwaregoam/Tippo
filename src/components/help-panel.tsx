@@ -9,7 +9,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
     {
       id: "mulai", title: `Mulai mencatat ${business}`,
       steps: po ? [
-        "Buka Produk, lalu simpan nama, varian, harga jual, dan harga beli jika sudah diketahui. Kategori boleh dipilih dari daftar atau ditulis lewat toggle Kategori manual.",
+        "Buka Produk, lalu simpan nama, varian, harga jual, dan harga beli jika sudah diketahui. Kategori boleh dipilih dari daftar atau ditulis lewat toggle Tambah Kategori.",
         "Buat Batch PO untuk satu periode pemesanan. Isi nama batch dan tanggal tutup pesanan.",
         "Buka Pesanan untuk mencatat pembelian pelanggan dari produk yang sudah kamu simpan.",
       ] : [
