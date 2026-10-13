@@ -974,3 +974,30 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .product-mobile-price { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; margin-top:6px; }
 .product-mobile-price > span { color:var(--muted); font-size:12px; }
 .product-mobile-price strong { font-size:16px; }
+
+
+.batch-recap-trigger { display:inline-flex; align-items:center; gap:6px; margin-top:8px; padding:5px 0; font-size:12px; color:var(--primary); background:none; border:0; text-align:left; }
+.batch-recap-trigger:focus-visible { outline:2px solid var(--primary); outline-offset:3px; border-radius:3px; }
+.shopping-recap-dialog { width:min(900px,calc(100vw - 32px)); background:var(--paper); }
+.shopping-recap-summary { display:flex; flex-wrap:wrap; gap:12px 24px; padding:16px 0; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.shopping-recap-summary strong { color:var(--primary); font-size:18px; }
+.shopping-recap-group + .shopping-recap-group { margin-top:24px; }
+.shopping-recap-group-heading,.shopping-recap-line-heading { display:flex; justify-content:space-between; align-items:start; gap:16px; }
+.shopping-recap-group-heading { margin-bottom:10px; }
+.shopping-recap-group-heading h3,.shopping-recap-line-heading > strong { min-width:0; overflow-wrap:anywhere; }
+.shopping-recap-group-heading > span,.shopping-recap-line-heading > span { flex-shrink:0; color:var(--primary); font-weight:600; }
+.shopping-recap-lines,.shopping-recap-customers ul { padding:0; list-style:none; }
+.shopping-recap-lines > li { border:1px solid var(--border); border-radius:8px; padding:16px; margin-top:10px; }
+.shopping-recap-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:12px 0; }
+.shopping-recap-options dt { font-size:12px; color:var(--muted); }
+.shopping-recap-options dd { margin:4px 0 0; overflow-wrap:anywhere; }
+.shopping-recap-customers { border-top:1px solid var(--border); padding-top:10px; }
+.shopping-recap-customers summary { color:var(--primary); cursor:pointer; font-size:13px; }
+.shopping-recap-customers li { display:flex; justify-content:space-between; gap:12px; font-size:13px; padding-top:10px; }
+.shopping-recap-customers li > span { min-width:0; overflow-wrap:anywhere; }
+.shopping-recap-customers li > strong { flex-shrink:0; }
+@media(max-width:600px) {
+ .shopping-recap-dialog { width:calc(100vw - 24px); max-height:calc(100dvh - 24px); }
+ .shopping-recap-dialog .modal-body { padding:18px 16px; }
+ .shopping-recap-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

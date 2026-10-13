@@ -12,6 +12,7 @@ before(async () => {
   await db.exec(discountSql); await db.exec(discountSql);
   const limitsSql=await readFile(new URL("../supabase/migrations/202610110005_discount_limits.sql", import.meta.url),"utf8");
   await db.exec(limitsSql); await db.exec(limitsSql);
+  const recapSql=await readFile(new URL("../supabase/migrations/202610130012_shopping_recap.sql",import.meta.url),"utf8");await db.exec(recapSql);await db.exec(recapSql);
 });
 after(async () => { await db.close(); });
 async function login(user: string) { await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${user}',false);`); }
@@ -84,4 +85,17 @@ test("discount RPC saves net payment, rejects invalid discounts and preserves qu
   own=await save(fullDiscount,own.version); assert.equal(own.data.orders[0].discount?.value,46000);
   fullDiscount.orders[0].discount.value=46001;
   await assert.rejects(save(fullDiscount,own.version),/TIPPO_INVALID/);
+});
+
+
+test("recap fields are optional and server rejects malformed shop snapshots without weakening discount validation",async()=>{
+ await db.exec("reset role");
+ const d=workspace([order("recap-fields","jastip")]);d.orders[0].items[0].store="Uniqlo";
+ const validate=async(value:AppData)=>(await db.query<{valid:boolean}>("select public.tippo_valid_workspace($1::jsonb) as valid",[JSON.stringify(value)])).rows[0].valid;
+ assert.equal(await validate(d),true);
+ d.orders[0].items[0].store="x".repeat(81);assert.equal(await validate(d),false);
+ delete d.orders[0].items[0].store;assert.equal(await validate(d),true);
+ d.products=[{id:"master",name:"Produk",variant:"",sku:"",store:"Supplier",color:"Hitam",size:"L",unitPrice:10000,unitCost:null,active:true}];assert.equal(await validate(d),true);
+ d.products[0].store=null as unknown as string;assert.equal(await validate(d),false);
+ d.products[0].store="Supplier";d.orders[0].discount={type:"percent",value:101};assert.equal(await validate(d),false);
 });

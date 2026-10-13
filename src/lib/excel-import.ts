@@ -6,7 +6,7 @@ const MAX_ROWS = 1000;
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_ITEMS = 100;
 const EXAMPLE_CUSTOMER = "CONTOH, ganti nama pelanggan";
-const JASTIP_HEADERS = ["nomor_pesanan", "nama_pelanggan", "telepon", "produk", "varian", "warna", "ukuran", "jumlah", "harga_jual", "harga_beli", "fee_jastip", "ongkir", "dp", "tanggal", "catatan"];
+const JASTIP_HEADERS = ["nomor_pesanan", "nama_pelanggan", "telepon", "produk", "varian", "warna", "ukuran", "toko_brand", "jumlah", "harga_jual", "harga_beli", "fee_jastip", "ongkir", "dp", "tanggal", "catatan"];
 const PO_HEADERS = ["nomor_pesanan", "nama_pelanggan", "telepon", "sku_produk", "produk", "varian", "jumlah", "ongkir", "dp", "tanggal", "catatan"];
 
 export interface NormalizedImportItem {
@@ -15,6 +15,7 @@ export interface NormalizedImportItem {
   sku: string;
   productName: string;
   variant: string;
+  store?: string;
   color: string;
   size: string;
   productId: string | null;
@@ -224,6 +225,7 @@ function validateGroup(entries: SourceEntry[], number: string, type: BatchType, 
     const productName = stringField(source, "produk", itemErrors, type === "jastip");
     const sku = type === "po" ? stringField(source, "sku_produk", itemErrors) : "";
     const variant = stringField(source, "varian", itemErrors, false, type === "po" ? 4000 : 80);
+    const store = type === "jastip" ? stringField(source,"toko_brand",itemErrors,false,80) : "";
     const color = type === "jastip" ? stringField(source, "warna", itemErrors, false, 80) : "";
     const size = type === "jastip" ? stringField(source, "ukuran", itemErrors, false, 80) : "";
     const quantity = integerField(source, "jumlah", itemErrors, true);
@@ -233,13 +235,13 @@ function validateGroup(entries: SourceEntry[], number: string, type: BatchType, 
     const unitCost = type === "po" ? master?.unitCost ?? null : integerField(source, "harga_beli", itemErrors, false, true);
     const product = master ? master.name : productName;
     const snapshotVariant = master ? master.variant : variant;
-    labels.push([product, snapshotVariant, color, size].filter(Boolean).join(" · "));
+    labels.push([product, snapshotVariant, master?.color ?? color, master?.size ?? size].filter(Boolean).join(" · "));
     if (quantity !== null && unitPrice !== null && !Number.isSafeInteger(quantity * unitPrice)) itemErrors.push("Total harga jual terlalu besar untuk dihitung dengan aman.");
     if (quantity !== null && unitCost !== null && !Number.isSafeInteger(quantity * unitCost)) itemErrors.push("Total harga beli terlalu besar untuk dihitung dengan aman.");
     addRowErrors(errors, rowNumber, itemErrors);
     if (quantity !== null) totalQuantity += quantity;
     if (quantity !== null && unitPrice !== null) subtotal += quantity * unitPrice;
-    if (!itemErrors.length && quantity !== null && unitPrice !== null) items.push({ rowNumber, sku, productName, variant: snapshotVariant, color, size, productId: master?.id ?? null, product, quantity, unitPrice, unitCost });
+    if (!itemErrors.length && quantity !== null && unitPrice !== null) items.push({ rowNumber, sku, productName, variant: snapshotVariant, store:master?.store ?? store, color:master?.color ?? color, size:master?.size ?? size, productId: master?.id ?? null, product, quantity, unitPrice, unitCost });
   }
   const amount = serviceFee !== null && shippingCharge !== null ? subtotal + serviceFee + shippingCharge : null;
   const total = amount !== null && Number.isSafeInteger(amount) ? amount : null;
@@ -284,7 +286,7 @@ function batchError(type: BatchType, batchId: string, data: AppData): string | n
 }
 
 function orderFromRow(row: NormalizedImportRow, batchId: string, customerId: string, id: string, createdAt: string, itemId: (index: number) => string): Order {
-  const items: OrderItem[] = row.items.map((item, index) => ({ id: itemId(index), productId: item.productId, product: item.product, variant: item.variant, color: item.color, size: item.size, quantity: item.quantity, unitPrice: item.unitPrice, unitCost: item.unitCost }));
+  const items: OrderItem[] = row.items.map((item, index) => ({ id: itemId(index), productId: item.productId, product: item.product, variant: item.variant, ...(item.store?{store:item.store}:{}), color: item.color, size: item.size, quantity: item.quantity, unitPrice: item.unitPrice, unitCost: item.unitCost }));
   return {
     id, batchId, customerId, items, createdAt,
     serviceFee: row.serviceFee, shippingCharge: row.shippingCharge, paid: row.paid,
@@ -296,7 +298,7 @@ function sourceFromNormalized(row: NormalizedImportRow): SourceEntry[] {
   return row.items.map((item) => ({
     rowNumber: item.rowNumber, errors: [], source: {
       nomor_pesanan: row.orderNumber, nama_pelanggan: row.customerName, telepon: row.phone, sku_produk: item.sku,
-      produk: item.productName, varian: item.variant, warna: item.color, ukuran: item.size, jumlah: item.quantity,
+      produk: item.productName, toko_brand:item.store ?? "", varian: item.variant, warna: item.color, ukuran: item.size, jumlah: item.quantity,
       harga_jual: item.unitPrice, harga_beli: item.unitCost, fee_jastip: row.serviceFee,
       ongkir: row.shippingCharge, dp: row.paid, tanggal: row.date, catatan: row.notes,
     },
@@ -415,7 +417,7 @@ export function buildImport(preview: ImportPreview, data: AppData): { orders: Or
     const next = checked.normalized;
     if (preview.type === "po" && old.items.some((item, index) => {
       const current = next.items[index];
-      return !current || item.productId !== current.productId || item.product !== current.product || item.variant !== current.variant || item.unitPrice !== current.unitPrice || item.unitCost !== current.unitCost;
+      return !current || item.productId !== current.productId || item.product !== current.product || item.variant !== current.variant || item.unitPrice !== current.unitPrice || item.unitCost !== current.unitCost || item.store !== current.store || item.color !== current.color || item.size !== current.size;
     })) throw new Error(`Baris ${row.rowNumber}: master produk berubah. Unggah ulang file untuk meninjau harga terbaru.`);
     let customer: Customer;
     try { customer = resolveCustomer(next, customers, () => `customer-${globalThis.crypto.randomUUID()}`); }
@@ -440,7 +442,7 @@ export async function createOrderTemplate(type: BatchType, data: AppData): Promi
   const active = data.products.filter((product) => product.active);
   const sampleProducts = active.filter((product) => (product.sku && active.filter((candidate) => candidate.sku === product.sku).length === 1) || active.filter((candidate) => candidate.name === product.name && candidate.variant === product.variant).length === 1).slice(0, 2);
   if (type === "jastip") {
-    sheet.addRow({ nomor_pesanan: "CONTOH-001", nama_pelanggan: EXAMPLE_CUSTOMER, telepon: "", produk: "Contoh kaos", varian: "Oversize", warna: "Putih", ukuran: "L", jumlah: 1, harga_jual: 150000, harga_beli: 100000, fee_jastip: 10000, ongkir: 0, dp: 0, tanggal: todayJakarta(), catatan: "Hapus atau ganti kedua baris contoh ini." });
+    sheet.addRow({ nomor_pesanan: "CONTOH-001", nama_pelanggan: EXAMPLE_CUSTOMER, telepon: "", produk: "Contoh kaos", toko_brand:"Contoh toko", varian: "Oversize", warna: "Putih", ukuran: "L", jumlah: 1, harga_jual: 150000, harga_beli: 100000, fee_jastip: 10000, ongkir: 0, dp: 0, tanggal: todayJakarta(), catatan: "Hapus atau ganti kedua baris contoh ini." });
     sheet.addRow({ nomor_pesanan: "CONTOH-001", nama_pelanggan: EXAMPLE_CUSTOMER, produk: "Contoh makanan", varian: "Pedas", jumlah: 2, harga_jual: 25000, harga_beli: 15000 });
   } else {
     for (const [index, sampleProduct] of sampleProducts.entries()) {
@@ -458,7 +460,7 @@ export async function createOrderTemplate(type: BatchType, data: AppData): Promi
   const instructions = [
     "Template pesanan Tippo", "Isi lembar Pesanan saja. Ganti atau hapus baris CONTOH sebelum mengimpor.",
     "Pilih batch tujuan yang aktif di aplikasi. Maksimal 1.000 baris produk dan ukuran file 5 MB; maksimal 100 produk per pesanan.",
-    "Satu baris untuk satu produk. Isi nomor_pesanan yang sama untuk menggabungkan beberapa produk menjadi satu pesanan.",
+    "Satu baris untuk satu produk. Isi toko_brand pada Jastip untuk mengelompokkan rekap belanja. Isi nomor_pesanan yang sama untuk menggabungkan beberapa produk menjadi satu pesanan.",
     "nomor_pesanan kosong berarti baris tersebut menjadi pesanan tersendiri. Nomor hanya untuk pengelompokan file; impor selalu menambah pesanan baru.",
     "nama_pelanggan dan tanggal wajib untuk setiap pesanan; jumlah wajib pada setiap baris produk. Tanggal: YYYY-MM-DD atau tanggal Excel.",
     "Baris lanjutan boleh mengosongkan pelanggan, telepon, tanggal, fee_jastip, ongkir, dp dan catatan untuk mewarisi nilai. Jika diisi ulang, nilainya harus sama.",
@@ -488,7 +490,7 @@ export async function createOrderTemplate(type: BatchType, data: AppData): Promi
   return new Uint8Array(await workbook.xlsx.writeBuffer());
 }
 
-const PRODUCT_HEADERS = ["produk", "varian", "sku_produk", "harga_jual", "harga_beli", "kategori"];
+const PRODUCT_HEADERS = ["produk", "varian", "sku_produk", "harga_jual", "harga_beli", "kategori", "toko_brand", "warna", "ukuran"];
 const EXAMPLE_PRODUCT = "CONTOH, ganti nama produk";
 export interface ProductImportRow {
   rowNumber: number;
@@ -505,22 +507,25 @@ export interface ProductImportPreview {
 function validateProductRows(rows: Pick<ProductImportRow, "rowNumber" | "source" | "errors">[], data: AppData, productLimit?: number): ProductImportPreview {
   const preview: ProductImportPreview = { rows: [], errors: [], validCount: 0 };
   const skus = new Set(data.products.filter((product) => product.sku).map((product) => product.sku.toLowerCase()));
-  const labels = new Set(data.products.map((product) => JSON.stringify([product.name.toLowerCase(), product.variant.toLowerCase()])));
+  const labels = new Set(data.products.map((product) => JSON.stringify([product.name,product.variant,product.color??"",product.size??"",product.store??""].map(value=>value.toLowerCase()))));
   for (const row of rows) {
     const errors = [...row.errors];
     const name = stringField(row.source, "produk", errors, true, 120);
     const variant = stringField(row.source, "varian", errors, false, 80);
     const sku = stringField(row.source, "sku_produk", errors, false, 60);
+    const store=stringField(row.source,"toko_brand",errors,false,80);
+    const color=stringField(row.source,"warna",errors,false,80);
+    const size=stringField(row.source,"ukuran",errors,false,80);
     const category = stringField(row.source, "kategori", errors, false, 80);
     const unitPrice = integerField(row.source, "harga_jual", errors, true);
     const unitCost = integerField(row.source, "harga_beli", errors, false, true);
     if (name === EXAMPLE_PRODUCT) errors.push("Ganti atau hapus baris contoh sebelum import.");
-    const label = JSON.stringify([name.toLowerCase(), variant.toLowerCase()]);
+    const label = JSON.stringify([name,variant,color,size,store].map(value=>value.toLowerCase()));
     if (name && labels.has(label)) errors.push("Produk dan varian sudah ada di katalog atau berulang dalam file. Data lama tidak ditimpa.");
     if (sku && skus.has(sku.toLowerCase())) errors.push("SKU sudah digunakan di katalog atau berulang dalam file, termasuk produk arsip.");
     if (name) labels.add(label);
     if (sku) skus.add(sku.toLowerCase());
-    const normalized = errors.length ? undefined : { name, variant, sku, ...(category ? {category} : {}), unitPrice: unitPrice!, unitCost, active: true };
+    const normalized = errors.length ? undefined : { name, variant, sku, ...(category ? {category} : {}), ...(store?{store}:{}), ...(color?{color}:{}), ...(size?{size}:{}), unitPrice: unitPrice!, unitCost, active: true };
     preview.rows.push({ rowNumber: row.rowNumber, source: row.source, errors, normalized });
   }
   preview.validCount = preview.rows.filter((row) => row.normalized && !row.errors.length).length;
@@ -591,7 +596,7 @@ export async function createProductTemplate(): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook(); workbook.creator = "Tippo";
   const sheet = workbook.addWorksheet("Produk");
   sheet.columns = PRODUCT_HEADERS.map((header) => ({ header, key: header, width: header === "produk" ? 35 : 22 }));
-  sheet.addRow({ produk: EXAMPLE_PRODUCT, varian: "Ukuran M", sku_produk: "CONTOH-001", harga_jual: 150000, harga_beli: 100000 });
+  sheet.addRow({ produk: EXAMPLE_PRODUCT, varian: "Ukuran M", sku_produk: "CONTOH-001", toko_brand:"Contoh supplier", warna:"Hitam", ukuran:"M", harga_jual: 150000, harga_beli: 100000 });
   sheet.getRow(2).getCell("produk").note = "Ganti nama dan data contoh atau hapus baris ini sebelum import.";
   sheet.getColumn("sku_produk").numFmt = "@";
   for (const header of ["harga_jual", "harga_beli"]) sheet.getColumn(header).numFmt = '#,##0';

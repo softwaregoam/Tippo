@@ -1280,3 +1280,43 @@ for(const width of [320,1440])test(`DOKU Pro realtime verifies payment before no
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");
  expect(documents).toBe(2);await page.waitForTimeout(2500);expect(documents).toBe(2);
 });
+
+for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as const)for(const theme of width===320?["light","dark"]:["light"])test(`shopping recap groups options and customers ${business} ${width} ${theme}`,async({page})=>{
+ await page.addInitScript(theme=>localStorage.setItem("tippo.theme.v1",theme),theme);
+ const data=structuredClone(fixture);const po=business==="Open PO";
+ data.batches=[{...fixture.batches[0],id:"recap",name:"Batch Rekap",type:po?"po":"jastip",status:"completed"},{...fixture.batches[0],id:"other"}];
+ data.customers.push({id:"bima",name:"Bima",phone:""});
+ const make=(id:string,customerId:string,quantity:number,size="L",cancelled=false)=>({id,customerId,batchId:"recap",createdAt:"2026-10-13T00:00:00Z",date:"2026-10-13",status:cancelled?"cancelled" as const:"new" as const,serviceFee:0,shippingCharge:0,paid:0,notes:"",items:[{id:"item-"+id,product:"Kaos",store:"Uniqlo",variant:"Airism",color:"Hitam",size,quantity,unitPrice:25000,unitCost:12000}]});
+ data.orders=[make("a","aly",2),make("b","bima",3),make("m","aly",1,"M"),make("cancel","aly",99,"L",true),{...make("foreign","aly",99),batchId:"other"}];
+ await page.setViewportSize({width,height:844});await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,business);if(po)await openSection(page,"Batch PO");
+ const label=po?"Rekap kebutuhan produk":"Rekap belanja";
+ if(width<=600){await page.getByRole("button",{name:"Detail Batch Rekap",exact:true}).click();await page.getByRole("dialog",{name:"Detail Batch Rekap",exact:true}).getByRole("button",{name:label,exact:true}).click();}
+ else await page.getByRole("button",{name:label+" Batch Rekap",exact:true}).click();
+ const dialog=page.getByRole("dialog",{name:label,exact:true});await expect(dialog).toBeVisible();await expect(dialog).toContainText("3 pesanan");await expect(dialog).toContainText("6 unit");
+ const group=dialog.getByRole("region",{name:"Toko / brand Uniqlo",exact:true});
+ await expect(group.locator(".shopping-recap-lines > li")).toHaveCount(2);
+ const line=group.locator(".shopping-recap-lines > li").filter({has:page.getByText("L",{exact:true})});await expect(line).toContainText("5 unit");
+ await line.locator("summary").click();await expect(line).toContainText("Alya");await expect(line).toContainText("Bima");await expect(line).toContainText("3 unit");await expect(dialog).not.toContainText("99 unit");
+ expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ await dialog.screenshot({path:`/tmp/tippo-shopping-recap-${business}-${width}-${theme}.png`});await dialog.getByRole("button",{name:"Tutup rekap",exact:true}).click();await expect(dialog).toHaveCount(0);
+});
+
+
+for(const business of ["Jastip","Open PO"] as const)test(`shop and option snapshots persist in ${business} orders`,async({page})=>{
+ const data=structuredClone(fixture);
+ data.batches.push({...fixture.batches[0],id:"po",name:"PO Snapshot",type:"po"});
+ data.products.push({id:"shirt",name:"Kaos",variant:"Airism",color:"Hitam",size:"L",store:"Uniqlo",sku:"SKU-L",unitPrice:25000,unitCost:12000,active:true});
+ const requests=await authenticate(page,{workspace:data,pro:true});await page.setViewportSize({width:390,height:844});await page.goto("/app");await openBusiness(page,business);await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
+ const form=page.getByRole("dialog",{name:business==="Open PO"?"Pesanan PO baru":"Pesanan jastip baru",exact:true});
+ await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");await form.locator('input[type="date"]').fill("2026-10-13");
+ if(business==="Jastip"){
+  for(const [name,value] of [["Nama produk","Kaos"],["Toko / brand (opsional)","Uniqlo"],["Varian (opsional)","Airism"],["Warna (opsional)","Hitam"],["Ukuran (opsional)","L"],["Harga jual / produk","25000"]])await form.getByLabel(name,{exact:true}).fill(value);
+ }else await chooseOption(form.getByLabel("Produk",{exact:true}),"shirt");
+ await form.getByLabel("Jumlah produk",{exact:true}).fill("2");await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);
+ expect(requests[0].p_data.orders[0].items[0]).toMatchObject({store:"Uniqlo",variant:"Airism",color:"Hitam",size:"L",quantity:2});
+ if(business==="Open PO"){
+  await openSection(page,"Produk");await page.getByRole("button",{name:"Detail Kaos",exact:true}).click();await page.getByRole("dialog",{name:"Detail Kaos",exact:true}).getByRole("button",{name:"Edit produk",exact:true}).click();
+  const master=page.getByRole("dialog",{name:"Edit produk",exact:true});await master.getByLabel("Toko / brand (opsional)",{exact:true}).fill("Supplier baru");await master.getByLabel("Warna (opsional)",{exact:true}).fill("Putih");await master.getByRole("button",{name:/Simpan produk/}).click();await expect(master).toHaveCount(0);
+  expect(requests[1].p_data.products[0].store).toBe("Supplier baru");expect(requests[1].p_data.orders[0].items[0]).toMatchObject({store:"Uniqlo",color:"Hitam"});
+ }
+});

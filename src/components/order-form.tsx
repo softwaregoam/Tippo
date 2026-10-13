@@ -38,6 +38,7 @@ type Fields = {
 type ItemFields = {
   id: string;
   product: string;
+  store: string;
   variant: string;
   color: string;
   size: string;
@@ -49,7 +50,7 @@ type ItemField = Exclude<keyof ItemFields, "id">;
 type FieldErrors = Partial<Record<keyof Fields | "items", string>>;
 type ItemErrors = Record<string, Partial<Record<ItemField, string>>>;
 const textLimits = { customerName: 120, customerPhone: 30, customerAddress: 1000, notes: 1000 };
-const itemTextLimits = { product: 120, variant: 80, color: 80, size: 80 };
+const itemTextLimits = { store: 80, product: 120, variant: 80, color: 80, size: 80 };
 
 function previewAmount(value: string) {
   const amount = Number(value);
@@ -57,7 +58,7 @@ function previewAmount(value: string) {
 }
 
 function newItem(): ItemFields {
-  return { id: crypto.randomUUID(), product: "", variant: "", color: "", size: "", quantity: "", unitPrice: "", unitCost: "" };
+  return { id: crypto.randomUUID(), product: "", store: "", variant: "", color: "", size: "", quantity: "", unitPrice: "", unitCost: "" };
 }
 
 export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveError, saving }: OrderFormProps) {
@@ -75,7 +76,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     date: order?.date ?? "", notes: order?.notes ?? "",
   }));
   const [items, setItems] = useState<ItemFields[]>(() => order?.items.map((item) => ({
-    id: item.id, product: item.product, variant: item.variant, color: item.color, size: item.size,
+    id: item.id, product: item.product, store: item.store ?? "", variant: item.variant, color: item.color, size: item.size,
     quantity: String(item.quantity), unitPrice: String(item.unitPrice), unitCost: item.unitCost === null ? "" : String(item.unitCost),
   })) ?? [newItem()]);
   const [createdAt] = useState(() => order?.createdAt ?? new Date().toISOString());
@@ -122,7 +123,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
   const draft = useMemo<Order>(() => ({
     id: order?.id ?? "draft-order-preview", batchId: fields.batchId, customerId: fields.customerId,
     items: items.map((item) => ({
-      id: item.id, product: item.product.trim(), variant: item.variant.trim(), color: item.color.trim(), size: item.size.trim(),
+      id: item.id, product: item.product.trim(), store: item.store.trim(), variant: item.variant.trim(), color: item.color.trim(), size: item.size.trim(),
       quantity: Math.max(1, previewAmount(item.quantity)), unitPrice: previewAmount(item.unitPrice),
       unitCost: item.unitCost.trim() === "" ? null : previewAmount(item.unitCost),
     })),
@@ -302,7 +303,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
               <div className="form-grid jastip-item-grid">
                 {itemField(item, index, "product", "Nama produk")}
                 {itemField(item, index, "quantity", "Jumlah produk")}
-                {itemField(item, index, "variant", "Varian (opsional)")}
+                {itemField(item, index, "store", "Toko / brand (opsional)", "Contoh: Uniqlo atau toko supplier")}{itemField(item, index, "variant", "Varian (opsional)")}
                 {itemField(item, index, "color", "Warna (opsional)")}
                 {itemField(item, index, "size", "Ukuran (opsional)")}
                 {itemField(item, index, "unitPrice", "Harga jual / produk")}

@@ -6,7 +6,7 @@ import type { AppData } from "../src/lib/types.ts";
 
 const JASTIP = ["nama_pelanggan", "telepon", "produk", "jumlah", "harga_jual", "harga_beli", "fee_jastip", "ongkir", "dp", "tanggal", "catatan"];
 const PO = ["nama_pelanggan", "telepon", "sku_produk", "produk", "varian", "jumlah", "ongkir", "dp", "tanggal", "catatan"];
-const MULTI_JASTIP = ["nomor_pesanan", "nama_pelanggan", "telepon", "produk", "varian", "warna", "ukuran", "jumlah", "harga_jual", "harga_beli", "fee_jastip", "ongkir", "dp", "tanggal", "catatan"];
+const MULTI_JASTIP = ["nomor_pesanan", "nama_pelanggan", "telepon", "produk", "varian", "warna", "ukuran", "toko_brand", "jumlah", "harga_jual", "harga_beli", "fee_jastip", "ongkir", "dp", "tanggal", "catatan"];
 const MULTI_PO = ["nomor_pesanan", ...PO];
 
 function workspace(): AppData {

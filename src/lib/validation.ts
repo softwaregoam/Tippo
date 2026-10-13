@@ -44,7 +44,7 @@ function baseWorkspace(value: unknown): value is Record<string, unknown> & {
 
 function catalogue(value: unknown): value is AppData["products"] {
   if (!Array.isArray(value) || value.length > 100000) return false;
-  if (!value.every((p) => record(p) && extendedId(p.id, LEGACY_PRODUCT_PREFIX) && text(p.name) && p.name.trim() && text(p.variant) && text(p.sku) && (p.category === undefined || (text(p.category) && p.category.length <= 80)) && money(p.unitPrice) && (p.unitCost === null || money(p.unitCost)) && typeof p.active === "boolean")) return false;
+  if (!value.every((p) => record(p) && extendedId(p.id, LEGACY_PRODUCT_PREFIX) && text(p.name) && p.name.trim() && text(p.variant) && text(p.sku) && (p.category === undefined || (text(p.category) && p.category.length <= 80)) && [p.store,p.color,p.size].every(value=>value===undefined || (text(value) && value.length<=80)) && money(p.unitPrice) && (p.unitCost === null || money(p.unitCost)) && typeof p.active === "boolean")) return false;
   return new Set(value.map((p) => p.id)).size === value.length;
 }
 
@@ -124,7 +124,7 @@ export function isAppData(value: unknown): value is AppData {
     orderIds.add(order.id as string);
     let quantity = 0, revenue = (order.serviceFee as number) + (order.shippingCharge as number), purchase = 0;
     for (const item of order.items) {
-      if (!record(item) || !extendedId(item.id, LEGACY_ITEM_PREFIX) || allItemIds.has(item.id) || !text(item.product) || !item.product.trim() || !text(item.variant) || !text(item.color) || !text(item.size) || !money(item.quantity) || item.quantity <= 0 || !money(item.unitPrice) || !(item.unitCost === null || money(item.unitCost))) return false;
+      if (!record(item) || !extendedId(item.id, LEGACY_ITEM_PREFIX) || allItemIds.has(item.id) || !text(item.product) || !item.product.trim() || (item.store!==undefined && (!text(item.store) || item.store.length>80)) || !text(item.variant) || !text(item.color) || !text(item.size) || !money(item.quantity) || item.quantity <= 0 || !money(item.unitPrice) || !(item.unitCost === null || money(item.unitCost))) return false;
       if (!(item.productId === undefined || item.productId === null || (extendedId(item.productId, LEGACY_PRODUCT_PREFIX) && productIds.has(item.productId) && batchTypes.get(order.batchId as string) === "po"))) return false;
       allItemIds.add(item.id);
       const lineRevenue = item.quantity * item.unitPrice;

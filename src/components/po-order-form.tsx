@@ -39,7 +39,7 @@ type ItemErrors = Record<string, Partial<Record<"productId" | "quantity", string
 const textLimits = { customerName: 120, customerPhone: 30, customerAddress: 1000, notes: 1000 };
 
 function productLabel(product: Product) {
-  return product.variant ? `${product.name} · ${product.variant}` : product.name;
+  return [product.name,product.variant,product.color,product.size,product.store].filter(Boolean).join(" · ");
 }
 
 function originalProductValue(item: OrderItem) {
@@ -134,7 +134,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
       if (original && item.productId === originalProductValue(original)) return { ...original, quantity: previewAmount(item.quantity) };
       const product = data.products.find((entry) => entry.id === item.productId);
       return {
-        id: item.id, productId: product?.id ?? null, product: product?.name ?? "", variant: product?.variant ?? "", color: "", size: "",
+        id: item.id, productId: product?.id ?? null, product: product?.name ?? "", variant: product?.variant ?? "", store: product?.store ?? "", color: product?.color ?? "", size: product?.size ?? "",
         quantity: previewAmount(item.quantity), unitPrice: product?.unitPrice ?? 0, unitCost: product?.unitCost ?? null,
       };
     }),

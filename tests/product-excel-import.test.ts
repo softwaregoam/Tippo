@@ -70,3 +70,11 @@ test("optional category imports from new template while old five-column files re
  assert.equal(preview.validCount,1);assert.equal(buildProductImport(preview,empty)[0].category,"Makanan");
  const old=await previewProductImport(await workbook([["Kaos","","K1",50000,25000]]),empty);assert.equal(old.validCount,1);
 });
+
+
+test("shop, color and size import as distinct master combinations and reject overlong values",async()=>{
+ const headers=["produk","varian","sku_produk","harga_jual","harga_beli","toko_brand","warna","ukuran"];
+ const preview=await previewProductImport(await workbook([["Kaos","Airism","SKU-L",25000,12000,"Uniqlo","Hitam","L"],["Kaos","Airism","SKU-M",25000,12000,"Uniqlo","Hitam","M"]],headers),empty);
+ const products=buildProductImport(preview,empty);assert.equal(products.length,2);assert.deepEqual(products.map(p=>[p.store,p.color,p.size]),[["Uniqlo","Hitam","L"],["Uniqlo","Hitam","M"]]);
+ const invalid=await previewProductImport(await workbook([["Kaos","Airism","SKU-L",25000,12000,"x".repeat(81),"Hitam","L"]],headers),empty);assert.throws(()=>buildProductImport(invalid,empty));
+});

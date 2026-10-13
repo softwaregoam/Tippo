@@ -27,6 +27,9 @@ export interface Product {
   variant: string;
   sku: string;
   category?: string;
+  store?: string;
+  color?: string;
+  size?: string;
   unitPrice: number;
   /** null means that the purchase cost has not been recorded. */
   unitCost: number | null;
@@ -40,6 +43,7 @@ export interface OrderItem {
   productId?: string | null;
   /** Product label and amounts are snapshots, independent of subsequent catalogue edits. */
   product: string;
+  store?: string;
   variant: string;
   color: string;
   size: string;
