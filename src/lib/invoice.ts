@@ -34,7 +34,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
   ];
   const divider="------------------------";
   const lines = [
-    `Halo, ${textLine(customer?.name ?? "Pelanggan")}! 🤍`,
+    `Halo, ${textLine(customer?.name ?? "Pelanggan")}!`,
     `Berikut rincian pesananmu${store?` di ${store}`:""}.`,
     ...(!cancelled?["Mohon cek kembali pesanannya, ya."]:[]),
     "",
