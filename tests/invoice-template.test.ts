@@ -15,3 +15,11 @@ test("WhatsApp uses configured footer and keeps logo and color out of its text",
  const template={invoiceStoreName:"Toko",invoicePrefix:"INV",appearance:{...DEFAULT_INVOICE_APPEARANCE,logoUrl:"https://site.test/logo.png",footer:"Terima kasih, Naya"}};
  const text=buildInvoice(order,undefined,undefined,template);assert.ok(text.endsWith("Terima kasih, Naya"));assert.doesNotMatch(text,/logo.png|245C4E|Secret|5\.000/);assert.ok(!buildInvoice(order,undefined,undefined,{...template,appearance:{...template.appearance,footer:""}}).includes("Terima kasih"));
 });
+
+test("bank details keep leading zeros, reject partial details, and are absent on cancelled invoices",()=>{
+ const appearance={...DEFAULT_INVOICE_APPEARANCE,bankName:" BCA ",bankAccount:"001-234 567",bankHolder:" Naya\nPutri "};
+ const template=validateInvoiceTemplate({invoiceStoreName:"Toko",invoicePrefix:"INV",appearance});assert.equal(template.appearance.bankAccount,"001234567");assert.equal(template.appearance.bankName,"BCA");assert.equal(template.appearance.bankHolder,"Naya Putri");
+ assert.throws(()=>validateInvoiceTemplate({...template,appearance:{...appearance,bankHolder:""}}),/Lengkapi/);assert.throws(()=>validateInvoiceTemplate({...template,appearance:{...appearance,bankAccount:"1e20"}}),/hanya berisi angka/);
+ const order:Order={id:"order",batchId:"batch",customerId:"c",date:"2026-10-14",createdAt:"2026-10-14T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"i",product:"Produk",variant:"",color:"",size:"",quantity:1,unitPrice:10000,unitCost:5000}]};
+ const text=buildInvoice(order,undefined,undefined,template);assert.match(text,/Bank: BCA\nNo\. rekening: 001234567\nAtas nama: Naya Putri/);assert.doesNotMatch(buildInvoice({...order,status:"cancelled"},undefined,undefined,template),/Transfer bank|001234567/);assert.doesNotMatch(buildInvoice(order),/Transfer bank/);
+});

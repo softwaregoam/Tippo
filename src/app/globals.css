@@ -1204,3 +1204,6 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .invoice-logo-controls { flex-wrap:wrap; }
 .invoice-logo-remove { display:inline-flex; align-items:center; gap:4px; min-height:44px; padding:0 4px; font-size:12px; color:var(--danger); cursor:pointer; background:none; border:0; }
 @media(max-width:380px) { .invoice-logo-picker { align-items:flex-start; gap:10px; } .invoice-logo-thumbnail { width:60px; height:60px; } .invoice-logo-controls { gap:4px 10px; } }
+
+.invoice-bank-settings { border-top:1px solid var(--border); padding-top:20px; margin-top:4px; }
+.invoice-bank-settings h3 { font-size:15px; margin-bottom:18px; }

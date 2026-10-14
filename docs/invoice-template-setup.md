@@ -1,6 +1,6 @@
 # Template invoice
 
-Menu **Template invoice** mengatur nama toko, awalan nomor invoice, logo, warna, tata letak, dan catatan penutup. Pengaturan tersimpan per akun dan berlaku pada invoice Jastip dan Open PO. Nama toko kosong tidak ditampilkan. Logo, warna, dan tata letak dipakai pada pratinjau serta hasil cetak/PDF; salinan WhatsApp berupa teks.
+Menu **Template invoice** mengatur nama toko, awalan nomor invoice, logo, warna, tata letak, catatan penutup, serta rekening pembayaran. Pengaturan tersimpan per akun dan berlaku pada invoice Jastip dan Open PO. Nama toko kosong tidak ditampilkan. Rekening ditampilkan hanya jika nama bank, nomor rekening, dan atas nama diisi lengkap; invoice dibatalkan tidak menampilkan instruksi transfer. Logo, warna, dan tata letak dipakai pada pratinjau serta hasil cetak/PDF; salinan WhatsApp berupa teks.
 
 ## Aktifkan unggah logo
 
