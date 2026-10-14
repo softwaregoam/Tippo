@@ -11,7 +11,7 @@ export function ShoppingRecapDialog({batch,data,onClose}:{batch:Batch;data:AppDa
  useEffect(()=>{const opener=document.activeElement instanceof HTMLElement?document.activeElement:null;const dialog=ref.current;dialog?.showModal();dialog?.querySelector<HTMLButtonElement>(".modal-header button")?.focus({preventScroll:true});return()=>{dialog?.close();if(opener?.isConnected)opener.focus();};},[]);
  return <dialog ref={ref} className="native-dialog shopping-recap-dialog" aria-labelledby="shopping-recap-title" onCancel={event=>{event.preventDefault();onClose();}}>
   <div className="modal-header"><div><h2 id="shopping-recap-title">{title}</h2><p>{batch.name}</p></div><button className="icon-button" onClick={onClose} aria-label="Tutup rekap"><X size={20}/></button></div>
-  <div className="modal-body"><p className="field-hint">Dihitung dari seluruh pesanan dalam {batch.type==="po"?"batch ini":"perjalanan ini"}. Pesanan yang dibatalkan tidak disertakan.</p>
+  <div className="modal-body">{batch.type==="jastip" && <p className="field-hint">Dihitung dari seluruh pesanan dalam perjalanan ini. Pesanan yang dibatalkan tidak disertakan.</p>}
    <div className="shopping-recap-summary"><span><strong>{recap.orders}</strong> pesanan</span><span><strong>{recap.combinations}</strong> kombinasi produk</span><span><strong>{recap.quantity}</strong> unit</span></div>
    {recap.groups.length?recap.groups.map(group=><section className="shopping-recap-group" key={group.key} aria-label={`Toko / brand ${group.store}`}>
     <div className="shopping-recap-group-heading"><h3>{group.store}</h3><span>{group.quantity} unit</span></div>
@@ -22,6 +22,6 @@ export function ShoppingRecapDialog({batch,data,onClose}:{batch:Batch;data:AppDa
      <details className="shopping-recap-customers"><summary>Lihat pelanggan ({line.customers.length})</summary><ul>{line.customers.map(customer=><li key={customer.id}><span>{customer.name}{customer.orders>1 && <small> · {customer.orders} pesanan</small>}</span><strong>{customer.quantity} unit</strong></li>)}</ul></details>
     </li>)}</ul>
    </section>):<div className="empty-state compact"><ClipboardList size={28}/><h3>Belum ada produk untuk direkap</h3><p>Catat pesanan pada {batch.type==="po"?"batch":"perjalanan"} ini terlebih dahulu.</p></div>}
-  </div><div className="modal-footer"><button className="btn btn-primary" onClick={onClose}>Tutup</button></div>
+  </div>{batch.type==="jastip" && <div className="modal-footer"><button className="btn btn-primary" onClick={onClose}>Tutup</button></div>}
  </dialog>;
 }
