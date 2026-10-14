@@ -154,8 +154,8 @@ test("cancellation, backdating, clearing data and restoring the same backup pres
   await expect(page.locator(".quota-banner")).toContainText("Jastip 5 / 5");
 
   await navigate(page, "Pengaturan data");
-  await page.getByRole("button", { name: "Hapus semua & mulai kosong", exact: true }).click();
-  await page.getByRole("dialog", { name: "Mulai tanpa data contoh?" }).getByRole("button", { name: "Ya, mulai kosong", exact: true }).click();
+  await page.getByRole("button", { name: "Hapus semua data", exact: true }).click();
+  await page.getByRole("dialog", { name: "Hapus semua data?" }).getByRole("button", { name: "Hapus data", exact: true }).click();
   await expect.poll(async () => (await savedData(page)).orders.length).toBe(0);
   expect(await usageLedger(page)).toHaveLength(5);
   await navigate(page, "Jastip");

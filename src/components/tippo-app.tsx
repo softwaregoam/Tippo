@@ -14,7 +14,7 @@ import {
   ArrowRight, ArrowUpRight, CalendarDays, Crown,
   Check, ChevronDown, CircleHelp, Download, FileJson, Layers3,
   FileBarChart2, LayoutDashboard, LogOut, MapPin, Menu, MessageSquare, Package, Pencil, Plus, ReceiptText, Search, Settings2,
-  ShoppingBag, Upload, UsersRound, Wallet, X,
+  ShoppingBag, Trash2, Upload, UsersRound, Wallet, X,
 } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ const subtitles = {
   reports: "Lihat penjualan dan estimasi laba usaha ini.",
   customers: "Kontak dipakai bersama. Jumlah pesanan mengikuti usaha yang dipilih.",
   profile: "Nama dan kontak usaha dalam satu tempat.",
-  settings: "Simpan cadangan data Jastip dan Open PO dalam akun ini.",
+  settings: "Kelola cadangan dan data usahamu.",
   subscription: "Pilih ruang yang sesuai untuk usaha yang terus tumbuh.",
   feedback: "Bagikan pengalaman dan idemu untuk Tippo.",
   help: "Langkah penggunaan dan jawaban untuk pertanyaan sehari-hari.",
@@ -346,7 +346,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
         <main className="main-content">
           <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && page !== "reports" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
 
-          {!isPro && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
+          {!isPro && page !== "settings" && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
             <div key={page}>
               {page === "dashboard" && <>
                 <div className="stats-grid">
@@ -532,19 +532,22 @@ function DataSettings({ data, cloud, onUpdate, onNotify }: { data: AppData; clou
       const value = JSON.parse(await uploaded.text());
       const normalized = value && [1, 2, 3].includes(value.schemaVersion) ? normalizeAppData(value.data) : null;
       if (!normalized) throw new Error("Format data tidak sesuai atau isi pesanan tidak valid.");
-      if (!window.confirm("Impor akan mengganti data lokal saat ini. Sudah mengekspor salinan?")) return;
+      if (!window.confirm(`Impor akan mengganti seluruh data ${cloud ? "akun" : "demo"} saat ini. Lanjutkan?`)) return;
       onUpdate(normalized, "Data berhasil dipulihkan dari salinan");
     } catch (error) { onNotify(error instanceof Error ? error.message : "Data tidak bisa diimpor."); }
     finally { input.value = ""; }
   }
   return <div className="settings-layout">
-    <section className="card settings-card"><div className="settings-icon"><FileJson size={25} /></div><h2>Simpan salinan data usaha.</h2>
-      <p>{cloud ? "Pesanan disimpan di akunmu dan dapat dibuka dari perangkat lain. Unduh salinan untuk cadangan." : "Contoh dan perubahan pada ruang demo disimpan di browser ini. Unduh salinan sebelum mengganti perangkat."}</p>
-      <div className="settings-counts"><div><strong>{data.orders.length}</strong><span>Pesanan</span></div><div><strong>{data.batches.length}</strong><span>Batch</span></div><div><strong>{data.customers.length}</strong><span>Pelanggan</span></div></div>
-      <div className="settings-actions"><Button className="btn btn-primary" onClick={exportData}><Download size={17} />Ekspor data</Button><Button className="btn btn-secondary" onClick={() => file.current?.click()}><Upload size={17} />Impor salinan</Button><input hidden ref={file} type="file" accept="application/json,.json" onChange={(e) => void importData(e.target)} /></div>
-      <div className="settings-warning"><CircleHelp size={18} /><p>{cloud ? "Berkas cadangan memuat informasi pelanggan. Simpan dengan aman dan periksa isinya sebelum memulihkan data." : "Data demo dapat hilang jika penyimpanan browser dihapus. Berkas cadangan memuat informasi pelanggan; simpan dengan aman."}</p></div>
+    <section className="card settings-card data-backup-card" aria-label="Cadangan data">
+      <div className="data-settings-heading"><div className="data-settings-title"><div className="settings-icon"><FileJson size={23}/></div><div><h2>Cadangan data</h2><p>Jastip dan Open PO dalam satu berkas.</p></div></div><span className="status-tag data-storage-badge">{cloud ? "Tersimpan di akun" : "Mode demo"}</span></div>
+      <dl className="settings-counts">{[[data.orders.length,"Pesanan"],[data.batches.length,"Batch / perjalanan"],[data.products.length,"Produk"],[data.customers.length,"Pelanggan"]].map(([count,label])=><div key={label}><dt>{label}</dt><dd>{count}</dd></div>)}</dl>
+      <div className="data-backup-actions">
+        <div><h3>Unduh cadangan</h3><p>Simpan seluruh data sebagai berkas JSON.</p><Button className="btn btn-primary" onClick={exportData}><Download size={17}/>Ekspor data</Button></div>
+        <div><h3>Pulihkan cadangan</h3><p>Mengganti data saat ini. Maksimal 10 MB.</p><Button className="btn btn-secondary" onClick={()=>file.current?.click()}><Upload size={17}/>Impor salinan</Button><input hidden ref={file} type="file" accept="application/json,.json" onChange={event=>void importData(event.target)}/></div>
+      </div>
     </section>
-    <section className="card settings-card"><h2>Mulai dari ruang bersih</h2><p>{cloud ? "Kosongkan transaksi akun jika ingin memulai kembali. Ekspor salinan lebih dulu; kuota tetap tercatat." : "Data awal merupakan contoh fiktif. Hapus contoh sebelum mencatat transaksi usahamu sendiri."}</p><Button className="btn btn-secondary" onClick={() => setConfirm("empty")}>Hapus semua & mulai kosong</Button>{!cloud && <button className="text-action reset-demo" onClick={() => setConfirm("demo")}>Muat ulang data contoh</button>}<div className="settings-divider" /><h3>{cloud ? "Ruang pribadi usahamu" : "Lanjutkan dengan akun"}</h3><p>{cloud ? "Data akun dapat dibuka setelah masuk dengan email yang sama. Ekspor salinan data secara rutin." : "Daftar untuk menyimpan data usaha di akun pribadi. Data demo tidak dipindahkan otomatis ke akun."}</p>{cloud ? <span className="status-tag status-new">Terhubung ke akun</span> : <Link className="btn btn-primary" href="/daftar">Buat akun gratis</Link>}</section>
-    {confirm && <SimpleModal title={confirm === "empty" ? "Mulai tanpa data contoh?" : "Muat ulang data contoh?"} onClose={() => setConfirm(null)}><div className="modal-body"><p>{cloud ? "Ini akan mengganti data transaksi pada akunmu." : "Ini akan mengganti data transaksi pada browser ini."} Ekspor salinan terlebih dahulu jika ada transaksi yang ingin disimpan. Kuota pesanan bulan ini tetap tersimpan.</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setConfirm(null)}>Batal</Button><Button className="btn btn-primary" onClick={() => { onUpdate(confirm === "empty" ? { batches: [], orders: [], customers: [], products: [] } : structuredClone(seedData), confirm === "empty" ? "Data dikosongkan. Siap untuk mencatat pesanan." : "Data contoh berhasil dimuat"); setConfirm(null); }}>Ya, {confirm === "empty" ? "mulai kosong" : "muat contoh"}</Button></div></SimpleModal>}
+    <section className="card settings-card data-reset-card" aria-label="Hapus data"><div className="data-reset-description"><Trash2 size={21}/><div><h2>Hapus semua data</h2><p>Pesanan, batch, produk, dan pelanggan akan dihapus. Kuota tetap tercatat.</p></div></div><Button className="btn btn-secondary data-reset-button" onClick={()=>setConfirm("empty")}>Hapus semua data</Button></section>
+    {!cloud&&<section className="card settings-card data-demo-card"><div><h2>Simpan di akun pribadi</h2><p>Data demo hanya tersimpan di browser ini.</p></div><div className="settings-actions"><button className="btn btn-secondary" onClick={()=>setConfirm("demo")}>Muat ulang contoh</button><Link className="btn btn-primary" href="/daftar">Buat akun</Link></div></section>}
+    {confirm && <SimpleModal title={confirm === "empty" ? "Hapus semua data?" : "Muat ulang data contoh?"} onClose={() => setConfirm(null)}><div className="modal-body"><p>Data saat ini akan {confirm === "empty" ? "dihapus" : "diganti dengan contoh"}. Unduh cadangan jika masih diperlukan. Kuota tidak direset.</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setConfirm(null)}>Batal</Button><Button className={confirm === "empty" ? "btn btn-danger" : "btn btn-primary"} onClick={() => { onUpdate(confirm === "empty" ? { batches: [], orders: [], customers: [], products: [] } : structuredClone(seedData), confirm === "empty" ? "Data dikosongkan. Siap untuk mencatat pesanan." : "Data contoh berhasil dimuat"); setConfirm(null); }}>{confirm === "empty" ? "Hapus data" : "Muat contoh"}</Button></div></SimpleModal>}
   </div>;
 }

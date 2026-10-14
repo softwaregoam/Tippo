@@ -324,10 +324,10 @@ test("export a versioned backup, safely clear demo data and restore it", async (
   await expect(stat(page, "Total penjualan")).toContainText(/Rp\s*620\.000/);
   await navigate(page, "Pengaturan data");
 
-  await page.getByRole("button", { name: "Hapus semua & mulai kosong" }).click();
-  const confirmation = page.getByRole("dialog", { name: "Mulai tanpa data contoh?" });
-  await expect(confirmation).toContainText("Ekspor salinan terlebih dahulu");
-  await confirmation.getByRole("button", { name: "Ya, mulai kosong" }).click();
+  await page.getByRole("button", { name: "Hapus semua data" }).click();
+  const confirmation = page.getByRole("dialog", { name: "Hapus semua data?" });
+  await expect(confirmation).toContainText("Unduh cadangan");
+  await confirmation.getByRole("button", { name: "Hapus data" }).click();
   await navigate(page, "Ringkasan");
   await expect(stat(page, "Total penjualan")).toContainText(/Rp\s*0/);
 
@@ -468,8 +468,8 @@ test("legacy browser data and version-1 backups migrate PO catalogue without cha
     "legacy-product-acceptance-po-order", "legacy-product-acceptance-po-order",
   ]);
 
-  await page.getByRole("button", { name: "Hapus semua & mulai kosong" }).click();
-  await page.getByRole("dialog", { name: "Mulai tanpa data contoh?" }).getByRole("button", { name: "Ya, mulai kosong" }).click();
+  await page.getByRole("button", { name: "Hapus semua data" }).click();
+  await page.getByRole("dialog", { name: "Hapus semua data?" }).getByRole("button", { name: "Hapus data" }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.locator('input[type="file"]').setInputFiles({
     name: "tippo-v1-backup.json", mimeType: "application/json",
