@@ -265,6 +265,11 @@ svg { flex-shrink: 0; }
 .search-field:focus-within { outline: 2px solid var(--primary); outline-offset: 3px; }
 .search-field input:focus-visible { outline: none; }
 .toolbar-filters { display: flex; align-items: center; gap: 10px; }
+.workspace-list-card .management-table-wrap { border: 0; border-radius: 0; box-shadow: none; }
+.workspace-list-card .list-toolbar { border-bottom: 1px solid var(--border); }
+.workspace-list-card .search-field { min-width: 0; }
+.workspace-list-card .mobile-data-row:last-of-type { border-bottom: 0; }
+.workspace-empty-state { min-height: 270px; }
 .filter-input { max-width: 190px; }
 .table-footer { display: flex; justify-content: space-between; padding: 18px 24px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); }
 .table-footer span { color: var(--muted); }

@@ -1320,3 +1320,49 @@ for(const business of ["Jastip","Open PO"] as const)test(`shop and option snapsh
   expect(requests[1].p_data.products[0].store).toBe("Supplier baru");expect(requests[1].p_data.orders[0].items[0]).toMatchObject({store:"Uniqlo",color:"Hitam"});
  }
 });
+
+for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as const) test(`unified workspace lists filter and reset ${business} ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const workspace = structuredClone(fixture);
+  workspace.batches = (["jastip", "po"] as const).flatMap(type => [
+    { ...fixture.batches[0], id: `${type}-open`, type, name: `${type} Pagi`, origin: "Bandung", status: "open" as const },
+    { ...fixture.batches[0], id: `${type}-closed`, type, name: `${type} Sore`, origin: "Jakarta", status: "closed" as const },
+  ]);
+  workspace.products = [
+    { id: "bread", name: "Roti Susu", variant: "Coklat", sku: "RSC", category: "Roti", active: true, unitPrice: 25000, unitCost: 12000 },
+    { id: "tea", name: "Teh Hijau", variant: "Original", sku: "TH", category: "Minuman", active: false, unitPrice: 15000, unitCost: 8000 },
+  ];
+  await authenticate(page, { workspace });
+  await page.goto("/app");
+  await openBusiness(page, business);
+  await openSection(page, business === "Open PO" ? "Batch PO" : "Perjalanan");
+  const card = page.locator(".workspace-list-card");
+  const batchSearch = page.getByRole("textbox", { name: business === "Open PO" ? "Cari batch" : "Cari perjalanan", exact: true });
+  const batchStatus = page.getByRole("combobox", { name: business === "Open PO" ? "Filter status batch" : "Filter status perjalanan" });
+  await expect(card.locator(".table-footer")).toContainText("2");
+  await batchSearch.fill("Bandung");
+  await expect(card.locator(".table-footer")).toContainText("1 dari 2");
+  await chooseOption(batchStatus, "closed");
+  await expect(card.getByRole("status")).toContainText("tidak ditemukan");
+  await expect(card.locator(".table-footer")).toContainText("0 dari 2");
+  await card.getByRole("button", { name: /Reset filter/ }).click();
+  await expect(batchSearch).toHaveValue("");
+  await expect(batchStatus).toContainText("Semua status");
+  await expect(card.locator(".table-footer")).toContainText("2");
+  await expect(card.getByRole("status")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  if (business === "Open PO") {
+    await openSection(page, "Produk");
+    await expect(card.locator(".table-footer")).toContainText("1 dari 2 produk");
+    await page.getByRole("textbox", { name: "Cari produk master" }).fill("tidak ada");
+    await expect(card.getByRole("status")).toContainText("Produk tidak ditemukan");
+    await card.getByRole("button", { name: "Reset filter produk" }).click();
+    await expect(card.locator(".table-footer")).toContainText("2 produk");
+    await expect(page.getByRole("combobox", { name: "Filter produk", exact: true })).toContainText("Semua produk");
+  }
+  await openSection(page, "Pesanan");
+  await expect(card.getByRole("status")).toContainText("Belum ada pesanan");
+  await expect(card.getByRole("button", { name: /Reset filter/ })).toHaveCount(0);
+  await expect(card.locator(".table-footer")).toContainText("0 pesanan");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

@@ -4,7 +4,7 @@ import { visibleOrderStatus } from "@/lib/order-status";
 import { NumberInput } from "@/components/ui/number-input";
 
 import { useState } from "react";
-import { ArrowRight, Check, Layers3, Search, Tag, Upload, X } from "lucide-react";
+import { ArrowRight, Check, Layers3, Package, Search, ShoppingBag, Tag, Upload, X } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { OrdersTable } from "@/components/orders-table";
@@ -39,6 +39,7 @@ export function ModeWorkspace({ tab, type, data, onEditBatch, onEditOrder, onSta
   const po = type === "po";
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [batchStatus, setBatchStatus] = useState("all");
   const [batchFilter, setBatchFilter] = useState("all");
   const [categoryFilter,setCategoryFilter]=useState("all");
   const categories=[...new Set(data.products.map(p=>p.category?.trim()).filter((c):c is string=>Boolean(c)))].sort((a,b)=>a.localeCompare(b,"id"));
@@ -47,6 +48,7 @@ export function ModeWorkspace({ tab, type, data, onEditBatch, onEditOrder, onSta
   const [importOpen, setImportOpen] = useState(false);
   const [productImportOpen, setProductImportOpen] = useState(false);
   const batches = data.batches.filter((b) => b.type === type);
+  const filteredBatches = batches.filter(b => `${b.name} ${b.origin}`.toLowerCase().includes(search.trim().toLowerCase()) && (batchStatus === "all" || b.status === batchStatus));
   const batchIds = new Set(batches.map((b) => b.id));
   const orders = data.orders.filter((o) => batchIds.has(o.batchId));
   const filteredOrders = orders.filter((o) => {
@@ -58,24 +60,55 @@ export function ModeWorkspace({ tab, type, data, onEditBatch, onEditOrder, onSta
   return <div className={`mode-workspace ${po ? "mode-po" : "mode-jastip"}`}>
     <div>
       {tab === "products" && <>
-        <section className="catalog-controls" aria-label="Pencarian dan filter katalog"><div className="catalog-toolbar"><div><h2>Master produk PO</h2><p>Harga dan varian siap pakai untuk setiap pesanan.{!importAllowed && " Import template Excel tersedia di Pro."}</p></div><div className="catalog-actions"><ExcelImportButton allowed={importAllowed} onClick={() => importAllowed ? setProductImportOpen(true) : onUpgrade()} /></div></div>
-        <div className="catalog-filters"><div className="search-field"><Search size={17} /><input aria-label="Cari produk master" placeholder="Cari produk, varian, atau SKU..." value={search} onChange={(e) => setSearch(e.target.value)} /></div><Select className="input filter-input" aria-label="Filter produk" value={productStatus} onValueChange={(value) => setProductStatus(value)}><SelectOption value="active">Produk aktif</SelectOption><SelectOption value="archived">Diarsipkan</SelectOption><SelectOption value="all">Semua produk</SelectOption></Select><Select className="input filter-input" aria-label="Filter kategori produk" value={categoryFilter} onValueChange={setCategoryFilter}><SelectOption value="all">Semua kategori</SelectOption>{categories.map(category=><SelectOption key={category} value={category}>{category}</SelectOption>)}</Select></div></section>
-        {!products.length && data.products.length > 0 && <div className="card empty-state"><h3>Produk tidak ditemukan</h3><p>Coba kata lain atau lihat semua produk, termasuk yang diarsipkan.</p><Button className="btn btn-secondary" onClick={() => { setSearch(""); setProductStatus("all"); setCategoryFilter("all"); }}>Reset filter produk</Button></div>}
-        {products.length > 0 && <ProductsTable products={products} onEdit={onEditProduct} onRemove={setRemovingProduct} />}
-        {!data.products.length && <div className="card empty-state"><h3>Belum ada produk</h3><p>Tambahkan produk melalui tombol Tambah produk atau import Excel.</p></div>}
-        <p className="catalog-note"><Tag size={14} />{productLimit !== undefined && <span>{data.products.length} / {productLimit} produk Gratis (termasuk arsip). </span>}Perubahan master berlaku untuk pesanan baru. Harga pesanan lama tetap tersimpan.</p>
+        <section className="card workspace-list-card" aria-label="Daftar produk">
+          <div className="card-header list-import-header"><div><h2>Master produk PO</h2><p>Harga dan varian siap pakai untuk setiap pesanan.{!importAllowed && " Import template Excel tersedia di Pro."}</p></div><ExcelImportButton allowed={importAllowed} onClick={() => importAllowed ? setProductImportOpen(true) : onUpgrade()} /></div>
+          <div className="list-toolbar" role="group" aria-label="Pencarian dan filter katalog">
+            <div className="search-field"><Search size={18} /><input aria-label="Cari produk master" placeholder="Cari produk, varian, atau SKU..." value={search} onChange={e => setSearch(e.target.value)} /></div>
+            <div className="toolbar-filters">
+              <Select className="input filter-input" aria-label="Filter produk" value={productStatus} onValueChange={setProductStatus}><SelectOption value="active">Produk aktif</SelectOption><SelectOption value="archived">Diarsipkan</SelectOption><SelectOption value="all">Semua produk</SelectOption></Select>
+              <Select className="input filter-input" aria-label="Filter kategori produk" value={categoryFilter} onValueChange={setCategoryFilter}><SelectOption value="all">Semua kategori</SelectOption>{categories.map(category => <SelectOption key={category} value={category}>{category}</SelectOption>)}</Select>
+            </div>
+          </div>
+          {products.length > 0 ? <ProductsTable products={products} onEdit={onEditProduct} onRemove={setRemovingProduct} /> : <WorkspaceEmptyState kind="products" hasData={data.products.length > 0} onReset={() => { setSearch(""); setProductStatus("all"); setCategoryFilter("all"); }} />}
+          <div className="table-footer">{listCount(products.length, data.products.length, "produk")} {productLimit !== undefined && <span>{data.products.length} / {productLimit} produk Gratis (termasuk arsip)</span>}</div>
+        </section>
+        <p className="catalog-note"><Tag size={14} />Perubahan master berlaku untuk pesanan baru. Harga pesanan lama tetap tersimpan.</p>
       </>}
-      {tab === "batches" && <>
-        <div className="inline-heading"><span>{batches.length} {po ? "batch PO untuk katalogmu" : "perjalanan, semua titipanmu"}.</span></div>
-        {batches.length > 0 && <BatchesTable title={po ? "Daftar batch PO" : "Daftar perjalanan Jastip"} batches={batches} orders={orders} data={data} onEdit={onEditBatch} onStatus={onBatchStatus} />}
-        {!batches.length && <div className="card empty-state"><div className="empty-icon"><Layers3 size={26} /></div><h3>{po ? "Katalog siap, mulai batch pertamamu" : "Perjalanan pertama dimulai di sini"}</h3><p>{po ? "Buat periode PO untuk mengumpulkan pesanan produkmu." : "Tentukan perjalanan belanja, lalu catat produk titipannya."}</p></div>}
-      </>}
-      {tab === "orders" && <section className="card"><div className="card-header list-import-header"><div><h2>Pesanan {po ? "Open PO" : "Jastip"}</h2><p>{importAllowed ? "Isi satu per satu atau sekaligus dari Excel." : "Isi pesanan secara manual. Import template Excel tersedia di Pro."}</p></div><ExcelImportButton allowed={importAllowed} onClick={() => importAllowed ? setImportOpen(true) : onUpgrade()} /></div><div className="list-toolbar"><div className="search-field"><Search size={18} /><input aria-label="Cari pesanan" placeholder={`Cari pesanan ${po ? "PO" : "jastip"}...`} value={search} onChange={(e) => setSearch(e.target.value)} /></div><div className="toolbar-filters"><Select className="input filter-input" aria-label="Filter status pesanan" value={status} onValueChange={(value) => setStatus(value)}><SelectOption value="all">Semua status</SelectOption><SelectOption value="unpaid">Belum lunas</SelectOption><SelectOption value="new">Tercatat</SelectOption><SelectOption value="shipped">Dikirim</SelectOption><SelectOption value="done">Selesai</SelectOption><SelectOption value="cancelled">Dibatalkan</SelectOption></Select><Select className="input filter-input" aria-label="Filter batch" value={batchFilter} onValueChange={(value) => setBatchFilter(value)}><SelectOption value="all">Semua {po ? "batch PO" : "perjalanan"}</SelectOption>{batches.map((b) => <SelectOption value={b.id} key={b.id}>{b.name}</SelectOption>)}</Select></div></div><OrdersTable data={data} orders={filteredOrders} onEdit={onEditOrder} onStatus={onStatus} onRefund={onRefund} /><div className="table-footer">{filteredOrders.length} pesanan {po ? "PO" : "jastip"}{!po && <span>Produk bebas, sesuai titipan pelanggan</span>}</div></section>}
+      {tab === "batches" && <section className="card workspace-list-card" aria-label={po ? "Daftar batch" : "Daftar perjalanan"}>
+        <div className="card-header"><div><h2>{po ? "Daftar batch PO" : "Daftar perjalanan Jastip"}</h2><p>{po ? "Kelola periode PO dan kebutuhan produk setiap batch." : "Kelola perjalanan belanja dan rekap produk titipan."}</p></div></div>
+        <div className="list-toolbar">
+          <div className="search-field"><Search size={18} /><input aria-label={po ? "Cari batch" : "Cari perjalanan"} placeholder={po ? "Cari nama batch atau supplier..." : "Cari nama perjalanan atau lokasi..."} value={search} onChange={e => setSearch(e.target.value)} /></div>
+          <div className="toolbar-filters"><Select className="input filter-input" aria-label={po ? "Filter status batch" : "Filter status perjalanan"} value={batchStatus} onValueChange={setBatchStatus}><SelectOption value="all">Semua status</SelectOption><SelectOption value="open">Dibuka</SelectOption><SelectOption value="closed">Ditutup</SelectOption><SelectOption value="completed">Selesai</SelectOption></Select></div>
+        </div>
+        {filteredBatches.length > 0 ? <BatchesTable title={po ? "Daftar batch PO" : "Daftar perjalanan Jastip"} batches={filteredBatches} orders={orders} data={data} onEdit={onEditBatch} onStatus={onBatchStatus} /> : <WorkspaceEmptyState kind={po ? "batches" : "trips"} hasData={batches.length > 0} onReset={() => { setSearch(""); setBatchStatus("all"); }} />}
+        <div className="table-footer">{listCount(filteredBatches.length, batches.length, po ? "batch PO" : "perjalanan")}</div>
+      </section>}
+      {tab === "orders" && <section className="card workspace-list-card" aria-label="Daftar pesanan">
+        <div className="card-header list-import-header"><div><h2>Pesanan {po ? "Open PO" : "Jastip"}</h2><p>{importAllowed ? "Isi satu per satu atau sekaligus dari Excel." : "Isi pesanan secara manual. Import template Excel tersedia di Pro."}</p></div><ExcelImportButton allowed={importAllowed} onClick={() => importAllowed ? setImportOpen(true) : onUpgrade()} /></div>
+        <div className="list-toolbar"><div className="search-field"><Search size={18} /><input aria-label="Cari pesanan" placeholder={`Cari pesanan ${po ? "PO" : "jastip"}...`} value={search} onChange={e => setSearch(e.target.value)} /></div><div className="toolbar-filters"><Select className="input filter-input" aria-label="Filter status pesanan" value={status} onValueChange={setStatus}><SelectOption value="all">Semua status</SelectOption><SelectOption value="unpaid">Belum lunas</SelectOption><SelectOption value="new">Tercatat</SelectOption><SelectOption value="shipped">Dikirim</SelectOption><SelectOption value="done">Selesai</SelectOption><SelectOption value="cancelled">Dibatalkan</SelectOption></Select><Select className="input filter-input" aria-label="Filter batch" value={batchFilter} onValueChange={setBatchFilter}><SelectOption value="all">Semua {po ? "batch PO" : "perjalanan"}</SelectOption>{batches.map(b => <SelectOption value={b.id} key={b.id}>{b.name}</SelectOption>)}</Select></div></div>
+        {filteredOrders.length > 0 ? <OrdersTable data={data} orders={filteredOrders} onEdit={onEditOrder} onStatus={onStatus} onRefund={onRefund} /> : <WorkspaceEmptyState kind="orders" hasData={orders.length > 0} onReset={() => { setSearch(""); setStatus("all"); setBatchFilter("all"); }} />}
+        <div className="table-footer">{listCount(filteredOrders.length, orders.length, `pesanan ${po ? "PO" : "jastip"}`)}{!po && <span>Produk bebas, sesuai titipan pelanggan</span>}</div>
+      </section>}
+
     </div>
     {removingProduct && <ProductRemovalDialog product={removingProduct} onClose={()=>setRemovingProduct(null)} onConfirm={()=>onProductStatus(removingProduct)} />}
     {productImportOpen && <ProductExcelImportDialog importAllowed={importAllowed} data={data} productLimit={productLimit} onImport={onImportProducts} onClose={()=>setProductImportOpen(false)}/> }
     {importOpen && <ExcelImportDialog importAllowed={importAllowed} type={type} data={data} defaultBatchId={batchFilter === "all" ? undefined : batchFilter} onImport={onImport} onClose={() => setImportOpen(false)} />}
   </div>;
+}
+
+function listCount(shown: number, total: number, label: string) {
+  return `${shown}${shown !== total ? ` dari ${total}` : ""} ${label}`;
+}
+
+function WorkspaceEmptyState({ kind, hasData, onReset }: { kind: "products" | "orders" | "batches" | "trips"; hasData: boolean; onReset: () => void }) {
+  const content = {
+    products: { label: "Produk", empty: "Belum ada produk", description: "Tambahkan produk melalui tombol Tambah produk atau import Excel.", Icon: Package },
+    orders: { label: "Pesanan", empty: "Belum ada pesanan", description: "Tambahkan pesanan pertama melalui tombol Tambah pesanan.", Icon: ShoppingBag },
+    batches: { label: "Batch", empty: "Belum ada batch PO", description: "Buat periode PO melalui tombol Tambah batch untuk mengumpulkan pesanan produkmu.", Icon: Layers3 },
+    trips: { label: "Perjalanan", empty: "Belum ada perjalanan", description: "Tentukan perjalanan belanja melalui tombol Tambah perjalanan, lalu catat produk titipannya.", Icon: Layers3 },
+  }[kind];
+  return <div className="empty-state workspace-empty-state" role="status"><div className="empty-icon"><content.Icon size={26} aria-hidden="true" /></div><h3>{hasData ? `${content.label} tidak ditemukan` : content.empty}</h3><p>{hasData ? "Coba kata pencarian lain atau reset filter untuk melihat semua data." : content.description}</p>{hasData && <Button className="btn btn-secondary" onClick={onReset}>Reset filter {content.label.toLowerCase()}</Button>}</div>;
 }
 
 function ExcelImportButton({ allowed, onClick }: { allowed: boolean; onClick: () => void }) {
