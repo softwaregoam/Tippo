@@ -321,7 +321,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
 
       <div className="main-shell">
         <header className="topbar">
-          <div className="breadcrumb"><button ref={menuRef} className="icon-button mobile-menu" aria-label="Buka navigasi" aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={() => setMobileOpen(true)}><Menu size={21} /><span>Menu</span></button><span>Halaman</span><span className="breadcrumb-slash">/</span><strong>{titles[page]}</strong></div>
+          <div className="breadcrumb"><button ref={menuRef} className="icon-button mobile-menu" aria-label="Buka navigasi" aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={() => setMobileOpen(true)}><Menu size={21} /></button><span>Halaman</span><span className="breadcrumb-slash">/</span><strong>{titles[page]}</strong></div>
           <div className="topbar-right">
             <div className="account-control" ref={accountRef} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setAccountOpen(false); }}>
               <button ref={accountButton} className="top-avatar" aria-label="Menu akun" aria-haspopup="menu" aria-expanded={accountOpen} aria-controls="account-menu" onClick={() => { focusLastAccountItem.current = false; setAccountOpen(!accountOpen); }} onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); focusLastAccountItem.current = event.key === "ArrowUp"; setAccountOpen(true); } }}><span>Akun</span><ChevronDown size={14} aria-hidden="true" /></button>
