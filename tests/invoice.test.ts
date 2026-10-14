@@ -18,9 +18,11 @@ const order: Order = {
 
 test("WhatsApp invoice includes every item and option, one order fee, and partial payment", () => {
   const invoice = buildInvoice(order, batch, customer);
-  assert.ok(invoice.includes("No. invoice: TIP-ORDER-FIXED"));
+  assert.ok(invoice.includes("No. invoice: INV-ORDER-FIXED"));
   assert.ok(invoice.includes("Tanggal: 8 Oktober 2026"));
-  assert.ok(invoice.includes("Jenis: Jastip"));
+  assert.ok(!invoice.includes("Jenis:"));
+  assert.ok(!invoice.includes("Status:"));
+  assert.ok(!invoice.includes("Batch:"));
   assert.ok(invoice.includes("Pelanggan: Dina"));
   assert.ok(invoice.includes("WhatsApp: 081234567890"));
   assert.ok(invoice.includes("1. Kaos · Oversize · Biru · L"));
@@ -43,7 +45,7 @@ test("customer invoice excludes purchase costs, batch costs, and private notes",
 
 test("cancelled invoice displays cancellation and never asks for an outstanding balance", () => {
   const invoice = buildInvoice({ ...order, paid: 0, status: "cancelled" }, batch, customer);
-  assert.ok(invoice.includes("Status: Dibatalkan"));
+  assert.ok(!invoice.includes("Status:"));
   assert.ok(invoice.includes(`Total sebelum pembatalan: ${formatCurrency(390000)}`));
   assert.ok(invoice.includes(`*Sisa tagihan*: ${formatCurrency(0)}`));
   assert.ok(invoice.includes("Tidak ada tagihan untuk pesanan ini."));
@@ -52,17 +54,30 @@ test("cancelled invoice displays cancellation and never asks for an outstanding 
 
 test("fully paid and zero value PO orders show zero remaining and preserve stable invoice IDs", () => {
   const paidInvoice = buildInvoice({ ...order, paid: 390000 }, { ...batch, type: "po" }, { ...customer, phone: "" });
-  assert.ok(paidInvoice.includes("Jenis: Open PO"));
+  assert.ok(!paidInvoice.includes("Jenis:"));
   assert.ok(paidInvoice.includes(`*Sisa tagihan*: ${formatCurrency(0)}`));
   assert.ok(!paidInvoice.includes("WhatsApp:"));
   const freeOrder = { ...order, items: order.items.map((item) => ({ ...item, unitPrice: 0 })), serviceFee: 0, shippingCharge: 0, paid: 0 };
   const freeInvoice = buildInvoice(freeOrder);
   assert.ok(freeInvoice.includes(`*Total tagihan*: ${formatCurrency(0)}`));
-  assert.ok(freeInvoice.includes("No. invoice: TIP-ORDER-FIXED"));
+  assert.ok(freeInvoice.includes("No. invoice: INV-ORDER-FIXED"));
 });
 
 test("customer labels containing newlines remain on their own invoice lines", () => {
   const invoice = buildInvoice(order, { ...batch, name: "Batch\nbaru" }, { ...customer, name: "Dina\r\nbaru" });
-  assert.ok(invoice.includes("Batch: Batch baru\n"));
+  assert.ok(!invoice.includes("Batch:"));
   assert.ok(invoice.includes("Pelanggan: Dina baru\n"));
+});
+
+
+test("invoice uses account-specific prefix and only explicitly configured store name",()=>{
+ const a=buildInvoice(order,batch,customer,{invoicePrefix:"NAYA",invoiceStoreName:"Toko Naya"});
+ const b=buildInvoice(order,batch,customer,{invoicePrefix:"TOKO-B",invoiceStoreName:""});
+ assert.ok(a.startsWith("*INVOICE*\n*Toko Naya*\nNo. invoice: NAYA-ORDER-FIXED"));
+ assert.ok(b.startsWith("*INVOICE*\nNo. invoice: TOKO-B-ORDER-FIXED"));
+ assert.ok(!b.includes("Toko Naya"));assert.ok(!b.includes("TIPPO"));
+ assert.ok(!buildInvoice(order,batch,customer,{invoiceStoreName:"  "}).includes("Toko"));
+ assert.ok(buildInvoice({...order,date:"2026-10-09",paid:200000},batch,customer,{invoicePrefix:"NAYA"}).includes("No. invoice: NAYA-ORDER-FIXED"));
+ const sanitized=buildInvoice(order,batch,customer,{invoiceStoreName:"Toko\nBaru",invoicePrefix:"INVALID\n"});
+ assert.ok(sanitized.includes("*Toko Baru*"));assert.ok(sanitized.includes("No. invoice: INVALID-ORDER-FIXED"));
 });

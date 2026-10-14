@@ -7,6 +7,7 @@ import { useState } from "react";
 import { ArrowLeftRight, FileText, Pencil, ShoppingBag, RotateCcw } from "lucide-react";
 import { RefundDialog, type RefundHandler } from "@/components/refund-dialog";
 import { refundedTotal } from "@/lib/refund";
+import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDialog } from "@/components/invoice-dialog";
 import { formatCurrency, itemLabel, orderHpp, orderLabel, orderRevenue, outstanding } from "@/lib/finance";
 import {MobileDataList} from "@/components/mobile-data-list";
@@ -14,6 +15,7 @@ import type { AppData, Order } from "@/lib/types";
 
 type OrdersTableProps = {
   data: AppData;
+  invoiceSettings?: InvoiceSettings;
   orders: Order[];
   onEdit: (order: Order) => void;
   onStatus: OrderStatusHandler;
@@ -29,7 +31,7 @@ function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "?";
 }
 
-export function OrdersTable({ data, orders, onEdit, onStatus, onRefund, compact = false, readOnly = false }: OrdersTableProps) {
+export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, onRefund, compact = false, readOnly = false }: OrdersTableProps) {
   const [statusOrderId, setStatusOrderId] = useState<string | null>(null);
   const statusOrder = data.orders.find(order => order.id === statusOrderId);
   const [refundId,setRefundId]=useState<string|null>(null);
@@ -104,6 +106,6 @@ export function OrdersTable({ data, orders, onEdit, onStatus, onRefund, compact 
           })}
         </tbody>
       </table>
-    </div>{statusOrder && !readOnly && <OrderStatusDialog order={statusOrder} onSave={onStatus} onClose={()=>setStatusOrderId(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && <InvoiceDialog order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
+    </div>{statusOrder && !readOnly && <OrderStatusDialog order={statusOrder} onSave={onStatus} onClose={()=>setStatusOrderId(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && <InvoiceDialog settings={invoiceSettings} order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
   );
 }

@@ -1,15 +1,7 @@
 import { refundedTotal } from "./refund.ts";
 import { formatCurrency, itemLabel, orderDiscount, orderRevenue, outstanding } from "./finance.ts";
+import { readBusinessProfile, type InvoiceSettings } from "./business-profile.ts";
 import type { Batch, Customer, Order } from "./types.ts";
-
-const statusLabels: Record<Order["status"], string> = {
-  new: "Tercatat",
-  purchased: "Tercatat",
-  ready: "Tercatat",
-  shipped: "Dikirim",
-  done: "Selesai",
-  cancelled: "Dibatalkan",
-};
 
 function textLine(value: string): string {
   return value.replace(/[\r\n]+/g, " ").trim();
@@ -23,15 +15,15 @@ function invoiceDate(date: string): string {
 }
 
 /** A customer-facing WhatsApp message. Purchase costs and internal notes stay private. */
-export function buildInvoice(order: Order, batch?: Batch, customer?: Customer): string {
+export function buildInvoice(order: Order, _batch?: Batch, customer?: Customer, settings?: Partial<InvoiceSettings>): string {
+  const profile = readBusinessProfile(settings);
   const cancelled = order.status === "cancelled";
   const total = orderRevenue(order);
   const lines = [
-    "*INVOICE TIPPO*",
-    `No. invoice: TIP-${textLine(order.id).toUpperCase()}`,
+    "*INVOICE*",
+    ...(profile.invoiceStoreName ? [`*${textLine(profile.invoiceStoreName)}*`] : []),
+    `No. invoice: ${profile.invoicePrefix}-${textLine(order.id).toUpperCase()}`,
     `Tanggal: ${invoiceDate(order.date)}`,
-    `Jenis: ${batch?.type === "jastip" ? "Jastip" : batch?.type === "po" ? "Open PO" : "Pesanan"}`,
-    ...(batch ? [`Batch: ${textLine(batch.name)}`] : []),
     `Pelanggan: ${textLine(customer?.name ?? "Pelanggan")}`,
     ...(customer?.phone ? [`WhatsApp: ${textLine(customer.phone)}`] : []),
     "",
@@ -48,7 +40,6 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer): 
     `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
     ...(refundedTotal(order) > 0 ? [`Pembayaran sebelum refund: ${formatCurrency(order.paid + refundedTotal(order))}`, `Refund: ${formatCurrency(refundedTotal(order))}`, `Pembayaran tersisa: ${formatCurrency(order.paid)}`] : [`Sudah dibayar: ${formatCurrency(order.paid)}`]),
     `*Sisa tagihan*: ${formatCurrency(outstanding(order))}`,
-    `Status: ${statusLabels[order.status]}`,
     "",
     cancelled ? "Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini." : "Terima kasih sudah memesan!",
   ];

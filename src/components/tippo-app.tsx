@@ -5,6 +5,7 @@ import { isAppData } from "@/lib/validation";
 import { FeedbackPanel } from "@/components/feedback-panel";
 import { HelpPanel } from "@/components/help-panel";
 import { applyRefund, refundedTotal } from "@/lib/refund";
+import { DEMO_PROFILE_KEY, readBusinessProfile } from "@/lib/business-profile";
 import { BusinessProfilePanel } from "@/components/business-profile";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -60,6 +61,12 @@ const serverReady = () => false;
 export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const ready = useSyncExternalStore(subscribeReady, clientReady, serverReady);
   const demoData = useAppData();
+  const [demoProfile, setDemoProfile] = useState(() => {
+    if (cloud) return readBusinessProfile(null);
+    try { return readBusinessProfile(JSON.parse(localStorage.getItem(DEMO_PROFILE_KEY) ?? "null")); }
+    catch { return readBusinessProfile(null); }
+  });
+  const invoiceSettings = cloud ? readBusinessProfile(cloud) : demoProfile;
   const data = cloud?.record.data ?? demoData;
   const demoSubscription = useSubscription();
   const subscription = cloud?.record.subscription ?? demoSubscription;
@@ -367,7 +374,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
               </>}
 
 
-              {(page === "products" || page === "batches" || page === "orders") && <ModeWorkspace key={mode + page} tab={page} type={mode} data={data}
+              {(page === "products" || page === "batches" || page === "orders") && <ModeWorkspace key={mode + page} tab={page} type={mode} data={data} invoiceSettings={invoiceSettings}
                 onEditBatch={(batch) => setBatchModal({ type: batch.type, batch })}
                 onNewOrder={(batchId, productId) => startOrder(mode, batchId, productId)}
                 onEditOrder={editOrder} onStatus={updateStatus} onRefund={refundOrder}
@@ -384,7 +391,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
 
               {page === "subscription" && <SubscriptionPanel data={data} subscription={subscription} account={cloud ? { id: cloud.ownerId, name: cloud.name, email: cloud.email } : undefined} onNotify={notify} onSubscriptionChanged={cloud?.refreshSubscription} />}
 
-              {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} />}
+              {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} onSaved={setDemoProfile} />}
               {page === "feedback" && <FeedbackPanel key={cloud?.ownerId ?? "local"} onNotify={notify} />}
               {page === "help" && <HelpPanel mode={mode} onNavigate={go} />}
               {page === "settings" && <DataSettings data={data} cloud={!!cloud} onUpdate={replaceData} onNotify={notify} />}

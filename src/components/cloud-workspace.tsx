@@ -13,7 +13,7 @@ import { readBusinessProfile, validateBusinessProfile, type BusinessProfile } fr
 import { TippoApp } from "./tippo-app";
 import { Wordmark } from "./wordmark";
 
-export interface AccountWorkspace { ownerId: string; name: string; email: string; phone: string; address: string; saveProfile: (profile: BusinessProfile) => Promise<void>; saving: boolean; record: CloudRecord; commit: (data: AppData) => Promise<boolean>; logout: () => Promise<void>; refreshSubscription:()=>Promise<void> }
+export interface AccountWorkspace extends Pick<BusinessProfile, "invoiceStoreName" | "invoicePrefix"> { ownerId: string; name: string; email: string; phone: string; address: string; saveProfile: (profile: BusinessProfile) => Promise<void>; saving: boolean; record: CloudRecord; commit: (data: AppData) => Promise<boolean>; logout: () => Promise<void>; refreshSubscription:()=>Promise<void> }
 export function CloudWorkspace() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -76,7 +76,7 @@ export function CloudWorkspace() {
     const accountId = user.id;
     saving.current = true; setBusy(true);
     try {
-      const { data, error } = await client.auth.updateUser({ data: { business_name: next.name, business_phone: next.phone, business_address: next.address } });
+      const { data, error } = await client.auth.updateUser({ data: { business_name: next.name, business_phone: next.phone, business_address: next.address, invoice_store_name: next.invoiceStoreName, invoice_prefix: next.invoicePrefix } });
       if (request !== epoch.current || owner.current !== accountId) throw new Error("Sesi akun berubah. Masuk kembali untuk melanjutkan.");
       if (error || !data.user) throw new Error("Profil belum tersimpan. Periksa koneksi dan coba lagi.");
       setUser(data.user);
@@ -99,7 +99,7 @@ export function CloudWorkspace() {
     setRecord(previous=>previous?{...previous,subscription:next.subscription}:previous);
   }
   if (!record) return <main className="workspace-wait"><Wordmark /><div className="workspace-wait-card" role={loading ? "status" : undefined}>{loading ? <><LoaderCircle size={32} className="spin" /><h1>Memuat catatan usahamu…</h1><p>Pesanan, produk, dan pembayaran sedang diambil dari akunmu.</p></> : <><Cloud size={36} /><h1>Ruang usahamu belum terbuka.</h1><p role="alert">{error}</p><div>{user ? <button className="landing-button primary" onClick={() => void load(user)}><RefreshCw size={17} />Coba lagi</button> : <Link href="/masuk" className="landing-button primary">Masuk ke akun</Link>}</div><button className="text-action" onClick={logout}>Keluar akun</button></>}</div></main>;
-  const profile = readBusinessProfile({ name: user?.user_metadata.business_name, phone: user?.user_metadata.business_phone, address: user?.user_metadata.business_address });
+  const profile = readBusinessProfile({ name: user?.user_metadata.business_name, phone: user?.user_metadata.business_phone, address: user?.user_metadata.business_address, invoiceStoreName: user?.user_metadata.invoice_store_name, invoicePrefix: user?.user_metadata.invoice_prefix });
   if (!user) return null;
-  return <>{error && <div className="cloud-error" role="alert">{error} <button onClick={() => user && void load(user)}>Muat data terbaru</button></div>}<TippoApp cloud={{ ownerId: user.id, name: profile.name, phone: profile.phone, address: profile.address, saveProfile, email: user.email ?? "", saving: busy, record, commit, logout, refreshSubscription }} />{(busy || loading) && <div className="cloud-saving" role="status"><LoaderCircle size={26} className="spin" /><span>{busy ? "Menyimpan perubahan…" : "Memuat data terbaru…"}</span></div>}</>;
+  return <>{error && <div className="cloud-error" role="alert">{error} <button onClick={() => user && void load(user)}>Muat data terbaru</button></div>}<TippoApp cloud={{ ownerId: user.id, name: profile.name, phone: profile.phone, address: profile.address, invoiceStoreName: profile.invoiceStoreName, invoicePrefix: profile.invoicePrefix, saveProfile, email: user.email ?? "", saving: busy, record, commit, logout, refreshSubscription }} />{(busy || loading) && <div className="cloud-saving" role="status"><LoaderCircle size={26} className="spin" /><span>{busy ? "Menyimpan perubahan…" : "Memuat data terbaru…"}</span></div>}</>;
 }

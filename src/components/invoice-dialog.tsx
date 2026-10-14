@@ -3,15 +3,16 @@
 import { useRef, useState } from "react";
 import { Copy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { InvoiceSettings } from "@/lib/business-profile";
 import { buildInvoice } from "@/lib/invoice";
 import type { AppData, Order } from "@/lib/types";
 
-export function InvoiceDialog({ order, data, onClose }: { order: Order; data: AppData; onClose: () => void }) {
+export function InvoiceDialog({ order, data, settings, onClose }: { order: Order; data: AppData; settings?: InvoiceSettings; onClose: () => void }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   const [feedback, setFeedback] = useState("");
   const [manualCopy, setManualCopy] = useState(false);
   const [copying, setCopying] = useState(false);
-  const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId));
+  const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings);
 
   async function copyInvoice() {
     setCopying(true);

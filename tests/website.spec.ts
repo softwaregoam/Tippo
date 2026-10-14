@@ -78,10 +78,10 @@ for(const width of [320,1440])test(`DOKU production Rp10.000 test at ${width}px`
 
 const endpoint="https://bkplemoflteubfgvqhke.supabase.co";
 const owner="00000000-0000-0000-0000-000000000001";
-function session() {
+function session(accountId = owner) {
   const exp=Math.floor(Date.now()/1000)+3600;
-  const token=[Buffer.from(JSON.stringify({alg:"HS256",typ:"JWT"})).toString("base64url"),Buffer.from(JSON.stringify({sub:owner,exp,aud:"authenticated"})).toString("base64url"),"test-signature"].join(".");
-  return {access_token:token,refresh_token:"test-refresh",token_type:"bearer",expires_in:3600,expires_at:exp,user:{id:owner,aud:"authenticated",role:"authenticated",email:"naya@example.test",app_metadata:{},user_metadata:{business_name:"Titipan Naya"},created_at:"2026-10-08T00:00:00Z"}};
+  const token=[Buffer.from(JSON.stringify({alg:"HS256",typ:"JWT"})).toString("base64url"),Buffer.from(JSON.stringify({sub:accountId,exp,aud:"authenticated"})).toString("base64url"),"test-signature"].join(".");
+  return {access_token:token,refresh_token:"test-refresh",token_type:"bearer",expires_in:3600,expires_at:exp,user:{id:accountId,aud:"authenticated",role:"authenticated",email:"naya@example.test",app_metadata:{},user_metadata:{business_name:"Titipan Naya"},created_at:"2026-10-08T00:00:00Z"}};
 }
 const fixture: AppData={batches:[{id:"trip",type:"jastip",name:"Jastip Seoul",origin:"Seoul",closeDate:"2026-12-01",status:"open",directCosts:0}],customers:[{id:"aly",name:"Alya",phone:""}],products:[],orders:[]};
 async function checkCalendarOnly(page:Page,input:Locator,form:Locator) {
@@ -100,8 +100,8 @@ async function checkCalendarOnly(page:Page,input:Locator,form:Locator) {
   const pasteBlocked=await input.evaluate(element=>!element.dispatchEvent(new Event("paste",{bubbles:true,cancelable:true})));
   expect(pasteBlocked).toBe(true);
 }
-async function authenticate(page:Page, options:{failSave?:boolean;missing?:boolean;pro?:boolean;workspace?:AppData}={}) {
-  const auth=session(); let version=0; let data=structuredClone(options.workspace ?? fixture); const requests: {p_data:AppData;p_expected_version:number}[]=[];
+async function authenticate(page:Page, options:{failSave?:boolean;missing?:boolean;pro?:boolean;workspace?:AppData;accountId?:string;metadata?:Record<string,string>}={}) {
+  const auth=session(options.accountId); Object.assign(auth.user.user_metadata,options.metadata); let version=0; let data=structuredClone(options.workspace ?? fixture); const requests: {p_data:AppData;p_expected_version:number}[]=[];
   await page.addInitScript(({auth})=>{
     if(!sessionStorage.getItem("auth-test-seeded")){localStorage.setItem("sb-bkplemoflteubfgvqhke-auth-token",JSON.stringify(auth));sessionStorage.setItem("auth-test-seeded","1");}
     localStorage.setItem("tippo.subscription.demo.v1",JSON.stringify({tier:"pro",expiresAt:"2099-01-01T00:00:00Z",mode:"demo"}));
@@ -673,8 +673,14 @@ test("Google settings network failure allows retry without losing email input",a
   await expect(page.getByRole("heading",{name:"Google simulasi"})).toBeVisible();
 });
 
-test("business profile persists in demo and data settings are in the sidebar",async({page})=>{
-  await page.goto("/demo");
+test("business profile persists and data settings are in the sidebar",async({page})=>{
+  await authenticate(page);
+  const auth=session();
+  await page.route(`${endpoint}/auth/v1/user`,async route=>{
+    if(route.request().method()==="PUT")auth.user.user_metadata={...auth.user.user_metadata,...route.request().postDataJSON().data};
+    await route.fulfill({json:auth.user});
+  });
+  await page.goto("/app");
   await page.getByRole("button",{name:"Menu akun",exact:true}).click();
   await expect(page.getByRole("menuitem",{name:"Pengaturan data",exact:true})).toHaveCount(0);
   await page.getByRole("menuitem",{name:"Profil bisnis",exact:true}).click();
@@ -708,7 +714,7 @@ for(const fail of [false,true])test(`cloud business profile ${fail?"preserves in
   await page.getByLabel("Nama usaha",{exact:true}).fill("Titipan Baru");await page.getByLabel("Alamat usaha (opsional)").fill("Bandung");
   await page.getByRole("button",{name:"Simpan profil",exact:true}).click();
   if(fail){await expect(page.locator(".business-profile-card [role=alert]")).toContainText("Profil belum tersimpan");await expect(page.getByLabel("Nama usaha",{exact:true})).toHaveValue("Titipan Baru");await expect(page.getByText("Profil bisnis berhasil disimpan",{exact:true})).toHaveCount(0);}
-  else{await expect(page.locator(".toast")).toContainText("Profil bisnis berhasil disimpan");expect(payload!.data).toEqual({business_name:"Titipan Baru",business_phone:"",business_address:"Bandung"});await page.reload();await page.getByRole("button",{name:"Menu akun",exact:true}).click();await page.getByRole("menuitem",{name:"Profil bisnis",exact:true}).click();await expect(page.getByLabel("Nama usaha",{exact:true})).toHaveValue("Titipan Baru");}
+  else{await expect(page.locator(".toast")).toContainText("Profil bisnis berhasil disimpan");expect(payload!.data).toEqual({business_name:"Titipan Baru",business_phone:"",business_address:"Bandung",invoice_store_name:"",invoice_prefix:"INV"});await page.reload();await page.getByRole("button",{name:"Menu akun",exact:true}).click();await page.getByRole("menuitem",{name:"Profil bisnis",exact:true}).click();await expect(page.getByLabel("Nama usaha",{exact:true})).toHaveValue("Titipan Baru");}
 });
 
 
@@ -1393,4 +1399,81 @@ for (const width of [320, 1440]) test(`customer list uses shared card and resets
     const add = page.getByRole("button", { name: "Tambah pelanggan", exact: true });
     await expect(add).toHaveClass(/page-create-button/);
   }
+});
+
+for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as const) test(`invoice identity follows account profile ${business} ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const workspace = structuredClone(fixture);
+  workspace.batches.push({ ...fixture.batches[0], id: "po", type: "po", name: "PO Rahasia" });
+  workspace.orders = [{ id: "invoice-order", customerId: "aly", batchId: business === "Open PO" ? "po" : "trip", createdAt: "2026-10-14T00:00:00Z", date: "2026-10-14", status: "new", notes: "Catatan internal", serviceFee: 0, shippingCharge: 10000, paid: 0, items: [{ id: "i", product: "Roti Susu", variant: "Coklat", color: "", size: "", quantity: 2, unitPrice: 25000, unitCost: 12000 }] }];
+  await authenticate(page, { workspace });
+  const auth = session();
+  let saved: Record<string, string> = {};
+  await page.route(`${endpoint}/auth/v1/user`, async route => {
+    if (route.request().method() === "PUT") {
+      saved = route.request().postDataJSON().data;
+      auth.user.user_metadata = { ...auth.user.user_metadata, ...saved };
+    }
+    await route.fulfill({ json: auth.user });
+  });
+  await page.addInitScript(() => localStorage.setItem("tippo.business.demo.v1", JSON.stringify({ name: "Autre", invoiceStoreName: "DO NOT USE", invoicePrefix: "DEMO" })));
+  async function profile() {
+    await page.getByRole("button", { name: "Menu akun", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Profil bisnis", exact: true }).click();
+  }
+  async function invoice() {
+    await openSection(page, "Pesanan");
+    if (width < 600) {
+      await page.getByRole("button", { name: "Detail Alya", exact: true }).click();
+      await page.getByRole("dialog", { name: "Detail Alya" }).getByRole("button", { name: "Invoice", exact: true }).click();
+    } else await page.getByRole("button", { name: /^Invoice Roti/ }).click();
+    return page.getByRole("dialog", { name: "Invoice pesanan", exact: true });
+  }
+  await page.goto("/app"); await openBusiness(page, business);
+  let dialog = await invoice();
+  const message = () => dialog.getByLabel("Isi invoice untuk WhatsApp");
+  await expect(message()).toHaveValue(/^\*INVOICE\*\nNo\. invoice: INV-INVOICE-ORDER/);
+  expect(await message().inputValue()).not.toMatch(/Status:|Batch:|Jenis:|Titipan Naya|DO NOT USE|Catatan internal/);
+  await dialog.getByRole("button", { name: "Tutup invoice", exact: true }).click();
+  await profile();
+  await expect(page.getByLabel("Nama toko pada invoice (opsional)")).toHaveValue("");
+  await expect(page.getByLabel("Awalan nomor invoice", { exact: true })).toHaveValue("INV");
+  await page.getByLabel("Nama toko pada invoice (opsional)").fill("Toko Invoice");
+  await page.getByLabel("Awalan nomor invoice", { exact: true }).fill("NAYA");
+  await page.getByRole("button", { name: "Simpan profil", exact: true }).click();
+  await expect(page.locator(".toast")).toContainText("Profil bisnis berhasil disimpan");
+  expect(saved).toMatchObject({ invoice_store_name: "Toko Invoice", invoice_prefix: "NAYA", business_name: "Titipan Naya" });
+  dialog = await invoice();
+  await expect(message()).toHaveValue(/^\*INVOICE\*\n\*Toko Invoice\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await dialog.getByRole("button", { name: "Tutup invoice", exact: true }).click();
+  await page.reload(); await openSection(page, "Pesanan");
+  dialog = await invoice();
+  await expect(message()).toHaveValue(/^\*INVOICE\*\n\*Toko Invoice\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
+  await dialog.getByRole("button", { name: "Tutup invoice", exact: true }).click();
+  await profile();
+  await page.getByLabel("Nama toko pada invoice (opsional)").fill("");
+  await page.getByRole("button", { name: "Simpan profil", exact: true }).click();
+  await expect(page.locator(".toast")).toContainText("Profil bisnis berhasil disimpan");
+  dialog = await invoice();
+  await expect(message()).toHaveValue(/^\*INVOICE\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
+  expect(await message().inputValue()).not.toContain("Toko Invoice");
+});
+
+
+test("invoice profile is scoped to the signed-in account rather than demo storage",async({browser})=>{
+ const accounts: {id:string;metadata:Record<string,string>;store:string;prefix:string}[] = [
+  {id:owner,metadata:{invoice_store_name:"Toko Akun A",invoice_prefix:"AKUN-A"},store:"Toko Akun A",prefix:"AKUN-A"},
+  {id:"00000000-0000-0000-0000-000000000002",metadata:{},store:"",prefix:"INV"},
+ ];
+ for(const account of accounts){
+  const context=await browser.newContext({viewport:{width:390,height:900}});
+  try {
+   const page=await context.newPage();await authenticate(page,{accountId:account.id,metadata:account.metadata});
+   await page.addInitScript(()=>localStorage.setItem("tippo.business.demo.v1",JSON.stringify({name:"Cached account",invoiceStoreName:"Toko Akun A",invoicePrefix:"AKUN-A"})));
+   await page.goto("/app");await page.getByRole("button",{name:"Menu akun",exact:true}).click();await page.getByRole("menuitem",{name:"Profil bisnis",exact:true}).click();
+   await expect(page.getByLabel("Nama toko pada invoice (opsional)")).toHaveValue(account.store);
+   await expect(page.getByLabel("Awalan nomor invoice",{exact:true})).toHaveValue(account.prefix);
+  } finally {await context.close();}
+ }
 });
