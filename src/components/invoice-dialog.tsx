@@ -12,7 +12,8 @@ import type { AppData, Order } from "@/lib/types";
 export function InvoiceDialog({ order, data, settings, onClose }: { order: Order; data: AppData; settings?: InvoiceSettings; onClose: () => void }) {
   const id = useId();
   const [tab, setTab] = useState<"image" | "whatsapp">("image");
-  function selectTab(next: "image" | "whatsapp") { setTab(next); setFeedback(""); }
+  function selectTab(next: "image" | "whatsapp") { setTab(next); setFeedback(""); if(body.current)body.current.scrollTop=0; }
+  const body=useRef<HTMLDivElement>(null);
   const document = useRef<HTMLDivElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const [feedback, setFeedback] = useState("");
@@ -72,7 +73,7 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
         <button type="button" role="tab" id={`${id}-image-tab`} aria-controls={`${id}-image-panel`} aria-selected={tab==="image"} tabIndex={tab==="image"?0:-1} onClick={()=>selectTab("image")}><FileImage size={16}/>Invoice gambar</button>
         <button type="button" role="tab" id={`${id}-whatsapp-tab`} aria-controls={`${id}-whatsapp-panel`} aria-selected={tab==="whatsapp"} tabIndex={tab==="whatsapp"?0:-1} onClick={()=>selectTab("whatsapp")}><MessageSquare size={16}/>Teks WhatsApp</button>
       </div>
-      <div className="modal-body">
+      <div ref={body} className="modal-body">
         <div role="tabpanel" id={`${id}-image-panel`} aria-labelledby={`${id}-image-tab`} hidden={tab!=="image"}>
         <div ref={document} className="invoice-preview-surface"><InvoiceDocument order={order} batch={data.batches.find(batch=>batch.id===order.batchId)} customer={data.customers.find(customer=>customer.id===order.customerId)} settings={settings}/></div>
         </div>
@@ -81,11 +82,10 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
         <textarea
           ref={textarea}
           id="invoice-message"
-          className="input"
+          className="input invoice-message"
           readOnly
           value={message}
           spellCheck={false}
-          style={{ minHeight: 310, maxHeight: "45dvh", width: "100%", resize: "vertical", fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, marginTop: 8 }}
         />
         </div>
         {feedback && <p role="status" style={{ color: manualCopy ? "var(--warning, #aa762c)" : "var(--primary, #24756b)" }}>{feedback}</p>}

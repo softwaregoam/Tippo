@@ -1184,7 +1184,10 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .invoice-tabs [role="tab"]:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 .order-invoice-dialog [role="tabpanel"][hidden] { display:none; }
 .order-invoice-dialog { width:min(840px,calc(100vw - 32px)); }
-.order-invoice-dialog .modal-body { padding:20px; }
+.order-invoice-dialog[open] { display:flex; flex-direction:column; overflow:hidden; }
+.order-invoice-dialog .modal-header,.order-invoice-dialog .invoice-tabs,.order-invoice-dialog .modal-footer { flex-shrink:0; }
+.order-invoice-dialog .modal-body { padding:20px; min-height:0; overflow:auto; overscroll-behavior:contain; }
+.order-invoice-dialog .invoice-message { width:100%; height:clamp(180px,45dvh,420px); min-height:160px; resize:vertical; font-family:monospace; font-size:12px; line-height:1.7; margin-top:8px; }
 @media(max-width:1050px) { .invoice-template-layout { grid-template-columns:minmax(0,1fr); } .invoice-template-preview { position:static; } }
 @media(max-width:600px) {
  .invoice-template-layout { gap:18px; }
@@ -1194,8 +1197,9 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .order-invoice-dialog { width:calc(100vw - 20px); max-height:calc(100dvh - 20px); }
  .order-invoice-dialog .modal-body { padding:12px; }
  .invoice-tabs { margin:12px 12px 0; }
- .invoice-tabs [role="tab"] { font-size:12px; gap:6px; }
+ .invoice-tabs [role="tab"] { flex-direction:column; font-size:12px; gap:4px; line-height:1.4; min-height:58px; white-space:nowrap; }
  .order-invoice-dialog .modal-footer { display:grid; grid-template-columns:minmax(0,1fr); }
+ .order-invoice-dialog .modal-footer .btn { width:100%; min-height:44px; white-space:normal; text-align:center; }
 }
 
 .invoice-logo-picker { display:flex; gap:14px; align-items:center; margin-top:12px; }
