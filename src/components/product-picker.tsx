@@ -14,6 +14,7 @@ export function ProductPicker({ value, options, onValueChange, ref, name, classN
   const contentId = useId();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const close = useRef<HTMLButtonElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const selected = options.find(option => option.value === value);
@@ -23,8 +24,8 @@ export function ProductPicker({ value, options, onValueChange, ref, name, classN
     <Popover.Trigger asChild><button {...props} type="button" ref={ref} name={name} role="combobox" aria-haspopup="dialog" aria-controls={contentId} aria-expanded={open} data-value={value} className={`select-trigger ${className}`}><span>{selected ? [selected.name, selected.detail, selected.sku].filter(Boolean).join(" · ") : "Pilih produk"}</span><span><ChevronDown size={16} aria-hidden="true" /></span></button></Popover.Trigger>
     <Popover.Portal><div className="product-picker-portal">
       {open && <div className="product-picker-scrim" />}
-      <Popover.Content id={contentId} data-product-picker className="product-picker" sideOffset={6} collisionPadding={12} aria-label="Pilih produk pesanan" aria-modal="true" onOpenAutoFocus={event => { event.preventDefault(); search.current?.focus(); }}>
-        <div className="product-picker-heading"><h2>Pilih produk</h2><Popover.Close className="icon-button" aria-label="Tutup pilihan produk"><X size={18} /></Popover.Close></div>
+      <Popover.Content id={contentId} data-product-picker className="product-picker" sideOffset={6} collisionPadding={12} aria-label="Pilih produk pesanan" aria-modal="true" onOpenAutoFocus={event => { event.preventDefault(); close.current?.focus({ preventScroll: true }); }}>
+        <div className="product-picker-heading"><h2>Pilih produk</h2><Popover.Close ref={close} className="icon-button" aria-label="Tutup pilihan produk"><X size={18} /></Popover.Close></div>
         <div className="product-picker-search"><Search size={18} aria-hidden="true" /><input ref={search} aria-label="Cari produk pesanan" placeholder="Nama, SKU, varian, atau kategori…" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "ArrowDown") { event.preventDefault(); list.current?.querySelector<HTMLButtonElement>('[role="option"]')?.focus(); } }} />{query && <button className="icon-button" type="button" aria-label="Hapus pencarian produk" onClick={() => { setQuery(""); search.current?.focus(); }}><X size={16} /></button>}</div>
         <p className="product-picker-count" role="status">{filtered.length} dari {options.length} produk</p>
         <div ref={list} className="product-picker-list" role="listbox" aria-label="Produk tersedia" onKeyDown={event => {

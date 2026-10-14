@@ -1489,7 +1489,8 @@ for(const width of [320,1440])test(`PO product search finds catalogue fields and
  const product=form.getByRole("combobox",{name:"Produk",exact:true});
  await expect(product).toContainText("Pilih produk");
  await product.click();const picker=page.getByRole("dialog",{name:"Pilih produk pesanan",exact:true});const search=picker.getByRole("textbox",{name:"Cari produk pesanan"});
- await expect(search).toBeFocused();expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");
+ await expect(search).not.toBeFocused();await expect(picker.getByRole("button",{name:"Tutup pilihan produk"})).toBeFocused();expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");
+ await search.click();await expect(search).toBeFocused();
  const bounds=await picker.boundingBox();expect(bounds!.x).toBeGreaterThanOrEqual(0);expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(width);expect(bounds!.height).toBeLessThanOrEqual(900);
  for(const query of ["Roti Susu","RSC-999","coklat","roti enak"]){
   await search.fill(query);await expect(picker.getByRole("option")).toHaveCount(1);await expect(picker.getByRole("option")).toContainText("Roti Susu");await expect(picker.getByRole("option")).toContainText("25.000");
