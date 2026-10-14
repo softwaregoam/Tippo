@@ -1366,3 +1366,31 @@ for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as
   await expect(card.locator(".table-footer")).toContainText("0 pesanan");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+for (const width of [320, 1440]) test(`customer list uses shared card and resets search ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const workspace = structuredClone(fixture);
+  workspace.customers.push({ id: "bima", name: "Bima", phone: "08123456789", address: "Bandung" });
+  await authenticate(page, { workspace });
+  await page.goto("/app");
+  for (const business of ["Jastip", "Open PO"]) {
+    await openBusiness(page, business);
+    await openSection(page, "Pelanggan");
+    const card = page.getByRole("region", { name: "Daftar kontak pelanggan" });
+    await expect(card.getByRole("heading", { name: "Daftar pelanggan" })).toBeVisible();
+    await expect(card.locator(".table-footer")).toContainText("2 pelanggan");
+    await expect(card.locator(".table-footer")).toContainText(business);
+    const search = card.getByRole("textbox", { name: "Cari pelanggan" });
+    await search.fill("bima");
+    await expect(card.locator(".table-footer")).toContainText("1 dari 2 pelanggan");
+    await search.fill("tidak ditemukan");
+    await expect(card.getByRole("status")).toContainText("Pelanggan tidak ditemukan");
+    await card.getByRole("button", { name: "Reset filter pelanggan" }).click();
+    await expect(search).toHaveValue("");
+    await expect(card.locator(".table-footer")).toContainText("2 pelanggan");
+    await expect(card.getByRole("status")).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const add = page.getByRole("button", { name: "Tambah pelanggan", exact: true });
+    await expect(add).toHaveClass(/page-create-button/);
+  }
+});

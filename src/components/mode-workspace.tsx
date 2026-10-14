@@ -4,7 +4,7 @@ import { visibleOrderStatus } from "@/lib/order-status";
 import { NumberInput } from "@/components/ui/number-input";
 
 import { useState } from "react";
-import { ArrowRight, Check, Layers3, Package, Search, ShoppingBag, Tag, Upload, X } from "lucide-react";
+import { ArrowRight, Check, Layers3, Package, Search, ShoppingBag, Tag, Upload, UsersRound, X } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { OrdersTable } from "@/components/orders-table";
@@ -101,8 +101,9 @@ function listCount(shown: number, total: number, label: string) {
   return `${shown}${shown !== total ? ` dari ${total}` : ""} ${label}`;
 }
 
-function WorkspaceEmptyState({ kind, hasData, onReset }: { kind: "products" | "orders" | "batches" | "trips"; hasData: boolean; onReset: () => void }) {
+export function WorkspaceEmptyState({ kind, hasData, onReset }: { kind: "products" | "orders" | "batches" | "trips" | "customers"; hasData: boolean; onReset: () => void }) {
   const content = {
+    customers: { label: "Pelanggan", empty: "Belum ada pelanggan", description: "Simpan nama dan nomor pelanggan melalui tombol Tambah pelanggan sebelum mencatat pesanan.", Icon: UsersRound },
     products: { label: "Produk", empty: "Belum ada produk", description: "Tambahkan produk melalui tombol Tambah produk atau import Excel.", Icon: Package },
     orders: { label: "Pesanan", empty: "Belum ada pesanan", description: "Tambahkan pesanan pertama melalui tombol Tambah pesanan.", Icon: ShoppingBag },
     batches: { label: "Batch", empty: "Belum ada batch PO", description: "Buat periode PO melalui tombol Tambah batch untuk mengumpulkan pesanan produkmu.", Icon: Layers3 },
