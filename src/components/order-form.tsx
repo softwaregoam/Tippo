@@ -331,7 +331,6 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
             <div className="summary-cell"><span>Estimasi laba</span><strong style={margin !== null && margin < 0 ? { color: "var(--danger)" } : undefined}>{margin === null ? "Belum lengkap" : formatCurrency(margin)}</strong></div>
             <div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div>
           </div>
-          <p className="field-hint" style={{ marginTop: 10 }}>HPP dihitung dari harga beli per produk dan jumlahnya. Satu produk yang belum memiliki harga beli membuat HPP pesanan belum lengkap.</p>
         </div>
         <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || !canUseSelectedBatch}>{order ? <Check size={17} /> : <Plus size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
       </form>

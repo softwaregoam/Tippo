@@ -326,7 +326,6 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
           </section>
           <section className="order-section"><h3><span className="order-section-number">4</span>Pembayaran</h3><div className="order-payment"><p className="payment-total">Total tagihan <strong>{formatCurrency(revenue)}</strong></p><div className="form-grid">{amountField("paid", "Sudah dibayar (DP / lunas)")}</div></div></section>
           <div className="summary-strip" aria-live="polite"><div className="summary-cell"><span>Total tagihan</span><strong>{formatCurrency(revenue)}</strong></div><div className="summary-cell"><span>Estimasi HPP</span><strong>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</strong></div><div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div></div>
-          <p className="field-hint" style={{ marginTop: 10 }}>HPP dihitung dari harga beli per produk dan jumlahnya. Sudah dibayar adalah total pembayaran sampai saat ini.</p>
         </div>
         <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || (!order && (!hasOpenBatch || !hasActiveProducts))}>{order ? <Check size={17} /> : <Plus size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
       </form>
