@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChatOrderDraft } from "@/lib/chat-order";
 import { NumberInput } from "@/components/ui/number-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { OrderDiscountFields } from "@/components/order-discount-fields";
@@ -16,6 +17,7 @@ type PoOrderFormProps = {
   saving?: boolean;
   data: AppData;
   order?: Order;
+  initialDraft?: ChatOrderDraft;
   onSave: (order: Order, customer?: Customer) => void;
   onClose: () => void;
 };
@@ -51,19 +53,19 @@ function previewAmount(value: string) {
   return Number.isSafeInteger(amount) && amount >= 0 ? amount : 0;
 }
 
-export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }: PoOrderFormProps) {
+export function PoOrderForm({ data, order, initialDraft, onSave, onClose, saveError, saving }: PoOrderFormProps) {
   const poBatches = data.batches.filter((batch) => batch.type === "po");
   const [fields, setFields] = useState<Fields>(() => ({
     batchId: order?.batchId ?? (poBatches.filter(batch=>batch.status === "open").length === 1 ? poBatches.find(batch=>batch.status === "open")?.id : "") ?? "",
-    customerId: order?.customerId ?? "",
-    customerName: "", customerPhone: "", customerAddress: "",
+    customerId: order?.customerId ?? initialDraft?.customerId ?? "",
+    customerName: initialDraft?.customerName ?? "", customerPhone: initialDraft?.customerPhone ?? "", customerAddress: initialDraft?.customerAddress ?? "",
     paid: order ? String(order.paid) : "", shippingCharge: order ? String(order.shippingCharge) : "", serviceFee: order ? String(order.serviceFee) : "",
     discountType: order?.discount?.type ?? "amount", discountValue: order?.discount ? String(order.discount.value) : "",
     date: order?.date ?? "", notes: order?.notes ?? "",
   }));
   const [items, setItems] = useState<ItemFields[]>(() => order?.items.map((item) => ({
     id: item.id, productId: originalProductValue(item), quantity: String(item.quantity),
-  })) ?? [{
+  })) ?? initialDraft?.items.map(item => ({ id: item.id, productId: item.productId, quantity: item.quantity })) ?? [{
     id: crypto.randomUUID(),
     productId: "",
     quantity: "",
@@ -247,6 +249,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
       </div>
       <form onSubmit={submit} noValidate>
         <div className="modal-body">
+          {initialDraft && <div className="chat-order-review" role="status"><strong>Draf dari chat · {initialDraft.items.length} produk</strong><p>Periksa semua isian sebelum menyimpan. Produk yang belum cocok atau memiliki beberapa pilihan harus dipilih dari katalog. Jumlah, tanggal, dan harga yang belum terbaca perlu dilengkapi.</p></div>}
           {(Object.keys(errors).length > 0 || Object.values(itemErrors).some((row) => Object.keys(row).length)) && <p className="error-message" role="alert">Periksa kembali kolom yang ditandai sebelum menyimpan.</p>}
           {!hasActiveProducts && !order && <p className="error-message" role="status">Belum ada produk aktif. Tambahkan produk di menu Produk pada Open PO terlebih dahulu.</p>}
           <section className="order-section order-context"><h3><span className="order-section-number">1</span>Informasi pesanan</h3><div className="form-grid">
@@ -284,8 +287,10 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               const pricesId = index === 0 ? "po-product-prices" : `po-product-prices-${item.id}`;
               const quantityId = index === 0 ? "po-order-quantity" : `po-order-${item.id}-quantity`;
               const rowErrors = itemErrors[item.id];
+              const chatItem = initialDraft?.items.find(entry => entry.id === item.id);
               return <fieldset key={item.id} className="order-item-card">
                 <legend className="field-label" style={{ padding: "0 6px" }}>Produk {index + 1}</legend>
+                {chatItem && <p className="chat-order-source"><strong>Chat:</strong> {chatItem.source}{!item.productId && <span className="field-hint">{chatItem.match === "ambiguous" ? "Ada beberapa produk yang cocok. Pilih produk dan varian yang dimaksud." : "Produk belum ditemukan di katalog aktif. Pilih produk yang sesuai."}</span>}</p>}
                 <div className="order-item-heading">
                   <span className="field-hint">Subtotal {formatCurrency(itemDraft.quantity * itemDraft.unitPrice)}</span>
                   <button type="button" className="icon-button delete-item" aria-label={`Hapus produk ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>

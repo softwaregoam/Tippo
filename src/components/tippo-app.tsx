@@ -11,13 +11,15 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   ArrowRight, ArrowUpRight, CalendarDays, Crown,
-  Check, ChevronDown, CircleHelp, Download, FileJson, Layers3,
+  Check, ChevronDown, CircleHelp, ClipboardPaste, Download, FileJson, Layers3,
   LayoutDashboard, LogOut, MapPin, Menu, MessageSquare, Package, Pencil, Plus, ReceiptText, Search, Settings2,
   ShoppingBag, Upload, UsersRound, Wallet, X,
 } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
+import { ChatOrderDialog } from "@/components/chat-order-dialog";
+import type { ChatOrderDraft } from "@/lib/chat-order";
 import { OrderForm } from "@/components/order-form";
 import { PoOrderForm } from "@/components/po-order-form";
 import { ModeWorkspace, ProductForm, WorkspaceEmptyState } from "@/components/mode-workspace";
@@ -89,7 +91,8 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const [selectedMonth, setMonth] = useState(() => jakartaMonth());
   const month = isPro ? selectedMonth : currentMonth;
   const [search, setSearch] = useState("");
-  const [orderModal, setOrderModal] = useState<{ type: Batch["type"]; order?: Order; batchId?: string; productId?: string } | null>(null);
+  const [chatType, setChatType] = useState<Batch["type"] | null>(null);
+  const [orderModal, setOrderModal] = useState<{ type: Batch["type"]; order?: Order; draft?: ChatOrderDraft; batchId?: string; productId?: string } | null>(null);
   const [batchModal, setBatchModal] = useState<{ type: Batch["type"]; batch?: Batch } | null>(null);
   const [productModal, setProductModal] = useState<Product | "new" | null>(null);
   const [batchRequired, setBatchRequired] = useState<Batch["type"] | null>(null);
@@ -223,7 +226,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const activeBatches = modeBatches.filter((b) => b.status === "open");
   const visibleCustomers = data.customers.filter((customer) => customer.name.toLowerCase().includes(search.toLowerCase()));
   const hppBatch = modeBatches.find((b) => b.id === selectedHpp) ?? modeBatches[0];
-  function startOrder(type: Batch["type"] = mode, batchId?: string, productId?: string) {
+  function startOrder(type: Batch["type"] = mode, batchId?: string, productId?: string, fromChat = false) {
     setSaveError("");
     if (!data.batches.some((batch) => batch.type === type && batch.status === "open")) {
       setBatchRequired(type);
@@ -235,7 +238,8 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     }
     const quota = canCreateOrders(data, subscription, 1, new Date(), type);
     if (!quota.allowed) { go("subscription"); notify(quota.message); return; }
-    setOrderModal({ type, batchId, productId });
+    if (fromChat) setChatType(type);
+    else setOrderModal({ type, batchId, productId });
   }
   function editOrder(order: Order) {
     setSaveError("");
@@ -334,7 +338,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
           </div>
         </header>
         <main className="main-content">
-          <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
+          <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-secondary page-create-button" onClick={() => startOrder(mode, undefined, undefined, true)}><ClipboardPaste size={17} />Tempel pesanan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
 
           {!isPro && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
             <div key={page}>
@@ -391,7 +395,8 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
             </div>
         </main>
       </div>
-      {orderModal && (orderModal.type === "po" ? <PoOrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} onSave={saveOrder} onClose={() => setOrderModal(null)} /> : <OrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} defaultBatchId={orderModal.batchId} onSave={saveOrder} onClose={() => setOrderModal(null)} />)}
+      {chatType && <ChatOrderDialog type={chatType} data={data} onClose={() => setChatType(null)} onDraft={draft => { setOrderModal({ type: chatType, draft }); setChatType(null); }} />}
+      {orderModal && (orderModal.type === "po" ? <PoOrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} initialDraft={orderModal.draft} onSave={saveOrder} onClose={() => setOrderModal(null)} /> : <OrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} initialDraft={orderModal.draft} defaultBatchId={orderModal.batchId} onSave={saveOrder} onClose={() => setOrderModal(null)} />)}
       {productModal && <ProductForm categories={[...new Set(data.products.map(product => product.category?.trim()).filter((category): category is string => Boolean(category)))]} product={productModal === "new" ? undefined : productModal} onClose={() => setProductModal(null)} onSave={async (product) => { const saved = await saveProduct(product); if (saved) setProductModal(null); return saved; }} />}
       {productRequired && <SimpleModal title="Belum ada produk aktif" onClose={() => setProductRequired(false)}><div className="modal-body"><p>Tambahkan produk terlebih dahulu agar kamu bisa mencatat pesanan Open PO. Produk yang diarsipkan tidak bisa dipilih untuk pesanan baru, kamu bisa mengaktifkannya kembali di halaman Produk.</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setProductRequired(false)}>Nanti dulu</Button><Button className="btn btn-primary" onClick={() => { setProductRequired(false); go("products"); }}><Plus size={17} />Tambah produk</Button></div></SimpleModal>}
       {batchRequired && <SimpleModal title={batchRequired === "po" ? "Belum ada batch yang dibuka" : "Belum ada perjalanan yang dibuka"} onClose={() => setBatchRequired(null)}><div className="modal-body"><p>{batchRequired === "po" ? "Buat batch baru dengan status Dibuka terlebih dahulu agar kamu bisa mencatat pesanan. Batch yang sudah ditutup atau selesai tidak bisa menerima pesanan baru." : "Buat perjalanan baru dengan status Dibuka terlebih dahulu agar kamu bisa mencatat pesanan jastip. Perjalanan yang sudah ditutup atau selesai tidak bisa menerima pesanan baru."}</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setBatchRequired(null)}>Nanti dulu</Button><Button className="btn btn-primary" onClick={() => { setBatchRequired(null); go("batches"); }}><Plus size={17} />{batchRequired === "po" ? "Buat batch" : "Buat perjalanan"}</Button></div></SimpleModal>}
