@@ -32,16 +32,19 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ...(order.shippingTime?[`Jam : ${order.shippingTime}`]:[]),
     ...(order.shippingMethod?.trim()?[`Metode Kirim : ${textLine(order.shippingMethod)}`]:[]),
   ];
+  const divider="------------------------";
   const lines = [
     `Halo, ${textLine(customer?.name ?? "Pelanggan")}! 🤍`,
     `Berikut rincian pesananmu${store?` di ${store}`:""}.`,
     ...(!cancelled?["Mohon cek kembali pesanannya, ya."]:[]),
     "",
+    divider,
     "*INVOICE*",
     `No. invoice: ${profile.invoicePrefix}-${textLine(order.id).toUpperCase()}`,
     `Tanggal: ${invoiceDate(order.date)}`,
     ...(customer?.phone ? [`WhatsApp: ${textLine(customer.phone)}`] : []),
     "",
+    divider,
     "*Pesanan*",
     ...order.items.flatMap(item => [
       `• ${textLine(itemLabel(item))}`,
@@ -57,7 +60,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ...(paid ? ["*LUNAS*"] : []),
     "",
     ...((shipping.length||customer?.address?.trim()) ? ["*Pengiriman*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[]),""] : []),
-    ...(order.notes.trim() ? ["*Catatan*",order.notes.trim(),""] : []),
+    ...(order.notes.trim() ? [divider,"*Catatan*",order.notes.trim(),divider,""] : []),
     ...(!cancelled&&!paid&&bank ? ["*Transfer ke*",`${bank.name} ${bank.account}`,`a.n ${bank.holder}`,"","Mohon kirim bukti transfer setelah membayar.",""] : []),
     ...(cancelled ? ["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."] : footer ? [footer] : []),
   ];
