@@ -1,11 +1,12 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { Copy, FileImage, MessageSquare, Printer, X } from "lucide-react";
+import { Copy, Download, FileImage, MessageSquare, Printer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDocument, printInvoice } from "@/components/invoice-document";
-import { buildInvoice } from "@/lib/invoice";
+import { downloadInvoiceImage } from "@/lib/invoice-image";
+import { buildInvoice, invoiceWhatsAppUrl } from "@/lib/invoice";
 import type { AppData, Order } from "@/lib/types";
 
 export function InvoiceDialog({ order, data, settings, onClose }: { order: Order; data: AppData; settings?: InvoiceSettings; onClose: () => void }) {
@@ -17,7 +18,20 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
   const [feedback, setFeedback] = useState("");
   const [manualCopy, setManualCopy] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [downloading,setDownloading]=useState(false);
+  const downloadingRef=useRef(false);
+  const customer=data.customers.find(customer=>customer.id===order.customerId);
   const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings);
+
+  async function downloadImage() {
+    if(downloadingRef.current||!document.current)return;
+    downloadingRef.current=true;setDownloading(true);setFeedback("");setManualCopy(false);
+    try {
+      const filename=`${settings?.invoicePrefix||"INV"}-${order.id.toUpperCase()}`.replace(/[^A-Za-z0-9_-]/g,"-")+".png";
+      await downloadInvoiceImage(document.current,filename);
+    } catch(error){setManualCopy(true);setFeedback(error instanceof Error?error.message:"Invoice belum dapat diunduh.");}
+    finally{downloadingRef.current=false;setDownloading(false);}
+  }
 
   async function copyInvoice() {
     setCopying(true);
@@ -77,8 +91,13 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
         {feedback && <p role="status" style={{ color: manualCopy ? "var(--warning, #aa762c)" : "var(--primary, #24756b)" }}>{feedback}</p>}
       </div>
       <div className="modal-footer">
-        {tab==="image"?<Button type="button" className="btn btn-primary" onClick={()=>{if(document.current)void printInvoice(document.current).catch(error=>setFeedback(error instanceof Error?error.message:"Invoice belum dapat dicetak."));}}><Printer size={16}/>Cetak / PDF</Button>:
-        <Button type="button" className="btn btn-primary" disabled={copying} onClick={copyInvoice}><Copy size={16} />{copying ? "Menyalin..." : "Salin invoice WhatsApp"}</Button>}
+        {tab==="image"?<>
+          <Button type="button" className="btn btn-secondary" onClick={()=>{if(document.current)void printInvoice(document.current).catch(error=>setFeedback(error instanceof Error?error.message:"Invoice belum dapat dicetak."));}}><Printer size={16}/>Cetak / PDF</Button>
+          <Button type="button" className="btn btn-primary" disabled={downloading} onClick={downloadImage}><Download size={16}/>{downloading?"Menyiapkan gambar…":"Unduh gambar"}</Button>
+        </>:<>
+          <Button type="button" className="btn btn-secondary" disabled={copying} onClick={copyInvoice}><Copy size={16} />{copying ? "Menyalin..." : "Salin invoice WhatsApp"}</Button>
+          <a className="btn btn-primary" href={invoiceWhatsAppUrl(message,customer?.phone)} target="_blank" rel="noopener noreferrer"><MessageSquare size={16}/>Bagikan ke WhatsApp</a>
+        </>}
       </div>
     </dialog>
   );

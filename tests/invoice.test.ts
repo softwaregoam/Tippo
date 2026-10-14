@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { formatCurrency } from "../src/lib/finance.ts";
-import { buildInvoice } from "../src/lib/invoice.ts";
+import { buildInvoice, invoiceWhatsAppUrl } from "../src/lib/invoice.ts";
 import type { Batch, Customer, Order } from "../src/lib/types.ts";
 
 const batch: Batch = { id: "batch-a", name: "Seoul Oktober", type: "jastip", origin: "Seoul", closeDate: "2026-10-20", status: "open", directCosts: 543210 };
@@ -113,4 +113,12 @@ test("WhatsApp transfer instructions follow unpaid, paid and cancelled states",(
  }
  assert.doesNotMatch(buildInvoice(order,batch,customer),/Transfer ke|bukti transfer/);
  assert.equal(unpaid.match(/• Kaos/g)?.length,1);
+});
+
+
+test("WhatsApp share links preserve invoice text and normalize customer numbers",()=>{
+ const message="Halo 🤍\n*Total*: Rp25.000 & ongkir";
+ for(const phone of ["0812 3456 7890","+62 812-3456-7890","81234567890"]){const url=new URL(invoiceWhatsAppUrl(message,phone));assert.equal(url.origin,"https://wa.me");assert.equal(url.pathname,"/6281234567890");assert.equal(url.searchParams.get("text"),message);}
+ for(const phone of ["","08xxx","123"]){assert.equal(new URL(invoiceWhatsAppUrl(message,phone)).pathname,"/");}
+ assert.equal(new URL(invoiceWhatsAppUrl(message,"+65 8123 4567")).pathname,"/6581234567");
 });

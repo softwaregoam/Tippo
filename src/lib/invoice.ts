@@ -63,3 +63,13 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
   ];
   return lines.join("\n");
 }
+
+/** Open a customer chat when a usable number is available, otherwise let WhatsApp choose a recipient. */
+export function invoiceWhatsAppUrl(message: string, phone = ""): string {
+  let digits=phone.replace(/[\s()+.\-]/g,"");
+  if(!/^\d+$/.test(digits))digits="";
+  if(digits.startsWith("0"))digits="62"+digits.slice(1);
+  else if(digits.startsWith("8"))digits="62"+digits;
+  if(!/^[1-9]\d{7,14}$/.test(digits))digits="";
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+}
