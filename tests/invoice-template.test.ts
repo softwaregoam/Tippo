@@ -21,7 +21,7 @@ test("bank details keep leading zeros, reject partial details, and are absent on
  const template=validateInvoiceTemplate({invoiceStoreName:"Toko",invoicePrefix:"INV",appearance});assert.equal(template.appearance.bankAccount,"001234567");assert.equal(template.appearance.bankName,"BCA");assert.equal(template.appearance.bankHolder,"Naya Putri");
  assert.throws(()=>validateInvoiceTemplate({...template,appearance:{...appearance,bankHolder:""}}),/Lengkapi/);assert.throws(()=>validateInvoiceTemplate({...template,appearance:{...appearance,bankAccount:"1e20"}}),/hanya berisi angka/);
  const order:Order={id:"order",batchId:"batch",customerId:"c",date:"2026-10-14",createdAt:"2026-10-14T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"i",product:"Produk",variant:"",color:"",size:"",quantity:1,unitPrice:10000,unitCost:5000}]};
- const text=buildInvoice(order,undefined,undefined,template);assert.match(text,/Bank: BCA\nNo\. rekening: 001234567\nAtas nama: Naya Putri/);assert.doesNotMatch(buildInvoice({...order,status:"cancelled"},undefined,undefined,template),/Transfer bank|001234567/);assert.doesNotMatch(buildInvoice(order),/Transfer bank/);
+ const text=buildInvoice(order,undefined,undefined,template);assert.match(text,/BCA 001234567\na.n Naya Putri/);assert.doesNotMatch(buildInvoice({...order,status:"cancelled"},undefined,undefined,template),/Transfer ke|001234567/);assert.doesNotMatch(buildInvoice(order),/Transfer ke/);
 });
 
 test("invoice colors are independent per business while preserving legacy custom Jastip color",async()=>{

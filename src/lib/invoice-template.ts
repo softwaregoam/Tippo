@@ -1,5 +1,6 @@
 import { validateBusinessProfile, type InvoiceSettings } from "./business-profile.ts";
 export type InvoiceAppearance = { logoUrl: string; color: string; layout: "classic" | "minimal"; footer: string; bankName?: string; bankAccount?: string; bankHolder?: string; modeColors?: {jastip:string;po:string} };
+export type InvoiceBankSettings = Pick<InvoiceAppearance,"bankName"|"bankAccount"|"bankHolder">;
 export type InvoiceTemplate = InvoiceSettings & { appearance: InvoiceAppearance };
 export const DEFAULT_INVOICE_APPEARANCE: InvoiceAppearance = {logoUrl:"",color:"#245C4E",layout:"classic",footer:"Terima kasih sudah memesan!",bankName:"",bankAccount:"",bankHolder:"",modeColors:{jastip:"#245C4E",po:"#94501F"}};
 export function validLogoUrl(value: unknown): value is string {

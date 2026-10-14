@@ -10,11 +10,11 @@ import { setAccountUsage } from "@/lib/subscription";
 import { isAppData } from "@/lib/validation";
 import type { AppData } from "@/lib/types";
 import { readBusinessProfile, validateBusinessProfile, type BusinessProfile } from "@/lib/business-profile";
-import { readInvoiceAppearance, validateInvoiceTemplate, type InvoiceAppearance, type InvoiceTemplate } from "@/lib/invoice-template";
+import { readInvoiceAppearance, validateInvoiceTemplate, type InvoiceAppearance, type InvoiceBankSettings, type InvoiceTemplate } from "@/lib/invoice-template";
 import { TippoApp } from "./tippo-app";
 import { Wordmark } from "./wordmark";
 
-export interface AccountWorkspace extends Pick<BusinessProfile, "invoiceStoreName" | "invoicePrefix"> { invoiceAppearance: InvoiceAppearance; saveInvoiceTemplate: (template: InvoiceTemplate) => Promise<void>; ownerId: string; name: string; email: string; phone: string; address: string; saveProfile: (profile: BusinessProfile) => Promise<void>; saving: boolean; record: CloudRecord; commit: (data: AppData) => Promise<boolean>; logout: () => Promise<void>; refreshSubscription:()=>Promise<void> }
+export interface AccountWorkspace extends Pick<BusinessProfile, "invoiceStoreName" | "invoicePrefix"> { invoiceAppearance: InvoiceAppearance; saveInvoiceTemplate: (template: InvoiceTemplate) => Promise<void>; ownerId: string; name: string; email: string; phone: string; address: string; saveProfile: (profile: BusinessProfile, bank?: InvoiceBankSettings) => Promise<void>; saving: boolean; record: CloudRecord; commit: (data: AppData) => Promise<boolean>; logout: () => Promise<void>; refreshSubscription:()=>Promise<void> }
 export function CloudWorkspace() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -68,16 +68,17 @@ export function CloudWorkspace() {
     } catch (error) { const message = error instanceof Error ? error.message : "Data belum tersimpan."; setError(message); throw new Error(message); }
     finally { saving.current = false; setBusy(false); }
   }
-  async function saveProfile(profile: BusinessProfile) {
+  async function saveProfile(profile: BusinessProfile, bank?: InvoiceBankSettings) {
     const next = validateBusinessProfile(profile);
     if (saving.current) throw new Error("Tunggu penyimpanan sebelumnya selesai, ya.");
     const client = getSupabaseClient();
     if (!client || !user) throw new Error("Masuk kembali sebelum menyimpan profil.");
+    const appearance=bank?validateInvoiceTemplate({...next,appearance:{...readInvoiceAppearance(user.user_metadata.invoice_template),...bank}}).appearance:undefined;
     const request = epoch.current;
     const accountId = user.id;
     saving.current = true; setBusy(true);
     try {
-      const { data, error } = await client.auth.updateUser({ data: { business_name: next.name, business_phone: next.phone, business_address: next.address, invoice_store_name: next.invoiceStoreName, invoice_prefix: next.invoicePrefix } });
+      const { data, error } = await client.auth.updateUser({ data: { business_name: next.name, business_phone: next.phone, business_address: next.address, invoice_store_name: next.invoiceStoreName, invoice_prefix: next.invoicePrefix, ...(appearance?{invoice_template:appearance}:{}) } });
       if (request !== epoch.current || owner.current !== accountId) throw new Error("Sesi akun berubah. Masuk kembali untuk melanjutkan.");
       if (error || !data.user) throw new Error("Profil belum tersimpan. Periksa koneksi dan coba lagi.");
       setUser(data.user);
@@ -89,9 +90,10 @@ export function CloudWorkspace() {
     const client=getSupabaseClient();
     if (!client || !user || owner.current!==user.id) throw new Error("Masuk kembali sebelum menyimpan template.");
     const request=epoch.current, accountId=user.id;
+    const {bankName,bankAccount,bankHolder}=readInvoiceAppearance(user.user_metadata.invoice_template);
     saving.current=true;setBusy(true);
     try {
-      const {data,error}=await client.auth.updateUser({data:{invoice_store_name:next.invoiceStoreName,invoice_prefix:next.invoicePrefix,invoice_template:next.appearance}});
+      const {data,error}=await client.auth.updateUser({data:{invoice_store_name:next.invoiceStoreName,invoice_prefix:next.invoicePrefix,invoice_template:{...next.appearance,bankName,bankAccount,bankHolder}}});
       if (request!==epoch.current || owner.current!==accountId) throw new Error("Sesi akun berubah. Masuk kembali.");
       if (error || !data.user) throw new Error("Template belum tersimpan. Coba lagi.");
       setUser(data.user);

@@ -1,6 +1,6 @@
 # Template invoice
 
-Menu **Template invoice** mengatur nama toko, awalan nomor invoice, logo, warna, tata letak, catatan penutup, serta rekening pembayaran. Pengaturan tersimpan per akun dan berlaku pada invoice Jastip dan Open PO. Nama toko kosong tidak ditampilkan. Rekening ditampilkan hanya jika nama bank, nomor rekening, dan atas nama diisi lengkap; invoice dibatalkan tidak menampilkan instruksi transfer. Logo, warna, dan tata letak dipakai pada pratinjau serta hasil cetak/PDF; salinan WhatsApp berupa teks.
+Menu **Template invoice** mengatur nama toko, awalan nomor invoice, logo, warna, tata letak, dan catatan penutup. Rekening pembayaran diatur di **Profil bisnis**. Pengaturan tersimpan per akun dan berlaku pada invoice Jastip dan Open PO. Nama toko kosong tidak ditampilkan. Rekening ditampilkan hanya jika nama bank, nomor rekening, dan atas nama diisi lengkap; invoice dibatalkan tidak menampilkan instruksi transfer. Logo, warna, dan tata letak dipakai pada pratinjau serta hasil cetak/PDF; salinan WhatsApp berupa teks.
 
 ## Aktifkan unggah logo
 
@@ -16,10 +16,12 @@ Sebelum migrasi dijalankan, pengaturan nama toko, nomor, warna, tata letak, dan 
 ## Pemeriksaan
 
 - Simpan template lalu muat ulang: identitas dan tampilan harus tetap sama.
-- Buka invoice pesanan: gunakan **Cetak / PDF**, atau **Salin invoice WhatsApp**.
+- Buka invoice pesanan: gunakan **Cetak / PDF**, atau pilih tab **Teks WhatsApp** → **Salin invoice WhatsApp**.
 - Invoice pelanggan tidak memuat HPP, status/batch, saldo pembayaran, atau ongkir bernilai nol.
 - Periksa akun lain: logo dan template tidak mengikuti akun sebelumnya.
 
 Tanggal kirim, jam kirim (24 jam), dan metode kirim opsional pada pesanan. Pengiriman, catatan pesanan, dan alamat pelanggan hanya muncul di invoice jika diisi. Catatan penutup ditampilkan rata tengah. Data pengiriman disimpan bersama JSON pesanan, sehingga tidak memerlukan migrasi tabel baru.
 
 Warna invoice diatur terpisah untuk Jastip (hijau) dan Open PO (cokelat). Logo, identitas toko, rekening, tata letak, dan catatan penutup dipakai bersama. Pratinjau memuat contoh alamat, pengiriman, dan catatan pelanggan; fee jastip hanya muncul pada contoh Jastip. Bagian 3 form pesanan tertutup saat dibuka; jam kirim berupa input HH:mm 24 jam, bukan pilihan jam/menit.
+
+Rekening lama otomatis tampil di Profil bisnis tanpa perlu diisi ulang atau migrasi SQL. Nama bank, nomor rekening, dan atas nama disimpan bersama dalam satu penyimpanan profil agar kedua bentuk invoice selalu menggunakan rekening yang sama. Teks WhatsApp memakai sapaan pelanggan dan rincian produk satu kali; instruksi transfer hanya muncul pada pesanan belum lunas yang memiliki rekening lengkap. Invoice lunas dan dibatalkan tidak meminta bukti transfer.

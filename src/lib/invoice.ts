@@ -25,31 +25,36 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
   const appearance=readInvoiceAppearance(settings?.appearance),footer=appearance.footer,bank=invoiceBankDetails(appearance);
   const cancelled = order.status === "cancelled";
   const total = orderRevenue(order);
+  const store=profile.invoiceStoreName?textLine(profile.invoiceStoreName).toLocaleUpperCase("id-ID"):"";
+  const paid=isInvoicePaid(order);
+  const schedule=[order.shippingDate?invoiceDate(order.shippingDate):"",order.shippingTime].filter(Boolean).join(" · ");
   const lines = [
-    `*INVOICE${profile.invoiceStoreName ? ` ${textLine(profile.invoiceStoreName).toLocaleUpperCase("id-ID")}` : ""}*`,
+    `Halo, ${textLine(customer?.name ?? "Pelanggan")}! 🤍`,
+    `Berikut rincian pesananmu${store?` di ${store}`:""}.`,
+    ...(!cancelled?["Mohon cek kembali pesanannya, ya."]:[]),
+    "",
+    "*INVOICE*",
     `No. invoice: ${profile.invoicePrefix}-${textLine(order.id).toUpperCase()}`,
     `Tanggal: ${invoiceDate(order.date)}`,
-    `Pelanggan: ${textLine(customer?.name ?? "Pelanggan")}`,
     ...(customer?.phone ? [`WhatsApp: ${textLine(customer.phone)}`] : []),
-    ...(customer?.address?.trim() ? [`Alamat: ${textLine(customer.address)}`] : []),
     "",
-    "*Rincian pesanan*",
-    ...order.items.flatMap((item, index) => [
-      `${index + 1}. ${textLine(itemLabel(item))}`,
-      `   ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
+    "*Pesanan*",
+    ...order.items.flatMap(item => [
+      `• ${textLine(itemLabel(item))}`,
+      `  ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
     ]),
     "",
     `Subtotal produk: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
-    ...(batch?.type === "po" ? order.serviceFee > 0 ? [`Biaya tambahan: ${formatCurrency(order.serviceFee)}`] : [] : [`Fee jastip: ${formatCurrency(order.serviceFee)}`]),
+    ...(batch?.type === "po" ? order.serviceFee > 0 ? [`Biaya tambahan: ${formatCurrency(order.serviceFee)}`] : [] : order.serviceFee>0?[`Fee jastip: ${formatCurrency(order.serviceFee)}`]:[]),
     ...(orderDiscount(order) > 0 ? [`Diskon${order.discount?.type === "percent" ? ` (${order.discount.value}%)` : ""}: -${formatCurrency(orderDiscount(order))}`] : []),
     ...(order.shippingCharge > 0 ? [`Ongkir: ${formatCurrency(order.shippingCharge)}`] : []),
     `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
     ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
-    ...(isInvoicePaid(order) ? ["*LUNAS*"] : []),
+    ...(paid ? ["*LUNAS*"] : []),
     "",
-    ...((order.shippingDate||order.shippingTime||order.shippingMethod?.trim()) ? ["*Pengiriman*",...(order.shippingDate ? [`Tanggal kirim: ${invoiceDate(order.shippingDate)}`] : []),...(order.shippingTime ? [`Jam kirim: ${order.shippingTime}`] : []),...(order.shippingMethod?.trim() ? [`Metode kirim: ${textLine(order.shippingMethod)}`] : []),""] : []),
+    ...((schedule||order.shippingMethod?.trim()||customer?.address?.trim()) ? ["*Pengiriman*",...(schedule?[schedule]:[]),...(order.shippingMethod?.trim()?[textLine(order.shippingMethod)]:[]),...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[]),""] : []),
     ...(order.notes.trim() ? ["*Catatan*",order.notes.trim(),""] : []),
-    ...(!cancelled&&bank ? ["*Transfer bank*",`Bank: ${bank.name}`,`No. rekening: ${bank.account}`,`Atas nama: ${bank.holder}`,""] : []),
+    ...(!cancelled&&!paid&&bank ? ["*Transfer ke*",`${bank.name} ${bank.account}`,`a.n ${bank.holder}`,"","Mohon kirim bukti transfer setelah membayar.",""] : []),
     ...(cancelled ? ["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."] : footer ? [footer] : []),
   ];
   return lines.join("\n");

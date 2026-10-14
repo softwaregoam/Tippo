@@ -430,7 +430,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
 
               {page === "reports" && <ReportsPanel key={mode} data={data} type={mode} isPro={isPro} onUpgrade={()=>go("subscription")} />}
               {page === "invoice-template" && <InvoiceTemplatePanel key={mode} type={mode} settings={invoiceSettings} onSave={saveInvoiceTemplate} onNotify={notify}/>}
-              {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} onSaved={setDemoProfile} />}
+              {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} onSaved={(profile,appearance)=>{setDemoProfile(profile);if(!cloud)setDemoAppearance(appearance);}} />}
               {page === "feedback" && <FeedbackPanel key={cloud?.ownerId ?? "local"} onNotify={notify} />}
               {page === "help" && <HelpPanel mode={mode} onNavigate={go} />}
               {page === "settings" && <DataSettings data={data} cloud={!!cloud} onUpdate={replaceData} onNotify={notify} />}

@@ -23,10 +23,10 @@ test("WhatsApp invoice includes every item and option, one order fee, and total 
   assert.ok(!invoice.includes("Jenis:"));
   assert.ok(!invoice.includes("Status:"));
   assert.ok(!invoice.includes("Batch:"));
-  assert.ok(invoice.includes("Pelanggan: Dina"));
+  assert.ok(invoice.startsWith("Halo, Dina! 🤍\n"));
   assert.ok(invoice.includes("WhatsApp: 081234567890"));
-  assert.ok(invoice.includes("1. Kaos · Oversize · Biru · L"));
-  assert.ok(invoice.includes("2. Kimbap · Tuna"));
+  assert.ok(invoice.includes("• Kaos · Oversize · Biru · L"));
+  assert.ok(invoice.includes("• Kimbap · Tuna"));
   assert.ok(invoice.includes(`2 × ${formatCurrency(100000)} = ${formatCurrency(200000)}`));
   assert.ok(invoice.includes(`3 × ${formatCurrency(50000)} = ${formatCurrency(150000)}`));
   assert.ok(invoice.includes(`Ongkir: ${formatCurrency(15000)}`));
@@ -70,26 +70,26 @@ test("PO invoices omit jastip fees and balances while preserving totals and stab
 test("customer labels containing newlines remain on their own invoice lines", () => {
   const invoice = buildInvoice(order, { ...batch, name: "Batch\nbaru" }, { ...customer, name: "Dina\r\nbaru" });
   assert.ok(!invoice.includes("Batch:"));
-  assert.ok(invoice.includes("Pelanggan: Dina baru\n"));
+  assert.ok(invoice.includes("Halo, Dina baru! 🤍\n"));
 });
 
 
 test("invoice uses account-specific prefix and only explicitly configured store name",()=>{
  const a=buildInvoice(order,batch,customer,{invoicePrefix:"NAYA",invoiceStoreName:"Toko Naya"});
  const b=buildInvoice(order,batch,customer,{invoicePrefix:"TOKO-B",invoiceStoreName:""});
- assert.ok(a.startsWith("*INVOICE TOKO NAYA*\nNo. invoice: NAYA-ORDER-FIXED"));
- assert.ok(b.startsWith("*INVOICE*\nNo. invoice: TOKO-B-ORDER-FIXED"));
+ assert.ok(a.includes("di TOKO NAYA.\n") && a.includes("*INVOICE*\nNo. invoice: NAYA-ORDER-FIXED"));
+ assert.ok(b.includes("*INVOICE*\nNo. invoice: TOKO-B-ORDER-FIXED"));
  assert.ok(!b.includes("Toko Naya"));assert.ok(!b.includes("TIPPO"));
  assert.ok(!buildInvoice(order,batch,customer,{invoiceStoreName:"  "}).includes("Toko"));
  assert.ok(buildInvoice({...order,date:"2026-10-09",paid:200000},batch,customer,{invoicePrefix:"NAYA"}).includes("No. invoice: NAYA-ORDER-FIXED"));
  const sanitized=buildInvoice(order,batch,customer,{invoiceStoreName:"Toko\nBaru",invoicePrefix:"INVALID\n"});
- assert.ok(sanitized.includes("*INVOICE TOKO BARU*"));assert.ok(sanitized.includes("No. invoice: INVALID-ORDER-FIXED"));
+ assert.ok(sanitized.includes("di TOKO BARU."));assert.ok(sanitized.includes("No. invoice: INVALID-ORDER-FIXED"));
 });
 
 
 test("normal Open PO invoice has no fee or payment balance lines",()=>{
  const message=buildInvoice({...order,serviceFee:0}, {...batch,type:"po"},customer);
- assert.ok(message.startsWith("*INVOICE*\n"));
+ assert.ok(message.includes("*INVOICE*\n"));
  assert.ok(!message.includes("Fee jastip"));assert.ok(!message.includes("Biaya tambahan"));
  assert.ok(!message.includes("Sudah dibayar"));assert.ok(!message.includes("Sisa tagihan"));
  assert.ok(message.includes(`*Total tagihan*: ${formatCurrency(365000)}`));
@@ -101,4 +101,16 @@ test("LUNAS follows net payments and discounted totals rather than order complet
  assert.match(buildInvoice({...order,discount:{type:"amount",value:90000},paid:300000},batch,customer),/\*LUNAS\*/);
  assert.doesNotMatch(buildInvoice({...order,paid:380000,refunds:[{id:"refund",amount:10000,date:order.date,reason:"Pengembalian",createdAt:order.createdAt}]},batch,customer),/\*LUNAS\*/);
  assert.doesNotMatch(buildInvoice({...order,status:"cancelled",paid:0},batch,customer),/\*LUNAS\*/);
+});
+
+
+test("WhatsApp transfer instructions follow unpaid, paid and cancelled states",()=>{
+ const settings={appearance:{logoUrl:"",color:"#245C4E",layout:"classic" as const,footer:"Terima kasih ❤️",bankName:"BCA",bankAccount:"00123456",bankHolder:"Dina"}};
+ const unpaid=buildInvoice(order,batch,customer,settings);
+ assert.match(unpaid,/\*Transfer ke\*\nBCA 00123456\na.n Dina/);assert.match(unpaid,/Mohon kirim bukti transfer setelah membayar/);assert.ok(unpaid.endsWith("Terima kasih ❤️"));
+ for(const next of [{...order,paid:390000},{...order,status:"cancelled" as const}]){
+  const message=buildInvoice(next,batch,customer,settings);assert.doesNotMatch(message,/Transfer ke|00123456|bukti transfer/);
+ }
+ assert.doesNotMatch(buildInvoice(order,batch,customer),/Transfer ke|bukti transfer/);
+ assert.equal(unpaid.match(/• Kaos/g)?.length,1);
 });
