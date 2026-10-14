@@ -20,8 +20,7 @@ export function buildInvoice(order: Order, _batch?: Batch, customer?: Customer, 
   const cancelled = order.status === "cancelled";
   const total = orderRevenue(order);
   const lines = [
-    "*INVOICE*",
-    ...(profile.invoiceStoreName ? [`*${textLine(profile.invoiceStoreName)}*`] : []),
+    `*INVOICE ${profile.invoiceStoreName ? textLine(profile.invoiceStoreName) : "TIPPO"}*`,
     `No. invoice: ${profile.invoicePrefix}-${textLine(order.id).toUpperCase()}`,
     `Tanggal: ${invoiceDate(order.date)}`,
     `Pelanggan: ${textLine(customer?.name ?? "Pelanggan")}`,

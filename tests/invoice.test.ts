@@ -73,11 +73,11 @@ test("customer labels containing newlines remain on their own invoice lines", ()
 test("invoice uses account-specific prefix and only explicitly configured store name",()=>{
  const a=buildInvoice(order,batch,customer,{invoicePrefix:"NAYA",invoiceStoreName:"Toko Naya"});
  const b=buildInvoice(order,batch,customer,{invoicePrefix:"TOKO-B",invoiceStoreName:""});
- assert.ok(a.startsWith("*INVOICE*\n*Toko Naya*\nNo. invoice: NAYA-ORDER-FIXED"));
- assert.ok(b.startsWith("*INVOICE*\nNo. invoice: TOKO-B-ORDER-FIXED"));
- assert.ok(!b.includes("Toko Naya"));assert.ok(!b.includes("TIPPO"));
+ assert.ok(a.startsWith("*INVOICE Toko Naya*\nNo. invoice: NAYA-ORDER-FIXED"));
+ assert.ok(b.startsWith("*INVOICE TIPPO*\nNo. invoice: TOKO-B-ORDER-FIXED"));
+ assert.ok(!b.includes("Toko Naya"));assert.ok(b.includes("TIPPO"));
  assert.ok(!buildInvoice(order,batch,customer,{invoiceStoreName:"  "}).includes("Toko"));
  assert.ok(buildInvoice({...order,date:"2026-10-09",paid:200000},batch,customer,{invoicePrefix:"NAYA"}).includes("No. invoice: NAYA-ORDER-FIXED"));
  const sanitized=buildInvoice(order,batch,customer,{invoiceStoreName:"Toko\nBaru",invoicePrefix:"INVALID\n"});
- assert.ok(sanitized.includes("*Toko Baru*"));assert.ok(sanitized.includes("No. invoice: INVALID-ORDER-FIXED"));
+ assert.ok(sanitized.includes("*INVOICE Toko Baru*"));assert.ok(sanitized.includes("No. invoice: INVALID-ORDER-FIXED"));
 });
