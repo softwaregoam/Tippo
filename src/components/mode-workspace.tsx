@@ -5,7 +5,7 @@ import { visibleOrderStatus } from "@/lib/order-status";
 import { NumberInput } from "@/components/ui/number-input";
 
 import { useState } from "react";
-import { ArrowRight, Layers3, Package, Search, ShoppingBag, Tag, Upload, UsersRound, X } from "lucide-react";
+import { ArrowRight, Layers3, Package, Search, ShoppingBag, Upload, UsersRound, X } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { OrdersTable } from "@/components/orders-table";
@@ -74,7 +74,6 @@ export function ModeWorkspace({ tab, type, data, invoiceSettings, onEditBatch, o
           {products.length > 0 ? <ProductsTable products={products} onEdit={onEditProduct} onRemove={setRemovingProduct} /> : <WorkspaceEmptyState kind="products" hasData={data.products.length > 0} onReset={() => { setSearch(""); setProductStatus("all"); setCategoryFilter("all"); }} />}
           <div className="table-footer">{listCount(products.length, data.products.length, "produk")} {productLimit !== undefined && <span>{data.products.length} / {productLimit} produk Gratis (termasuk arsip)</span>}</div>
         </section>
-        <p className="catalog-note"><Tag size={14} />Perubahan master berlaku untuk pesanan baru. Harga pesanan lama tetap tersimpan.</p>
       </>}
       {tab === "batches" && <section className="card workspace-list-card" aria-label={po ? "Daftar batch" : "Daftar perjalanan"}>
         <div className="card-header"><div><h2>{po ? "Daftar batch PO" : "Daftar perjalanan Jastip"}</h2><p>{po ? "Kelola periode PO dan kebutuhan produk setiap batch." : "Kelola perjalanan belanja dan rekap produk titipan."}</p></div></div>
