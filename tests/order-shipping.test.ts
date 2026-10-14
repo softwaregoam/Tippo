@@ -17,7 +17,7 @@ test("shipping fields are independently optional and use actual dates and 24-hou
 });
 test("invoice includes only provided shipping fields, customer address and public order notes",()=>{
  const order={...seedData.orders[0],notes:""},batch=seedData.batches.find(batch=>batch.id===order.batchId),customer={id:"c",name:"Naya",phone:"",address:"Jalan Melati 10\nBandung"};
- const empty=buildInvoice(order,batch,{...customer,address:""});assert.doesNotMatch(empty,/\*Pengiriman\*|Tanggal kirim:|Jam kirim:|Metode kirim:|\*Catatan\*|Alamat:/);
- const text=buildInvoice({...order,shippingDate:"2026-10-20",shippingTime:"23:15",shippingMethod:"Kurir instan",notes:"Tolong bungkus rapi"},batch,customer);assert.match(text,/Alamat: Jalan Melati 10 Bandung/);assert.match(text,/20 Oktober 2026 · 23:15\nKurir instan/);assert.match(text,/\*Catatan\*\nTolong bungkus rapi/);
- const timeOnly=buildInvoice({...order,shippingTime:"00:00"},batch);assert.match(timeOnly,/\*Pengiriman\*\n00:00/);assert.doesNotMatch(timeOnly,/Tanggal kirim:|Metode kirim:/);
+ const empty=buildInvoice(order,batch,{...customer,address:""});assert.doesNotMatch(empty,/\*Pengiriman\*|Tanggal :|Jam :|Metode Kirim :|\*Catatan\*|Alamat:/);
+ const text=buildInvoice({...order,shippingDate:"2026-10-20",shippingTime:"23:15",shippingMethod:"Kurir instan",notes:"Tolong bungkus rapi"},batch,customer);assert.match(text,/Alamat: Jalan Melati 10 Bandung/);assert.match(text,/Tanggal : 20 Oktober 2026\nJam : 23:15\nMetode Kirim : Kurir instan/);assert.match(text,/\*Catatan\*\nTolong bungkus rapi/);
+ const timeOnly=buildInvoice({...order,shippingTime:"00:00"},batch);assert.match(timeOnly,/\*Pengiriman\*\nJam : 00:00/);assert.doesNotMatch(timeOnly,/Tanggal :|Metode Kirim :/);
 });

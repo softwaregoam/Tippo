@@ -27,7 +27,11 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
   const total = orderRevenue(order);
   const store=profile.invoiceStoreName?textLine(profile.invoiceStoreName).toLocaleUpperCase("id-ID"):"";
   const paid=isInvoicePaid(order);
-  const schedule=[order.shippingDate?invoiceDate(order.shippingDate):"",order.shippingTime].filter(Boolean).join(" · ");
+  const shipping=[
+    ...(order.shippingDate?[`Tanggal : ${invoiceDate(order.shippingDate)}`]:[]),
+    ...(order.shippingTime?[`Jam : ${order.shippingTime}`]:[]),
+    ...(order.shippingMethod?.trim()?[`Metode Kirim : ${textLine(order.shippingMethod)}`]:[]),
+  ];
   const lines = [
     `Halo, ${textLine(customer?.name ?? "Pelanggan")}! 🤍`,
     `Berikut rincian pesananmu${store?` di ${store}`:""}.`,
@@ -52,7 +56,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
     ...(paid ? ["*LUNAS*"] : []),
     "",
-    ...((schedule||order.shippingMethod?.trim()||customer?.address?.trim()) ? ["*Pengiriman*",...(schedule?[schedule]:[]),...(order.shippingMethod?.trim()?[textLine(order.shippingMethod)]:[]),...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[]),""] : []),
+    ...((shipping.length||customer?.address?.trim()) ? ["*Pengiriman*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[]),""] : []),
     ...(order.notes.trim() ? ["*Catatan*",order.notes.trim(),""] : []),
     ...(!cancelled&&!paid&&bank ? ["*Transfer ke*",`${bank.name} ${bank.account}`,`a.n ${bank.holder}`,"","Mohon kirim bukti transfer setelah membayar.",""] : []),
     ...(cancelled ? ["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."] : footer ? [footer] : []),
