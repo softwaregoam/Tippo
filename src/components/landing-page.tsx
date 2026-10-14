@@ -98,7 +98,7 @@ export function LandingPage() {
             <h1 id="hero-title">Titip &amp; Pesan, <br /><span>Beres di Tippo.</span></h1>
             <p>Pilih Jastip atau Open PO lewat satu switch. Pesanan, HPP, tagihan, dan ringkasan mengikuti usaha yang kamu pilih, dengan catatan masing-masing.</p>
             <div className="hero-actions">
-              <Link href="/daftar" className="landing-button primary">Buat akun gratis</Link>
+              {signedIn !== null && <Link href={signedIn ? "/app" : "/daftar"} className="landing-button primary">{signedIn ? "Buka usaha saya" : "Buat akun gratis"}</Link>}
 
             </div>
             <p className="hero-start-note">Gratis 5 pesanan Jastip + 5 pesanan Open PO setiap bulan.<br />Satu pesanan boleh berisi banyak produk.</p>
@@ -181,7 +181,7 @@ export function LandingPage() {
         <section id="harga" className="pricing-section landing-container" aria-labelledby="pricing-title">
           <div className="pricing-heading">
             <div><p className="section-label">Paket sesuai kebutuhan</p><h2 id="pricing-title">Mulai dari Gratis.</h2><p>Fitur pencatatan sudah tersedia. Pilih paket sesuai jumlah pesanan dan riwayat yang kamu perlukan.</p></div>
-            <Link href="/daftar" className="landing-button primary">Buat akun gratis</Link>
+            {signedIn !== null && <Link href={signedIn ? "/app" : "/daftar"} className="landing-button primary">{signedIn ? "Buka usaha saya" : "Buat akun gratis"}</Link>}
           </div>
           <table className="plan-table">
             <caption>Perbandingan paket Tippo</caption>
@@ -202,7 +202,7 @@ export function LandingPage() {
 
       <footer className="landing-footer landing-container">
         <div><Wordmark /><p>Titip &amp; Pesan, Beres di Tippo.</p></div>
-        <nav aria-label="Tautan footer"><Link href="/masuk">Masuk</Link><Link href="/privasi">Privasi</Link><Link href="/ketentuan">Ketentuan</Link></nav>
+        <nav aria-label="Tautan footer">{signedIn !== null && <Link href={signedIn ? "/app" : "/masuk"}>{signedIn ? "Buka usaha saya" : "Masuk"}</Link>}<Link href="/privasi">Privasi</Link><Link href="/ketentuan">Ketentuan</Link></nav>
       </footer>
     </div>
   );

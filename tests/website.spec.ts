@@ -245,14 +245,17 @@ test("browser back retains session and the homepage offers the existing account"
   let logoutCalls = 0;
   page.on("request", request => { if (request.url().includes("/auth/v1/logout")) logoutCalls++; });
   await page.goto("/");
-  await expect(page.getByRole("link", {name:"Buka usaha saya", exact:true})).toBeVisible();
+  await expect(page.locator(".landing-nav-actions").getByRole("link", {name:"Buka usaha saya", exact:true})).toBeVisible();
   const savedToken = await page.evaluate(() => localStorage.getItem("sb-bkplemoflteubfgvqhke-auth-token"));
-  await page.getByRole("link", {name:"Buka usaha saya", exact:true}).click();
+  await page.locator(".landing-nav-actions").getByRole("link", {name:"Buka usaha saya", exact:true}).click();
   await expect(page.locator(".page-heading h1")).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("link", {name:"Buka usaha saya", exact:true})).toBeVisible();
+  await expect(page.locator(".landing-nav-actions").getByRole("link", {name:"Buka usaha saya", exact:true})).toBeVisible();
   await expect(page.locator(".landing-nav-actions").getByRole("link", {name:"Masuk", exact:true})).toHaveCount(0);
+  await expect(page.getByRole("link",{name:"Buat akun gratis",exact:true})).toHaveCount(0);
+  await expect(page.getByRole("link",{name:"Masuk",exact:true})).toHaveCount(0);
+  await expect(page.getByRole("link",{name:"Buka usaha saya",exact:true})).toHaveCount(4);
   expect(await page.evaluate(() => localStorage.getItem("sb-bkplemoflteubfgvqhke-auth-token"))).toBe(savedToken);
   await page.goForward();
   await expect(page.locator(".page-heading h1")).toBeVisible();
@@ -270,7 +273,8 @@ test("browser back retains session and the homepage offers the existing account"
   await expect(page.locator(".landing-nav-actions").getByRole("link", {name:"Masuk",exact:true})).toBeVisible();
   await expect(page.getByRole("link", {name:"Buka usaha saya",exact:true})).toHaveCount(0);
 });
-test("successful email login opens the authenticated account workspace",async({page})=>{
+for(const width of [320,1440])test(`successful email login and browser back retain account actions ${width}`,async({page})=>{
+  await page.setViewportSize({width,height:900});
   const auth=session();
   await page.route(`${endpoint}/**`,route=>{
     const url=route.request().url();
@@ -278,7 +282,8 @@ test("successful email login opens the authenticated account workspace",async({p
     if(url.includes("/auth/v1/user")) return route.fulfill({json:auth.user});
     return route.fulfill({json:{data:fixture,version:0,subscription:{tier:"free",expiresAt:null},usage:[]}});
   });
-  await page.goto("/masuk");await page.getByLabel("Email",{exact:true}).fill("naya@example.test");await page.getByLabel("Kata sandi",{exact:true}).fill("example-password-strong");await page.getByRole("button",{name:"Masuk ke Tippo"}).click();await expect(page).toHaveURL(/\/app$/);await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();await page.getByRole("button",{name:"Menu akun",exact:true}).click();await expect(page.getByText("Titipan Naya",{exact:true})).toBeVisible();await page.keyboard.press("Escape");
+  await page.goto("/");await page.locator(".landing-footer").getByRole("link",{name:"Masuk",exact:true}).click();await expect(page).toHaveURL(/\/masuk$/);await page.getByLabel("Email",{exact:true}).fill("naya@example.test");await page.getByLabel("Kata sandi",{exact:true}).fill("example-password-strong");await page.getByRole("button",{name:"Masuk ke Tippo"}).click();await expect(page).toHaveURL(/\/app$/);await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();await page.getByRole("button",{name:"Menu akun",exact:true}).click();await expect(page.getByText("Titipan Naya",{exact:true})).toBeVisible();await page.keyboard.press("Escape");
+  await page.goBack();await expect(page).toHaveURL(/\/$/);await expect(page.getByRole("link",{name:"Buat akun gratis",exact:true})).toHaveCount(0);await expect(page.getByRole("link",{name:"Masuk",exact:true})).toHaveCount(0);await expect(page.getByRole("link",{name:"Buka usaha saya",exact:true})).toHaveCount(width<600?3:4);await page.locator(".hero-actions").getByRole("link",{name:"Buka usaha saya",exact:true}).click();await expect(page.locator(".page-heading h1")).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 test("account saves await Supabase, ignore local Pro and keep demo data separate",async({page})=>{
   const requests=await authenticate(page);const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
