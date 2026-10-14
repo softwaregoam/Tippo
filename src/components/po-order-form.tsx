@@ -1,5 +1,6 @@
 "use client";
 
+import { ProductPicker, type ProductChoice } from "@/components/product-picker";
 import { NumberInput } from "@/components/ui/number-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { OrderDiscountFields } from "@/components/order-discount-fields";
@@ -9,7 +10,7 @@ import { Check, Plus, Trash2, X } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, itemLabel, orderDiscount, orderSubtotal, orderHpp, orderRevenue, outstanding } from "@/lib/finance";
-import type { AppData, Customer, Order, OrderItem, Product } from "@/lib/types";
+import type { AppData, Customer, Order, OrderItem } from "@/lib/types";
 
 type PoOrderFormProps = {
   saveError?: string;
@@ -37,10 +38,6 @@ type ItemFields = { id: string; productId: string; quantity: string };
 type FieldErrors = Partial<Record<keyof Fields | "items", string>>;
 type ItemErrors = Record<string, Partial<Record<"productId" | "quantity", string>>>;
 const textLimits = { customerName: 120, customerPhone: 30, customerAddress: 1000, notes: 1000 };
-
-function productLabel(product: Product) {
-  return [product.name,product.variant,product.color,product.size,product.store].filter(Boolean).join(" · ");
-}
 
 function originalProductValue(item: OrderItem) {
   return item.productId ?? `original-order-snapshot-${item.id}`;
@@ -90,7 +87,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     document.body.style.overflow = "hidden";
     modalRef.current?.querySelector<HTMLButtonElement>(".modal-header button")?.focus({ preventScroll: true });
     function handleKey(event: KeyboardEvent) {
-      if (event.defaultPrevented || document.querySelector(".select-content")) return;
+      if (event.defaultPrevented || document.querySelector(".select-content, [data-product-picker]")) return;
       if (event.key === "Escape") { event.preventDefault(); closeRef.current(); }
       if (event.key !== "Tab" || !modalRef.current) return;
       const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(
@@ -279,6 +276,11 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               const original = originalItem(item);
               const available = data.products.filter((product) => product.active || product.id === original?.productId);
               const needsOriginalOption = original && !available.some((product) => product.id === originalProductValue(original));
+              const productOptions: ProductChoice[] = available.map(product => {
+                const snapshot = original?.productId === product.id ? original : undefined;
+                return { value: product.id, name: snapshot?.product ?? product.name, detail: (snapshot ? [snapshot.variant, snapshot.color, snapshot.size, snapshot.store] : [product.variant, product.color, product.size, product.store]).filter(Boolean).join(" · "), sku: product.sku, category: product.category ?? "", price: snapshot?.unitPrice ?? product.unitPrice, searchText: [product.name, product.variant, product.color, product.size, product.store, product.sku, product.category, snapshot ? itemLabel(snapshot) : ""].filter(Boolean).join(" "), note: snapshot ? "Data pesanan asal" : !product.active ? "Diarsipkan" : undefined };
+              });
+              if (needsOriginalOption) productOptions.unshift({ value: originalProductValue(original), name: original.product, detail: [original.variant, original.color, original.size, original.store].filter(Boolean).join(" · "), sku: "", category: "", price: original.unitPrice, searchText: itemLabel(original), note: "Data pesanan asal" });
               const itemDraft = draft.items[index];
               const productId = index === 0 ? "po-order-productId" : `po-order-${item.id}-productId`;
               const pricesId = index === 0 ? "po-product-prices" : `po-product-prices-${item.id}`;
@@ -293,10 +295,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
                 <div className="form-grid">
                   <div className="field" >
                     <label className="field-label" htmlFor={productId}>Produk<span className="required-mark" aria-hidden="true"> *</span></label>
-                    <Select placeholder="Pilih produk" aria-label="Produk" aria-required="true" id={productId} name={`item-${item.id}-productId`} className="input" ref={index === 0 ? productRef : undefined} value={item.productId} onValueChange={(value) => updateItem(item.id, "productId", value)} aria-invalid={Boolean(rowErrors?.productId)} aria-describedby={rowErrors?.productId ? `${productId}-error` : pricesId}>
-                      {needsOriginalOption && <SelectOption value={originalProductValue(original)}>{itemLabel(original)} · data pesanan asal</SelectOption>}
-                      {available.map((product) => <SelectOption key={product.id} value={product.id}>{original && product.id === original.productId ? itemLabel(original) : productLabel(product)}{product.sku ? ` · ${product.sku}` : ""}{!product.active ? " · diarsipkan" : ""}</SelectOption>)}
-                    </Select>
+                    <ProductPicker aria-label="Produk" aria-required="true" id={productId} name={`item-${item.id}-productId`} className="input" ref={index === 0 ? productRef : undefined} value={item.productId} options={productOptions} onValueChange={value => updateItem(item.id, "productId", value)} aria-invalid={Boolean(rowErrors?.productId)} aria-describedby={rowErrors?.productId ? `${productId}-error` : pricesId} />
                     {rowErrors?.productId && <span id={`${productId}-error`} className="error-message">{rowErrors.productId}</span>}
                     {usesOriginalSnapshot(item) && <span className="field-hint">Nama dan harga memakai data saat pesanan dibuat. Perubahan master tidak mengubah produk ini.</span>}
                   </div>

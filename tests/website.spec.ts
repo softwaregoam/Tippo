@@ -1477,3 +1477,42 @@ test("invoice profile is scoped to the signed-in account rather than demo storag
   } finally {await context.close();}
  }
 });
+
+for(const width of [320,1440])test(`PO product search finds catalogue fields and restores focus ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:900});
+ const workspace=structuredClone(fixture);
+ workspace.batches=[{...fixture.batches[0],id:"po",type:"po",name:"PO Roti"}];
+ workspace.products=Array.from({length:120},(_,index)=>({id:`p-${index}`,name:`Produk ${index}`,variant:"Original",category:"Umum",sku:`SKU-${index}`,unitPrice:10000,unitCost:5000,active:true}));
+ workspace.products.push({id:"target",name:"Roti Susu",variant:"Coklat",category:"Roti Enak",sku:"RSC-999",unitPrice:25000,unitCost:12000,active:true},{id:"archived",name:"Roti Arsip",variant:"",category:"Roti Enak",sku:"ARCHIVE",unitPrice:10000,unitCost:null,active:false});
+ const requests=await authenticate(page,{workspace,pro:true});await page.goto("/app");await openBusiness(page,"Open PO");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
+ const form=page.getByRole("dialog",{name:"Pesanan PO baru",exact:true});
+ const product=form.getByRole("combobox",{name:"Produk",exact:true});
+ await expect(product).toContainText("Pilih produk");
+ await product.click();const picker=page.getByRole("dialog",{name:"Pilih produk pesanan",exact:true});const search=picker.getByRole("textbox",{name:"Cari produk pesanan"});
+ await expect(search).toBeFocused();expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");
+ const bounds=await picker.boundingBox();expect(bounds!.x).toBeGreaterThanOrEqual(0);expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(width);expect(bounds!.height).toBeLessThanOrEqual(900);
+ for(const query of ["Roti Susu","RSC-999","coklat","roti enak"]){
+  await search.fill(query);await expect(picker.getByRole("option")).toHaveCount(1);await expect(picker.getByRole("option")).toContainText("Roti Susu");await expect(picker.getByRole("option")).toContainText("25.000");
+ }
+ await search.fill("ARCHIVE");await expect(picker).toContainText("Produk tidak ditemukan");await expect(picker.getByRole("option")).toHaveCount(0);
+ await picker.getByRole("button",{name:"Reset pencarian"}).click();await expect(search).toHaveValue("");
+ await search.fill("RSC-999");await search.press("ArrowDown");await expect(picker.getByRole("option")).toBeFocused();await page.keyboard.press("Enter");
+ await expect(picker).toHaveCount(0);await expect(form).toBeVisible();await expect(product).toBeFocused();await expect(product).toHaveAttribute("data-value","target");
+ await expect(form.locator("#po-product-prices")).toContainText("25.000");
+ await product.click();await search.fill("not found");await page.keyboard.press("Escape");await expect(picker).toHaveCount(0);await expect(form).toBeVisible();await expect(product).toHaveAttribute("data-value","target");
+ await product.click();await expect(search).toHaveValue("");await picker.getByRole("button",{name:"Tutup pilihan produk"}).click();await expect(product).toBeFocused();
+ await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");await form.getByLabel("Tanggal pesanan",{exact:true}).fill("2026-10-14");await form.getByLabel("Jumlah produk",{exact:true}).fill("2");
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);expect(requests[0].p_data.orders[0].items[0]).toMatchObject({productId:"target",product:"Roti Susu",variant:"Coklat",quantity:2,unitPrice:25000});
+});
+
+for(const missing of [false,true])test(`product search preserves historical options ${missing?"missing":"archived"} master`,async({page})=>{
+ const workspace=structuredClone(fixture);workspace.batches=[{...fixture.batches[0],id:"po",type:"po"}];
+ workspace.products=missing?[]:[{id:"original",name:"Nama Master Berubah",variant:"Baru",store:"Toko Baru",sku:"OLD",unitPrice:99000,unitCost:50000,active:false}];
+ workspace.orders=[{id:"saved",batchId:"po",customerId:"aly",date:"2026-10-14",createdAt:"2026-10-14T00:00:00Z",status:"new",paid:0,serviceFee:0,shippingCharge:0,notes:"",items:[{id:"snapshot",productId:missing?null:"original",product:"Nama Lama",variant:"Coklat",color:"",size:"L",quantity:1,unitPrice:25000,unitCost:12000}]}];
+ const requests=await authenticate(page,{workspace});await page.goto("/app");await openBusiness(page,"Open PO");await openSection(page,"Pesanan");await page.getByRole("button",{name:/Edit pesanan Nama Lama/}).click();
+ const form=page.getByRole("dialog",{name:"Edit pesanan PO",exact:true});await form.getByRole("combobox",{name:"Produk",exact:true}).click();
+ const picker=page.getByRole("dialog",{name:"Pilih produk pesanan",exact:true});await picker.getByRole("textbox",{name:"Cari produk pesanan"}).fill("Nama Lama");
+ await expect(picker.getByRole("option")).toHaveCount(1);await expect(picker.getByRole("option")).toContainText("25.000");await expect(picker.getByRole("option")).toContainText("Data pesanan asal");await expect(picker.getByRole("option")).not.toContainText("Toko Baru");await picker.getByRole("option").click();
+ await form.getByLabel("Jumlah produk",{exact:true}).fill("3");await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);expect(requests[0].p_data.orders[0].items[0]).toMatchObject({product:"Nama Lama",variant:"Coklat",unitPrice:25000,quantity:3});
+});
