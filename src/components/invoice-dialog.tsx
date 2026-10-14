@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { Copy, Download, FileImage, MessageSquare, Printer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { InvoiceSettings } from "@/lib/business-profile";
@@ -12,8 +12,9 @@ import type { AppData, Order } from "@/lib/types";
 export function InvoiceDialog({ order, data, settings, onClose }: { order: Order; data: AppData; settings?: InvoiceSettings; onClose: () => void }) {
   const id = useId();
   const [tab, setTab] = useState<"image" | "whatsapp">("image");
-  function selectTab(next: "image" | "whatsapp") { setTab(next); setFeedback(""); if(body.current)body.current.scrollTop=0; }
+  function selectTab(next: "image" | "whatsapp") { setTab(next); setFeedback(""); }
   const body=useRef<HTMLDivElement>(null);
+  const dialog=useRef<HTMLDialogElement>(null);
   const document = useRef<HTMLDivElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const [feedback, setFeedback] = useState("");
@@ -23,6 +24,13 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
   const downloadingRef=useRef(false);
   const customer=data.customers.find(customer=>customer.id===order.customerId);
   const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings);
+
+  useLayoutEffect(()=>{
+    // Reset after the new panel is mounted, before the browser paints it.
+    if(body.current)body.current.scrollTop=0;
+    if(textarea.current)textarea.current.scrollTop=0;
+    if(dialog.current)dialog.current.scrollTop=0;
+  },[tab]);
 
   async function downloadImage() {
     if(downloadingRef.current||!document.current)return;
@@ -54,7 +62,7 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
 
   return (
     <dialog
-      ref={(element) => { if (element && !element.open) element.showModal(); }}
+      ref={(element) => { dialog.current=element; if (element && !element.open) element.showModal(); }}
       className="native-dialog order-invoice-dialog"
       aria-label="Invoice pesanan"
       onCancel={(event) => { event.preventDefault(); onClose(); }}
@@ -73,7 +81,7 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
         <button type="button" role="tab" id={`${id}-image-tab`} aria-controls={`${id}-image-panel`} aria-selected={tab==="image"} tabIndex={tab==="image"?0:-1} onClick={()=>selectTab("image")}><FileImage size={16}/>Invoice gambar</button>
         <button type="button" role="tab" id={`${id}-whatsapp-tab`} aria-controls={`${id}-whatsapp-panel`} aria-selected={tab==="whatsapp"} tabIndex={tab==="whatsapp"?0:-1} onClick={()=>selectTab("whatsapp")}><MessageSquare size={16}/>Teks WhatsApp</button>
       </div>
-      <div ref={body} className="modal-body">
+      <div key={tab} ref={body} className={`modal-body invoice-${tab}-body`}>
         <div role="tabpanel" id={`${id}-image-panel`} aria-labelledby={`${id}-image-tab`} hidden={tab!=="image"}>
         <div ref={document} className="invoice-preview-surface"><InvoiceDocument order={order} batch={data.batches.find(batch=>batch.id===order.batchId)} customer={data.customers.find(customer=>customer.id===order.customerId)} settings={settings}/></div>
         </div>
