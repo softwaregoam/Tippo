@@ -2,7 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Download, FileBarChart2 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
-import { ReportBatchPicker } from "@/components/report-batch-picker";
+import { BatchPicker } from "@/components/batch-picker";
 import { Button } from "@/components/ui/button";
 import { buildSalesReport, monthBounds, validReportDate } from "@/lib/sales-report";
 import { jakartaMonth } from "@/lib/subscription";
@@ -48,7 +48,7 @@ export function ReportsPanel({ data, type, isPro, onUpgrade }: { data: AppData; 
   const known = summary && (!summary.orders || summary.unknownCosts < summary.orders);
   return <div className="reports-layout">
     <section className="card" aria-label="Filter laporan"><div className="card-header list-import-header"><div><h2>Penjualan & laba</h2><p>Berdasarkan tanggal pesanan, tanpa pesanan dibatalkan.</p></div><Button className="btn btn-secondary report-export" disabled={!valid || busy} onClick={()=>void download()}><Download size={16}/>{busy?"Menyiapkan…":"Ekspor Excel"}{!isPro&&<span className="import-plan-badge">Pro</span>}</Button></div>
-      <div className="report-filters"><div className="field"><label htmlFor="report-from" className="field-label">Dari tanggal</label><DatePicker id="report-from" value={start} onValueChange={value=>{setFrom(value);setPagination({filter:"",page:1});}} disabled={!isPro}/></div><div className="field"><label htmlFor="report-to" className="field-label">Sampai tanggal</label><DatePicker id="report-to" value={end} onValueChange={value=>{setTo(value);setPagination({filter:"",page:1});}} disabled={!isPro}/></div><div className="field"><label htmlFor="report-batch" className="field-label">{type==="po"?"Batch PO":"Perjalanan"}</label><ReportBatchPicker batches={batches} type={type} value={batchId} onValueChange={value=>{setBatchId(value);setPagination({filter:"",page:1});}}/></div></div>
+      <div className="report-filters"><div className="field"><label htmlFor="report-from" className="field-label">Dari tanggal</label><DatePicker id="report-from" value={start} onValueChange={value=>{setFrom(value);setPagination({filter:"",page:1});}} disabled={!isPro}/></div><div className="field"><label htmlFor="report-to" className="field-label">Sampai tanggal</label><DatePicker id="report-to" value={end} onValueChange={value=>{setTo(value);setPagination({filter:"",page:1});}} disabled={!isPro}/></div><div className="field"><label htmlFor="report-batch" className="field-label">{type==="po"?"Batch PO":"Perjalanan"}</label><BatchPicker batches={batches} type={type} value={batchId} onValueChange={value=>{setBatchId(value);setPagination({filter:"",page:1});}}/></div></div>
       {!isPro&&<p className="report-plan-note">Paket Gratis: bulan berjalan. Periode lain dan ekspor tersedia di Pro.</p>}
       {!valid&&<p className="error-message report-plan-note" role="alert">Pilih tanggal mulai dan akhir yang valid.</p>}
       {error&&<p className="error-message report-plan-note" role="alert">{error}</p>}
