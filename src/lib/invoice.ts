@@ -59,7 +59,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
     ...(paid ? ["*LUNAS*"] : []),
     "",
-    ...((shipping.length||customer?.address?.trim()) ? ["*Pengiriman*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[]),""] : []),
+    ...((shipping.length||customer?.address?.trim()) ? [divider,"*Pengiriman*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[]),""] : []),
     ...(order.notes.trim() ? [divider,"*Catatan*",order.notes.trim(),divider,""] : []),
     ...(!cancelled&&!paid&&bank ? ["*Transfer ke*",`${bank.name} ${bank.account}`,`a.n ${bank.holder}`,"","Mohon kirim bukti transfer setelah membayar.",""] : []),
     ...(cancelled ? ["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."] : footer ? [footer] : []),
