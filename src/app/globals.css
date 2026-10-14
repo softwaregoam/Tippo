@@ -1081,7 +1081,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .report-plan-note { padding:0 18px 18px; }
  .report-stats { gap:10px; }
  .report-stats .stat-card { padding:14px; }
- .report-stat-value { font-size:20px; }
+ .report-stat-value { font-size:clamp(16px,5vw,20px); }
  .report-desktop-table { display:none; }
  .report-mobile-orders { display:block; list-style:none; margin:0; padding:0; }
  .report-mobile-orders > li { padding:16px 18px; border-top:1px solid var(--border); }
@@ -1096,4 +1096,16 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 }
 @media(max-width:480px) {
  .report-filters { grid-template-columns:minmax(0,1fr); }
+}
+
+.report-batch-options { margin-top:12px; }
+.report-batch-options .product-picker-option > svg { flex-shrink:0; color:var(--primary); }
+.report-batch-empty { padding:16px 10px; font-size:13px; color:var(--muted); }
+.report-details { scroll-margin-top:90px; }
+.report-pagination { align-items:center; flex-wrap:wrap; gap:12px; }
+.report-pagination nav { display:flex; align-items:center; gap:10px; }
+@media(max-width:600px) {
+ .report-pagination nav { width:100%; flex-wrap:wrap; }
+ .report-pagination nav > span { width:100%; }
+ .report-pagination nav .btn { flex:1; padding-inline:10px; }
 }

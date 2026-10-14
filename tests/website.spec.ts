@@ -1549,3 +1549,23 @@ test("Free sales report stays in current month and export opens upgrade",async({
  const month=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}).slice(0,7);await expect(page.getByLabel("Dari tanggal",{exact:true})).toHaveValue(`${month}-01`);
  let downloads=0;page.on("download",()=>downloads++);await page.getByRole("button",{name:"Ekspor Excel Pro",exact:true}).click();await expect(page.getByRole("heading",{level:1})).toHaveText("Paket & langganan.");expect(downloads).toBe(0);
 });
+
+for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as const)test(`report search and pagination ${business} ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:900});
+ const workspace=structuredClone(fixture),type=business==="Open PO"?"po":"jastip",month=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}).slice(0,7);
+ workspace.batches=Array.from({length:30},(_,index)=>({...fixture.batches[0],id:`batch-${index}`,type,name:`Batch ${String(index).padStart(2,"0")}`,closeDate:`2026-10-${String(index+1).padStart(2,"0")}`}));
+ workspace.batches.push({...fixture.batches[0],id:"foreign",type:type==="po"?"jastip":"po",name:"Asing"});
+ workspace.orders=Array.from({length:23},(_,index)=>({customerId:"aly",createdAt:`${month}-14T00:00:00Z`,paid:0,notes:"",id:`report-${String(index).padStart(2,"0")}`,batchId:index<21?"batch-29":"batch-0",date:`${month}-14`,status:"new" as const,shippingCharge:0,serviceFee:0,discount:undefined,items:[{id:`item-${index}`,product:"Produk Laporan",variant:"",color:"",size:"",quantity:1,unitPrice:10000,unitCost:5000}]}));
+ await authenticate(page,{workspace,pro:true});await page.goto("/app");await openBusiness(page,business);await openSection(page,"Laporan");
+ const detail=page.getByRole("region",{name:"Rincian laporan"}),stats=page.getByRole("region",{name:"Ringkasan laporan"}),trigger=page.getByRole("combobox",{name:"Filter batch laporan"});
+ const rows=width===320?detail.locator(".report-mobile-orders > li"):detail.locator("tbody > tr");
+ await expect(rows).toHaveCount(10);await expect(detail).toContainText("1–10 dari 23 pesanan");await expect(stats.locator(".report-stat-value").first()).toContainText("230.000");await expect(detail.getByRole("button",{name:"Sebelumnya"})).toBeDisabled();
+ await detail.getByRole("button",{name:"Berikutnya"}).click();await expect(detail).toContainText("11–20 dari 23 pesanan");await detail.getByRole("button",{name:"Berikutnya"}).click();await expect(rows).toHaveCount(3);await expect(detail).toContainText("21–23 dari 23 pesanan");await expect(detail.getByRole("button",{name:"Berikutnya"})).toBeDisabled();
+ const pending=page.waitForEvent("download");await page.getByRole("button",{name:"Ekspor Excel",exact:true}).click();const download=await pending;const ExcelJS=(await import("exceljs")).default,fs=await import("node:fs/promises"),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await fs.readFile((await download.path())!)).buffer);expect(book.getWorksheet("Pesanan")!.rowCount).toBe(24);
+ await trigger.click();const picker=page.getByRole("dialog",{name:/Pilih .* laporan/});await expect(picker.getByRole("option")).toHaveCount(31);await expect(picker.getByRole("option").nth(1)).toContainText("Batch 29");await expect(picker).not.toContainText("Asing");
+ const search=picker.getByRole("textbox");await search.fill("tak ada");await expect(picker.getByRole("status")).toHaveText("Tidak ditemukan.");await expect(picker.getByRole("option")).toHaveCount(1);await search.fill("bAtCh 29");await expect(picker.getByRole("option")).toHaveCount(2);await search.press("ArrowDown");await page.keyboard.press("ArrowDown");await page.keyboard.press("Enter");await expect(picker).toHaveCount(0);await expect(trigger).toContainText("Batch 29");await expect(detail).toContainText("1–10 dari 21 pesanan");
+ await detail.getByRole("button",{name:"Berikutnya"}).click();await page.getByLabel("Sampai tanggal",{exact:true}).fill(`${month}-13`);await expect(detail).toContainText("0 pesanan");await page.getByLabel("Sampai tanggal",{exact:true}).fill(`${month}-14`);await expect(detail).toContainText("1–10 dari 21 pesanan");
+ await trigger.click();await picker.getByRole("option").first().click();await expect(detail).toContainText("1–10 dari 23 pesanan");
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:`/tmp/tippo-report-pagination-${type}-${width}.png`,fullPage:true});
+});
