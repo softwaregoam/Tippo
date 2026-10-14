@@ -23,3 +23,10 @@ test("bank details keep leading zeros, reject partial details, and are absent on
  const order:Order={id:"order",batchId:"batch",customerId:"c",date:"2026-10-14",createdAt:"2026-10-14T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:"i",product:"Produk",variant:"",color:"",size:"",quantity:1,unitPrice:10000,unitCost:5000}]};
  const text=buildInvoice(order,undefined,undefined,template);assert.match(text,/Bank: BCA\nNo\. rekening: 001234567\nAtas nama: Naya Putri/);assert.doesNotMatch(buildInvoice({...order,status:"cancelled"},undefined,undefined,template),/Transfer bank|001234567/);assert.doesNotMatch(buildInvoice(order),/Transfer bank/);
 });
+
+test("invoice colors are independent per business while preserving legacy custom Jastip color",async()=>{
+ const {invoiceAppearanceForMode}=await import("../src/lib/invoice-template.ts");
+ assert.equal(invoiceAppearanceForMode(null,"jastip").color,"#245C4E");assert.equal(invoiceAppearanceForMode(null,"po").color,"#94501F");
+ assert.equal(invoiceAppearanceForMode({color:"#702963"},"jastip").color,"#702963");assert.equal(invoiceAppearanceForMode({color:"#702963"},"po").color,"#94501F");
+ const appearance={...DEFAULT_INVOICE_APPEARANCE,modeColors:{jastip:"#112233",po:"#445566"}};assert.equal(invoiceAppearanceForMode(appearance,"jastip").color,"#112233");assert.equal(invoiceAppearanceForMode(appearance,"po").color,"#445566");
+});

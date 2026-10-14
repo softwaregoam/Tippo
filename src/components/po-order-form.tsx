@@ -8,7 +8,7 @@ import { shippingFieldErrors } from "@/lib/order-shipping";
 import { OrderDiscountFields } from "@/components/order-discount-fields";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, itemLabel, orderDiscount, orderSubtotal, orderHpp, orderRevenue, outstanding } from "@/lib/finance";
@@ -219,7 +219,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     if (!Number.isSafeInteger(revenue) || !Number.isSafeInteger(totalQuantity) || !Number.isSafeInteger(totalCost)) nextErrors.items = "Total pesanan terlalu besar. Kurangi jumlah produk.";
     setErrors(nextErrors); setItemErrors(nextItemErrors);
     if (Object.keys(nextErrors).length || Object.keys(nextItemErrors).length) {
-      if (["shippingCharge", "serviceFee", "notes"].some((field) => nextErrors[field as keyof Fields]) && detailsRef.current) detailsRef.current.open = true;
+      if (["shippingCharge","serviceFee","discountValue","notes","shippingDate","shippingTime","shippingMethod"].some(field=>nextErrors[field as keyof Fields]) && detailsRef.current) detailsRef.current.open=true;
       const firstField = Object.keys(nextErrors).find((name) => name !== "items");
       const firstItemError = Object.entries(nextItemErrors)[0];
       const name = firstField ?? (firstItemError ? `item-${firstItemError[0]}-${Object.keys(firstItemError[1])[0]}` : undefined);
@@ -322,8 +322,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
             <Button className="btn btn-primary add-order-item" type="button" onClick={addItem} disabled={items.length >= 100 || !hasActiveProducts} style={{ marginTop: 14 }}><Plus size={16} />Tambah produk</Button>
             {items.length >= 100 && <p className="field-hint">Maksimal 100 produk per pesanan.</p>}
           </div>
-          <section className="order-section">
-            <h3><span className="order-section-number">3</span>Diskon, ongkir & catatan</h3>
+          <details ref={detailsRef} className="order-section order-extra-details" onInvalidCapture={event=>{event.currentTarget.open=true;}}><summary><span><span className="order-section-number">3</span>Detail tambahan</span><ChevronDown size={18}/></summary><div className="order-extra-body">
             <OrderDiscountFields id="po-order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} total={orderSubtotal(draft) + draft.shippingCharge} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />
             <div className="form-grid" style={{ marginTop: 14 }}>
               {amountField("shippingCharge", "Ongkir yang ditagihkan")}
@@ -331,8 +330,8 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               {Boolean(order?.serviceFee) && amountField("serviceFee", "Fee tambahan pesanan asal")}
               <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="po-order-notes">Catatan invoice <span className="muted">(opsional)</span></label><input id="po-order-notes" name="notes" className="input" value={fields.notes} maxLength={textLimits.notes} placeholder="Catatan untuk pelanggan" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "po-error-notes" : undefined} />{errors.notes && <span id="po-error-notes" className="error-message">{errors.notes}</span>}</div>
             </div>
-          </section>
-          <OrderShippingFields id="po-order" values={fields} onChange={update} errors={errors}/>
+            <OrderShippingFields id="po-order" values={fields} onChange={update} errors={errors}/>
+          </div></details>
           <section className="order-section"><h3><span className="order-section-number">4</span>Pembayaran</h3><div className="order-payment"><p className="payment-total">Total tagihan <strong>{formatCurrency(revenue)}</strong></p><div className="form-grid">{amountField("paid", "Sudah dibayar (DP / lunas)")}</div></div></section>
           <div className="summary-strip" aria-live="polite"><div className="summary-cell"><span>Total tagihan</span><strong>{formatCurrency(revenue)}</strong></div><div className="summary-cell"><span>Estimasi HPP</span><strong>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</strong></div><div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div></div>
         </div>

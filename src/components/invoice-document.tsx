@@ -1,7 +1,7 @@
 "use client";
 import type { CSSProperties } from "react";
 import type { InvoiceSettings } from "@/lib/business-profile";
-import { invoiceBankDetails, readInvoiceAppearance } from "@/lib/invoice-template";
+import { invoiceAppearanceForMode, invoiceBankDetails } from "@/lib/invoice-template";
 import { isInvoicePaid } from "@/lib/invoice";
 import { formatCalendarDate } from "@/lib/calendar-date";
 import { formatCurrency, itemLabel, orderDiscount, orderRevenue } from "@/lib/finance";
@@ -20,7 +20,7 @@ const documentCss = `
 @media print{@page{size:A4;margin:14mm}.invoice-document{padding:20px;font-size:13px;container-type:normal;print-color-adjust:exact;-webkit-print-color-adjust:exact}.invoice-document .invoice-meta{grid-template-columns:1fr 1fr}.invoice-document thead{display:table-header-group}.invoice-document tr,.invoice-document .invoice-totals{break-inside:avoid}.invoice-document .invoice-footer{break-inside:avoid}}
 `;
 export function InvoiceDocument({order,batch,customer,settings,logoPreviewUrl}:{logoPreviewUrl?:string;order:Order;batch?:Batch;customer?:Customer;settings?:Partial<InvoiceSettings>}) {
- const appearance=readInvoiceAppearance(settings?.appearance),discount=orderDiscount(order),refund=refundedTotal(order);
+ const appearance=invoiceAppearanceForMode(settings?.appearance,batch?.type??"jastip"),discount=orderDiscount(order),refund=refundedTotal(order);
  const bank=invoiceBankDetails(appearance);
  const hex=appearance.color.slice(1),light=(parseInt(hex.slice(0,2),16)*299+parseInt(hex.slice(2,4),16)*587+parseInt(hex.slice(4,6),16)*114)/1000>170;
  const name=(settings?.invoiceStoreName ?? "").trim().toLocaleUpperCase("id-ID");

@@ -21,3 +21,5 @@ Sebelum migrasi dijalankan, pengaturan nama toko, nomor, warna, tata letak, dan 
 - Periksa akun lain: logo dan template tidak mengikuti akun sebelumnya.
 
 Tanggal kirim, jam kirim (24 jam), dan metode kirim opsional pada pesanan. Pengiriman, catatan pesanan, dan alamat pelanggan hanya muncul di invoice jika diisi. Catatan penutup ditampilkan rata tengah. Data pengiriman disimpan bersama JSON pesanan, sehingga tidak memerlukan migrasi tabel baru.
+
+Warna invoice diatur terpisah untuk Jastip (hijau) dan Open PO (cokelat). Logo, identitas toko, rekening, tata letak, dan catatan penutup dipakai bersama. Pratinjau memuat contoh alamat, pengiriman, dan catatan pelanggan; fee jastip hanya muncul pada contoh Jastip. Bagian 3 form pesanan tertutup saat dibuka; jam kirim berupa input HH:mm 24 jam, bukan pilihan jam/menit.

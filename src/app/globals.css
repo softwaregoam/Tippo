@@ -1214,5 +1214,13 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .shipping-date-control,.shipping-time-control { display:flex; align-items:center; gap:8px; min-width:0; }
 .shipping-date-control .date-picker { flex:1; min-width:0; }
 .shipping-date-control .icon-button,.shipping-time-control .icon-button { flex-shrink:0; }
-.shipping-time-control .select-trigger { flex:1; min-width:0; width:100%; }
 .shipping-method-field { grid-column:1/-1; }
+
+.order-extra-details > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer; font-size:16px; font-weight:600; list-style:none; }
+.order-extra-details > summary::-webkit-details-marker { display:none; }
+.order-extra-details > summary > span { display:flex; align-items:center; gap:10px; }
+.order-extra-details > summary > svg { flex-shrink:0; transition:transform .15s; }
+.order-extra-details[open] > summary > svg { transform:rotate(180deg); }
+.order-extra-body { padding-top:20px; }
+.order-extra-body .order-shipping-fields { padding:18px 0 0; margin:8px 0 0; border-top:1px solid var(--border); border-bottom:0; }
+.shipping-time-control > input { flex:1; min-width:0; font-variant-numeric:tabular-nums; }

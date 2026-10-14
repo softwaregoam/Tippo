@@ -7,7 +7,7 @@ import { HelpPanel } from "@/components/help-panel";
 import { applyRefund, refundedTotal } from "@/lib/refund";
 import { DEMO_PROFILE_KEY, readBusinessProfile } from "@/lib/business-profile";
 import { InvoiceTemplatePanel } from "@/components/invoice-template-panel";
-import { readInvoiceAppearance, type InvoiceTemplate } from "@/lib/invoice-template";
+import { invoiceAppearanceForMode, readInvoiceAppearance, type InvoiceTemplate } from "@/lib/invoice-template";
 import { getSupabaseClient } from "@/lib/supabase";
 import { BusinessProfilePanel } from "@/components/business-profile";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -76,7 +76,6 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const [demoAppearance,setDemoAppearance]=useState(()=>{
     try{return readInvoiceAppearance(JSON.parse(localStorage.getItem(DEMO_PROFILE_KEY)??"null")?.invoiceTemplate);}catch{return readInvoiceAppearance(null);}
   });
-  const invoiceSettings = {...(cloud ? readBusinessProfile(cloud) : demoProfile),appearance:cloud?.invoiceAppearance ?? demoAppearance};
   async function saveInvoiceTemplate(template:InvoiceTemplate,logo:Blob|null):Promise<InvoiceTemplate>{
     let uploadedPath="";
     const client=getSupabaseClient();
@@ -111,6 +110,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     try { return typeof window !== "undefined" && localStorage.getItem(businessModeKey) === "po" ? "po" : "jastip"; }
     catch { return "jastip"; }
   });
+  const invoiceSettings = {...(cloud ? readBusinessProfile(cloud) : demoProfile),appearance:invoiceAppearanceForMode(cloud?.invoiceAppearance ?? demoAppearance,mode)};
   const modeLabel = mode === "po" ? "Open PO" : "Jastip";
   const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, reports: `Laporan ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", "invoice-template": "Template invoice", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
   const navigation = [
@@ -429,7 +429,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
               {page === "subscription" && <SubscriptionPanel data={data} subscription={subscription} account={cloud ? { id: cloud.ownerId, name: cloud.name, email: cloud.email } : undefined} onNotify={notify} onSubscriptionChanged={cloud?.refreshSubscription} />}
 
               {page === "reports" && <ReportsPanel key={mode} data={data} type={mode} isPro={isPro} onUpgrade={()=>go("subscription")} />}
-              {page === "invoice-template" && <InvoiceTemplatePanel settings={invoiceSettings} onSave={saveInvoiceTemplate} onNotify={notify}/>}
+              {page === "invoice-template" && <InvoiceTemplatePanel key={mode} type={mode} settings={invoiceSettings} onSave={saveInvoiceTemplate} onNotify={notify}/>}
               {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} onSaved={setDemoProfile} />}
               {page === "feedback" && <FeedbackPanel key={cloud?.ownerId ?? "local"} onNotify={notify} />}
               {page === "help" && <HelpPanel mode={mode} onNavigate={go} />}

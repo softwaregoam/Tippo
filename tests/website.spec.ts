@@ -940,7 +940,7 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   await page.setViewportSize({width,height:1000}); await page.goto("/app"); await openBusiness(page,business); await openSection(page,"Pesanan");
   await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
   let form=page.getByRole("dialog",{name:business==="Jastip"?"Pesanan jastip baru":"Pesanan PO baru",exact:true});
-  const date=form.locator('input[type="date"]');
+  const date=form.getByLabel("Tanggal pesanan",{exact:true});
   await expect(date).toHaveValue("");
   await expect(form.getByLabel("Pelanggan",{exact:true})).toHaveAttribute("data-value", "");
   await expect(form.getByLabel("Pelanggan",{exact:true})).toHaveText("Pilih pelanggan");
@@ -953,7 +953,7 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
     await form.locator('.order-context').screenshot({path:`docs/preview-empty-order-context-${business==="Jastip"?"jastip":"po"}-${width}.png`});
     await expect(form.getByLabel("Jumlah produk",{exact:true})).toHaveAttribute("placeholder","Contoh: 2");
   }
-  await date.fill(""); await expect(form.locator('.date-picker-display')).toHaveText("Pilih tanggal");
+  await date.fill(""); await expect(form.locator('.order-context .date-picker-display')).toHaveText("Pilih tanggal");
   if(width===1440) {
     await date.click({position:{x:8,y:20}});
     await page.keyboard.press("Escape");
@@ -963,13 +963,13 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   await date.click({position:{x:8,y:20}}); await expect(date).toHaveAttribute("data-picker-calls","1");
   await date.press("Enter"); await expect(date).toHaveAttribute("data-picker-calls","2");
   await date.press("Backspace"); await page.keyboard.type("20261011"); await expect(date).toHaveValue("");
-  await date.fill("2026-10-11"); await expect(form.locator('.date-picker-display')).toHaveText("11/10/2026");
+  await date.fill("2026-10-11"); await expect(form.locator('.order-context .date-picker-display')).toHaveText("11/10/2026");
   await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"new");
   await expect(form.getByLabel("Alamat (opsional)",{exact:true})).toHaveAttribute("placeholder","Alamat lengkap pelanggan");
   await expect(form.getByLabel("Jumlah produk",{exact:true})).toHaveAttribute("placeholder","Contoh: 2");
   if(width<600) {
     await date.fill("");
-    const placeholderFits=await form.locator('.date-picker-display > span').evaluate(element=>element.scrollWidth<=element.clientWidth+1);
+    const placeholderFits=await form.locator('.order-context .date-picker-display > span').evaluate(element=>element.scrollWidth<=element.clientWidth+1);
     expect(placeholderFits).toBe(true);
     await form.locator('.order-context').screenshot({path:`docs/preview-mobile-placeholders-${business==="Jastip"?"jastip":"po"}-${width}.png`});
     await date.fill("2026-10-11");
@@ -982,9 +982,10 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   } else {
     await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");
     await chooseOption(form.getByLabel("Produk",{exact:true}),"discount-product");
-    await form.locator('input[type="date"]').fill("2026-10-11");
+    await form.getByLabel("Tanggal pesanan",{exact:true}).fill("2026-10-11");
   }
   await form.getByLabel("Jumlah produk",{exact:true}).fill("2");
+  await form.locator(".order-extra-details summary").click();
   await form.locator('input[name="shippingCharge"]').fill("5000");
   await chooseOption(form.getByLabel("Jenis diskon",{exact:true}),"percent");
   await form.getByLabel("Diskon",{exact:true}).fill("101");
@@ -1020,6 +1021,7 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   } else await page.getByRole("button",{name:"Edit pesanan Roti Diskon",exact:true}).click();
   form=page.getByRole("dialog",{name:business==="Jastip"?"Edit pesanan jastip":"Edit pesanan PO",exact:true});
   await expect(form.getByLabel("Diskon",{exact:true})).toHaveValue("10");
+  if(!await form.locator(".order-extra-details").evaluate(el=>(el as HTMLDetailsElement).open))await form.locator(".order-extra-details summary").click();
   await chooseOption(form.getByLabel("Jenis diskon",{exact:true}),"amount");
   await expect(form.getByLabel("Diskon",{exact:true})).toHaveValue("");
   await form.getByLabel("Diskon",{exact:true}).fill("55001");
@@ -1314,7 +1316,7 @@ for(const business of ["Jastip","Open PO"] as const)test(`shop and option snapsh
  data.products.push({id:"shirt",name:"Kaos",variant:"Airism",color:"Hitam",size:"L",store:"Uniqlo",sku:"SKU-L",unitPrice:25000,unitCost:12000,active:true});
  const requests=await authenticate(page,{workspace:data,pro:true});await page.setViewportSize({width:390,height:844});await page.goto("/app");await openBusiness(page,business);await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
  const form=page.getByRole("dialog",{name:business==="Open PO"?"Pesanan PO baru":"Pesanan jastip baru",exact:true});
- await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");await form.locator('input[type="date"]').fill("2026-10-13");
+ await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");await form.getByLabel("Tanggal pesanan",{exact:true}).fill("2026-10-13");
  if(business==="Jastip"){
   for(const [name,value] of [["Nama produk","Kaos"],["Toko / brand (opsional)","Uniqlo"],["Varian (opsional)","Airism"],["Warna (opsional)","Hitam"],["Ukuran (opsional)","L"],["Harga jual / produk","25000"]])await form.getByLabel(name,{exact:true}).fill(value);
  }else await chooseOption(form.getByLabel("Produk",{exact:true}),"shirt");
@@ -1637,7 +1639,13 @@ for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as cons
   if(width<600){await page.getByRole("button",{name:`Detail ${business==="Jastip"?"Alya":"Bima PO"}`,exact:true}).click();await page.getByRole("dialog").getByRole("button",{name,exact:true}).click();}else await page.getByRole("button",{name:name==="Edit"?/^Edit pesanan /:/^Invoice /}).click();
  }
  await action("Invoice");let invoice=page.getByRole("dialog",{name:"Invoice pesanan",exact:true});await expect(invoice.getByRole("region",{name:"Pengiriman invoice"})).toHaveCount(0);await expect(invoice.getByRole("region",{name:"Catatan invoice"})).toHaveCount(0);await expect(invoice.locator(".invoice-customer-address")).toContainText("Bandung");await invoice.getByRole("button",{name:"Tutup invoice",exact:true}).click();
- await action("Edit");let form=page.getByRole("dialog",{name:business==="Jastip"?"Edit pesanan jastip":"Edit pesanan PO",exact:true});await expect(form.getByLabel("Tanggal kirim",{exact:true})).toHaveValue("");await form.getByLabel("Tanggal kirim",{exact:true}).fill("2026-10-20");await chooseOption(form.getByRole("combobox",{name:"Jam kirim",exact:true}),"23");await chooseOption(form.getByRole("combobox",{name:"Menit kirim",exact:true}),"15");await form.getByLabel("Metode kirim",{exact:true}).fill("Kurir instan");await form.getByLabel("Catatan invoice (opsional)",{exact:true}).fill("Tolong bungkus rapi");await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();await expect(form).toHaveCount(0);expect(requests[0].p_data.orders.find(entry=>entry.id===order.id)).toMatchObject({shippingDate:"2026-10-20",shippingTime:"23:15",shippingMethod:"Kurir instan",notes:"Tolong bungkus rapi"});
+ await action("Edit");let form=page.getByRole("dialog",{name:business==="Jastip"?"Edit pesanan jastip":"Edit pesanan PO",exact:true});await expect(form.locator(".order-extra-details")).not.toHaveAttribute("open","");await expect(form.getByLabel("Jam kirim",{exact:true})).not.toBeVisible();await form.locator(".order-extra-details summary").click();await expect(form.getByLabel("Tanggal kirim",{exact:true})).toHaveValue("");await form.getByLabel("Tanggal kirim",{exact:true}).fill("2026-10-20");await form.getByRole("textbox",{name:"Jam kirim",exact:true}).fill("24:00");await form.locator(".order-extra-details summary").click();await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();await expect(form.locator(".order-extra-details")).toHaveAttribute("open","");await expect(form.getByText("Jam kirim menggunakan format 24 jam (HH:mm).",{exact:true})).toBeVisible();expect(requests).toHaveLength(0);await form.getByRole("textbox",{name:"Jam kirim",exact:true}).fill("2315");await expect(form.getByRole("textbox",{name:"Jam kirim",exact:true})).toHaveValue("23:15");await form.getByLabel("Metode kirim",{exact:true}).fill("Kurir instan");await form.getByLabel("Catatan invoice (opsional)",{exact:true}).fill("Tolong bungkus rapi");await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();await expect(form).toHaveCount(0);expect(requests[0].p_data.orders.find(entry=>entry.id===order.id)).toMatchObject({shippingDate:"2026-10-20",shippingTime:"23:15",shippingMethod:"Kurir instan",notes:"Tolong bungkus rapi"});
  await action("Invoice");invoice=page.getByRole("dialog",{name:"Invoice pesanan",exact:true});await expect(invoice.getByRole("region",{name:"Pengiriman invoice"})).toContainText("23:15");await expect(invoice.getByRole("region",{name:"Catatan invoice"})).toHaveText("CatatanTolong bungkus rapi");await expect(invoice.getByLabel("Isi invoice untuk WhatsApp")).toHaveValue(/Jam kirim: 23:15/);expect(await invoice.locator(".invoice-footer").evaluate(el=>getComputedStyle(el).textAlign)).toBe("center");expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`/tmp/tippo-shipping-${business}-${width}.png`,fullPage:true});await invoice.getByRole("button",{name:"Tutup invoice",exact:true}).click();
- await page.reload();await openSection(page,"Pesanan");await action("Edit");form=page.getByRole("dialog",{name:business==="Jastip"?"Edit pesanan jastip":"Edit pesanan PO",exact:true});await expect(form.getByLabel("Tanggal kirim",{exact:true})).toHaveValue("2026-10-20");await expect(form.getByRole("combobox",{name:"Jam kirim",exact:true})).toHaveText("23");await form.getByRole("button",{name:"Hapus tanggal kirim",exact:true}).click();await form.getByRole("button",{name:"Hapus jam kirim",exact:true}).click();await form.getByLabel("Metode kirim",{exact:true}).fill("");await form.getByLabel("Catatan invoice (opsional)",{exact:true}).fill("");await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();await expect(form).toHaveCount(0);expect(requests[1].p_data.orders.find(entry=>entry.id===order.id)).not.toHaveProperty("shippingTime");await action("Invoice");invoice=page.getByRole("dialog",{name:"Invoice pesanan",exact:true});await expect(invoice.getByRole("region",{name:"Pengiriman invoice"})).toHaveCount(0);await expect(invoice.getByRole("region",{name:"Catatan invoice"})).toHaveCount(0);
+ await page.reload();await openSection(page,"Pesanan");await action("Edit");form=page.getByRole("dialog",{name:business==="Jastip"?"Edit pesanan jastip":"Edit pesanan PO",exact:true});await expect(form.locator(".order-extra-details")).not.toHaveAttribute("open","");await form.locator(".order-extra-details summary").click();await expect(form.getByLabel("Tanggal kirim",{exact:true})).toHaveValue("2026-10-20");await expect(form.getByRole("textbox",{name:"Jam kirim",exact:true})).toHaveValue("23:15");await form.getByRole("button",{name:"Hapus tanggal kirim",exact:true}).click();await form.getByRole("button",{name:"Hapus jam kirim",exact:true}).click();await form.getByLabel("Metode kirim",{exact:true}).fill("");await form.getByLabel("Catatan invoice (opsional)",{exact:true}).fill("");await form.getByRole("button",{name:"Simpan pesanan",exact:true}).click();await expect(form).toHaveCount(0);expect(requests[1].p_data.orders.find(entry=>entry.id===order.id)).not.toHaveProperty("shippingTime");await action("Invoice");invoice=page.getByRole("dialog",{name:"Invoice pesanan",exact:true});await expect(invoice.getByRole("region",{name:"Pengiriman invoice"})).toHaveCount(0);await expect(invoice.getByRole("region",{name:"Catatan invoice"})).toHaveCount(0);
+});
+
+for(const width of [320,1440])test(`invoice preview examples and independent business colors ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:950});await authenticate(page);const auth=session();await page.route(`${endpoint}/auth/v1/user`,async route=>{if(route.request().method()==="PUT")auth.user.user_metadata={...auth.user.user_metadata,...route.request().postDataJSON().data};return route.fulfill({json:auth.user});});await page.goto("/app");await openSection(page,"Template invoice");
+ const preview=page.getByRole("region",{name:"Contoh invoice"});await expect(page.getByLabel("Warna invoice Jastip",{exact:true})).toHaveValue("#245c4e");await expect(preview).toContainText("Fee jastip");await expect(preview.getByRole("region",{name:"Pengiriman invoice"})).toContainText("14:30");await expect(preview.getByRole("region",{name:"Catatan invoice"})).toContainText("Tolong bungkus rapi.");await expect(preview.locator(".invoice-customer-address")).toContainText("Bandung");await page.getByLabel("Warna invoice Jastip",{exact:true}).fill("#702963");await page.getByRole("button",{name:"Simpan template",exact:true}).click();await expect(page.locator(".toast")).toContainText("Template invoice disimpan");
+ await openBusiness(page,"Open PO");await openSection(page,"Template invoice");await expect(page.getByLabel("Warna invoice Open PO",{exact:true})).toHaveValue("#94501f");await expect(preview).not.toContainText("Fee jastip");await page.getByLabel("Warna invoice Open PO",{exact:true}).fill("#b85525");await page.getByRole("button",{name:"Simpan template",exact:true}).click();await expect(page.locator(".toast")).toContainText("Template invoice disimpan");await page.reload();await openSection(page,"Template invoice");await expect(page.getByLabel("Warna invoice Open PO",{exact:true})).toHaveValue("#b85525");await openBusiness(page,"Jastip");await openSection(page,"Template invoice");await expect(page.getByLabel("Warna invoice Jastip",{exact:true})).toHaveValue("#702963");expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`/tmp/tippo-template-business-${width}.png`,fullPage:true});
 });
