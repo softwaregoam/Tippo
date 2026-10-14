@@ -5,6 +5,7 @@ import {batchStatusLabels} from "@/lib/batch-status";
 import {ShoppingRecapDialog} from "@/components/shopping-recap-dialog";
 import {MobileDataList} from "@/components/mobile-data-list";
 import {Archive,ArchiveRestore,CircleArrowRight,CircleCheck,ClipboardList,Pencil} from "lucide-react";
+import {formatCalendarDate} from "@/lib/calendar-date";
 import {formatCurrency} from "@/lib/finance";
 import type {Product,Batch,Order,AppData} from "@/lib/types";
 export function ProductsTable({products,onEdit,onRemove}:{products:Product[];onEdit:(p:Product)=>void;onRemove:(p:Product)=>void}){
@@ -26,17 +27,17 @@ export function BatchesTable({ title, batches, orders, data, onEdit, onStatus }:
  return <>
    <MobileDataList entries={batches.map(batch => ({
      id: batch.id, title: batch.name, subtitle: batch.origin || "Lokasi belum diisi",
-     meta: `${new Date(`${batch.closeDate}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} · ${count(batch)} pesanan`,
+     meta: `${formatCalendarDate(batch.closeDate,false)} · ${count(batch)} pesanan`,
      status: batchStatusLabels[batch.status],
      statusClassName: `status-tag batch-status-${batch.status}`,
-     details: <><dl className="mobile-detail-fields"><dt>Lokasi / supplier</dt><dd>{batch.origin || "Belum diisi"}</dd><dt>Tutup pesanan</dt><dd>{batch.closeDate}</dd><dt>Jumlah pesanan</dt><dd>{count(batch)}</dd><dt>Status</dt><dd>{badge(batch)}</dd></dl><button className="btn btn-secondary product-mobile-action" data-close-detail onClick={()=>setRecapBatch(batch)}><ClipboardList size={16}/>{recapLabel(batch)}</button><div className={`batch-mobile-actions ${batch.status==="completed"?"single":""}`}>{statusAction(batch,true)}<button className="btn btn-primary" data-close-detail onClick={() => onEdit(batch)}><Pencil size={16} aria-hidden="true"/>Edit batch</button></div></>,
+     details: <><dl className="mobile-detail-fields"><dt>Lokasi / supplier</dt><dd>{batch.origin || "Belum diisi"}</dd><dt>Tutup pesanan</dt><dd>{formatCalendarDate(batch.closeDate)}</dd><dt>Jumlah pesanan</dt><dd>{count(batch)}</dd><dt>Status</dt><dd>{badge(batch)}</dd></dl><button className="btn btn-secondary product-mobile-action" data-close-detail onClick={()=>setRecapBatch(batch)}><ClipboardList size={16}/>{recapLabel(batch)}</button><div className={`batch-mobile-actions ${batch.status==="completed"?"single":""}`}>{statusAction(batch,true)}<button className="btn btn-primary" data-close-detail onClick={() => onEdit(batch)}><Pencil size={16} aria-hidden="true"/>Edit batch</button></div></>,
    }))} />
    <div className="card management-table-wrap desktop-data-table"><table className="management-table" aria-label={title}>
      <thead><tr>{["Nama batch", "Lokasi / supplier", "Tutup pesanan", "Pesanan", "Status", "Aksi"].map(label => <th scope="col" key={label} className={label === "Pesanan" ? "center-cell" : undefined}>{label}</th>)}</tr></thead>
      <tbody>{batches.map(batch => <tr key={batch.id}>
        <td data-label="Nama batch"><h3>{batch.name}</h3><button className="batch-recap-trigger" aria-label={`${recapLabel(batch)} ${batch.name}`} onClick={()=>setRecapBatch(batch)}><ClipboardList size={14}/>{recapLabel(batch)}</button></td>
        <td data-label="Lokasi / supplier">{batch.origin || "Belum diisi"}</td>
-       <td data-label="Tutup pesanan">{new Date(`${batch.closeDate}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</td>
+       <td data-label="Tutup pesanan">{formatCalendarDate(batch.closeDate)}</td>
        <td data-label="Pesanan" className="center-cell">{count(batch)}</td><td data-label="Status">{badge(batch)}</td>
        <td data-label="Aksi"><div className="management-actions">{statusAction(batch)}<button className="icon-button" aria-label={`Edit batch ${batch.name}`} onClick={() => onEdit(batch)}><Pencil size={16} /></button></div></td>
      </tr>)}</tbody>
