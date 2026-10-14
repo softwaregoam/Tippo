@@ -1012,13 +1012,3 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .batch-mobile-actions.single { grid-template-columns:minmax(0,1fr); }
 .batch-mobile-actions .btn { width:100%; min-width:0; }
 .batch-mobile-actions svg { flex-shrink:0; }
-
-.chat-order-input { width:100%; resize:vertical; line-height:1.8; margin-bottom:12px; }
-.chat-order-review { padding:16px; margin-bottom:20px; border:1px solid var(--border); border-radius:8px; background:var(--tone-surface-edf5f1); font-size:14px; }
-.chat-order-review p { margin-top:6px; color:var(--muted); line-height:1.8; }
-.chat-order-source { padding:8px 0; color:var(--muted); font-size:13px; line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; }
-
-@media(max-width:600px) {
- .chat-order-dialog .modal-footer { display:grid; grid-template-columns:minmax(0,1fr); }
- .chat-order-dialog .modal-footer .btn { width:100%; }
-}

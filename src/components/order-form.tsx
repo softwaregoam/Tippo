@@ -1,6 +1,5 @@
 "use client";
 
-import type { ChatOrderDraft } from "@/lib/chat-order";
 import { NumberInput } from "@/components/ui/number-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { OrderDiscountFields } from "@/components/order-discount-fields";
@@ -17,7 +16,6 @@ type OrderFormProps = {
   saving?: boolean;
   data: AppData;
   order?: Order;
-  initialDraft?: ChatOrderDraft;
   defaultBatchId?: string;
   onSave: (order: Order, customer?: Customer) => void;
   onClose: () => void;
@@ -63,14 +61,14 @@ function newItem(): ItemFields {
   return { id: crypto.randomUUID(), product: "", store: "", variant: "", color: "", size: "", quantity: "", unitPrice: "", unitCost: "" };
 }
 
-export function OrderForm({ data, order, initialDraft, defaultBatchId, onSave, onClose, saveError, saving }: OrderFormProps) {
+export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveError, saving }: OrderFormProps) {
   const jastipBatches = data.batches.filter((batch) => batch.type === "jastip");
   const [fields, setFields] = useState<Fields>(() => ({
     batchId: order?.batchId
       ?? jastipBatches.find((batch) => batch.id === defaultBatchId && batch.status === "open")?.id
       ?? (jastipBatches.filter(batch=>batch.status === "open").length === 1 ? jastipBatches.find(batch=>batch.status === "open")?.id : "") ?? "",
-    customerId: order?.customerId ?? initialDraft?.customerId ?? "",
-    customerName: initialDraft?.customerName ?? "", customerPhone: initialDraft?.customerPhone ?? "", customerAddress: initialDraft?.customerAddress ?? "",
+    customerId: order?.customerId ?? "",
+    customerName: "", customerPhone: "", customerAddress: "",
     serviceFee: String(order?.serviceFee ?? 0),
     shippingCharge: String(order?.shippingCharge ?? 0),
     discountType: order?.discount?.type ?? "amount", discountValue: order?.discount ? String(order.discount.value) : "",
@@ -80,7 +78,7 @@ export function OrderForm({ data, order, initialDraft, defaultBatchId, onSave, o
   const [items, setItems] = useState<ItemFields[]>(() => order?.items.map((item) => ({
     id: item.id, product: item.product, store: item.store ?? "", variant: item.variant, color: item.color, size: item.size,
     quantity: String(item.quantity), unitPrice: String(item.unitPrice), unitCost: item.unitCost === null ? "" : String(item.unitCost),
-  })) ?? initialDraft?.items.map(item => ({ id: item.id, product: item.product, store: item.store, variant: item.variant, color: item.color, size: item.size, quantity: item.quantity, unitPrice: item.unitPrice, unitCost: "" })) ?? [newItem()]);
+  })) ?? [newItem()]);
   const [createdAt] = useState(() => order?.createdAt ?? new Date().toISOString());
   const [errors, setErrors] = useState<FieldErrors>({});
   const [itemErrors, setItemErrors] = useState<ItemErrors>({});
@@ -268,7 +266,6 @@ export function OrderForm({ data, order, initialDraft, defaultBatchId, onSave, o
       </div>
       <form onSubmit={submit} noValidate>
         <div className="modal-body">
-          {initialDraft && <div className="chat-order-review" role="status"><strong>Draf dari chat · {initialDraft.items.length} produk</strong><p>Periksa semua isian sebelum menyimpan. Jumlah, tanggal, dan harga yang belum terbaca perlu dilengkapi.</p></div>}
           {(Object.keys(errors).length > 0 || Object.values(itemErrors).some((row) => Object.keys(row).length)) && <p className="error-message" role="alert">Periksa kembali kolom yang ditandai sebelum menyimpan.</p>}
           <section className="order-section order-context"><h3><span className="order-section-number">1</span>Informasi pesanan</h3><div className="form-grid">
             <div className="field">
@@ -299,8 +296,7 @@ export function OrderForm({ data, order, initialDraft, defaultBatchId, onSave, o
             {errors.items && <p className="error-message" role="alert">{errors.items}</p>}
             {items.map((item, index) => <fieldset key={item.id} className="order-item-card">
               <legend className="field-label" style={{ padding: "0 6px" }}>Produk {index + 1}</legend>
-              {initialDraft?.items.find(entry => entry.id === item.id) && <p className="chat-order-source"><strong>Chat:</strong> {initialDraft.items.find(entry => entry.id === item.id)?.source}</p>}
-                <div className="order-item-heading">
+              <div className="order-item-heading">
                 <span className="field-hint">Subtotal {formatCurrency(previewAmount(item.quantity) * previewAmount(item.unitPrice))}</span>
                 <button type="button" className="icon-button delete-item" aria-label={`Hapus produk ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
               </div>
