@@ -94,3 +94,11 @@ test("normal Open PO invoice has no fee or payment balance lines",()=>{
  assert.ok(!message.includes("Sudah dibayar"));assert.ok(!message.includes("Sisa tagihan"));
  assert.ok(message.includes(`*Total tagihan*: ${formatCurrency(365000)}`));
 });
+
+test("LUNAS follows net payments and discounted totals rather than order completion",()=>{
+ assert.match(buildInvoice({...order,paid:390000},batch,customer),/\*LUNAS\*/);
+ assert.doesNotMatch(buildInvoice({...order,status:"done",paid:100000},batch,customer),/\*LUNAS\*/);
+ assert.match(buildInvoice({...order,discount:{type:"amount",value:90000},paid:300000},batch,customer),/\*LUNAS\*/);
+ assert.doesNotMatch(buildInvoice({...order,paid:380000,refunds:[{id:"refund",amount:10000,date:order.date,reason:"Pengembalian",createdAt:order.createdAt}]},batch,customer),/\*LUNAS\*/);
+ assert.doesNotMatch(buildInvoice({...order,status:"cancelled",paid:0},batch,customer),/\*LUNAS\*/);
+});

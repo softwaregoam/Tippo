@@ -15,6 +15,10 @@ function invoiceDate(date: string): string {
   }).format(value);
 }
 
+export function isInvoicePaid(order: Order): boolean {
+  return order.status !== "cancelled" && order.paid >= orderRevenue(order);
+}
+
 /** A customer-facing WhatsApp message. Purchase costs and internal notes stay private. */
 export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, settings?: Partial<InvoiceSettings>): string {
   const profile = readBusinessProfile(settings);
@@ -40,6 +44,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ...(order.shippingCharge > 0 ? [`Ongkir: ${formatCurrency(order.shippingCharge)}`] : []),
     `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
     ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
+    ...(isInvoicePaid(order) ? ["*LUNAS*"] : []),
     "",
     ...(!cancelled&&bank ? ["*Transfer bank*",`Bank: ${bank.name}`,`No. rekening: ${bank.account}`,`Atas nama: ${bank.holder}`,""] : []),
     ...(cancelled ? ["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."] : footer ? [footer] : []),
