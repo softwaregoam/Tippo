@@ -29,6 +29,7 @@ test("WhatsApp invoice includes every item and option, one order fee, and total 
   assert.ok(invoice.includes("2. Kimbap · Tuna"));
   assert.ok(invoice.includes(`2 × ${formatCurrency(100000)} = ${formatCurrency(200000)}`));
   assert.ok(invoice.includes(`3 × ${formatCurrency(50000)} = ${formatCurrency(150000)}`));
+  assert.ok(invoice.includes(`Ongkir: ${formatCurrency(15000)}`));
   assert.ok(invoice.includes(`Subtotal produk: ${formatCurrency(350000)}`));
   assert.ok(invoice.includes(`*Total tagihan*: ${formatCurrency(390000)}`));
   assert.ok(!invoice.includes("Sudah dibayar:"));
@@ -63,6 +64,7 @@ test("PO invoices omit jastip fees and balances while preserving totals and stab
   const freeInvoice = buildInvoice(freeOrder);
   assert.ok(freeInvoice.includes(`*Total tagihan*: ${formatCurrency(0)}`));
   assert.ok(freeInvoice.includes("No. invoice: INV-ORDER-FIXED"));
+  assert.ok(!freeInvoice.includes("Ongkir:"));
 });
 
 test("customer labels containing newlines remain on their own invoice lines", () => {
