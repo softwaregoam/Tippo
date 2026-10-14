@@ -1124,3 +1124,39 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .report-pagination nav > span { width:100%; }
  .report-pagination nav .btn { flex:1; padding-inline:10px; }
 }
+
+.hpp-selector { padding:18px 24px; justify-content:space-between; }
+.hpp-selector .field-label { margin:0; }
+.hpp-selector .select-trigger { width:min(440px,70%); }
+.hpp-detail-card .hpp-table tbody+tbody { border-top:1px solid var(--border); }
+.hpp-summary-grid .stat-value { font-size:clamp(20px,2.2vw,30px); overflow-wrap:anywhere; }
+@media(max-width:700px) {
+ .hpp-selector { flex-direction:column; align-items:stretch; padding:18px; gap:10px; }
+ .hpp-selector .select-trigger { width:100%; }
+ .hpp-summary-grid { grid-template-columns:minmax(0,1fr); gap:10px; margin-bottom:20px; }
+ .hpp-summary-grid .stat-card { display:block; padding:16px 18px; }
+ .hpp-summary-grid .stat-value { display:block; text-align:left; margin:12px 0 8px; font-size:24px; }
+ .hpp-summary-grid .stat-icon { width:32px; height:32px; }
+ .hpp-summary-grid .stat-note { font-size:12px; }
+ .hpp-detail-card .table-wrap { overflow:visible; }
+ .hpp-table { display:block; white-space:normal; }
+ .hpp-table thead { display:none; }
+ .hpp-table tbody { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px 14px; padding:18px; }
+ .hpp-table tbody tr { display:contents; }
+ .hpp-table tbody tr:hover { background:transparent; }
+ .hpp-detail-card .hpp-table tbody td { display:block; border:0; padding:0; min-width:0; }
+ .hpp-table .hpp-product-cell { grid-column:1; overflow-wrap:anywhere; }
+ .hpp-table .hpp-product-cell .row-title { white-space:normal; }
+ .hpp-table .hpp-quantity-cell { grid-column:2; text-align:right; white-space:nowrap; }
+ .hpp-detail-card .hpp-table .hpp-input-cell { grid-column:1/-1; padding-bottom:12px; }
+ .hpp-table .cost-input.small { width:100%; }
+ .hpp-table td[data-label]::before { content:attr(data-label); display:block; color:var(--muted); font-size:12px; margin-bottom:8px; }
+ .hpp-detail-card .hpp-table .hpp-legacy-cell { order:1; grid-column:1/-1; border-top:1px solid var(--border); padding-top:12px; }
+ .hpp-detail-card .hpp-table .hpp-total-cell { order:2; grid-column:auto; border-top:1px solid var(--border); padding-top:12px; text-align:left; font-weight:600; overflow-wrap:anywhere; }
+ .hpp-table .hpp-total-cell::before { font-weight:400; }
+ .hpp-save-footer { padding:18px; }
+ .hpp-save-footer .btn { width:100%; }
+}
+
+.hpp-detail-card .hpp-table .positive { color:var(--primary); }
+.hpp-detail-card .hpp-table .negative { color:var(--danger); }

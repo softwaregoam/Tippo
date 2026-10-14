@@ -1569,3 +1569,13 @@ for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as cons
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:`/tmp/tippo-report-pagination-${type}-${width}.png`,fullPage:true});
 });
+
+for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as const)test(`HPP responsive product costs ${business} ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:950});await page.addInitScript(theme=>localStorage.setItem("tippo.theme.v1",theme),business==="Jastip"?"light":"dark");const data=twoBusinessWorkspace(),batchId=business==="Jastip"?"trip":"po-business",order=data.orders.find(order=>order.batchId===batchId)!;
+ data.batches.find(batch=>batch.id===batchId)!.directCosts=1000;order.items.push({id:"extra-hpp-item",product:"Produk Tambahan Dengan Nama Panjang",variant:"Merah",color:"",size:"L",quantity:2,unitPrice:20000,unitCost:null});
+ const requests=await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,business);await openSection(page,"HPP & Margin");const table=page.getByRole("table",{name:"Rincian HPP"}),fields=table.getByRole("textbox");await expect(fields).toHaveCount(2);await expect(table.locator(".hpp-total-cell").first()).toContainText("Belum lengkap");
+ await fields.nth(1).fill("8000");const expected=(business==="Jastip"?12000:50000)+16000+1000;await expect(table.locator(".hpp-total-cell").first()).toContainText(expected.toLocaleString("id-ID"));
+ if(width===320){const last=await table.locator(".hpp-input-cell").last().boundingBox(),totals=await table.locator(".hpp-total-cell").first().boundingBox();expect(totals!.y).toBeGreaterThan(last!.y+last!.height-1);expect(await table.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);}
+ await page.getByRole("button",{name:"Simpan harga beli",exact:true}).click();await expect.poll(()=>requests.length).toBe(1);expect(requests[0].p_data.orders.find(entry=>entry.id===order.id)!.items[1].unitCost).toBe(8000);expect(requests[0].p_data.orders.find(entry=>entry.batchId!==batchId)).toEqual(data.orders.find(entry=>entry.batchId!==batchId));
+ await page.getByRole("button",{name:"Tutup pemberitahuan"}).click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`/tmp/tippo-hpp-${business}-${width}.png`,fullPage:true});
+});
