@@ -19,7 +19,10 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
     try {
       const next = validateBusinessProfile(profile);
       if (cloud) await cloud.saveProfile(next);
-      else localStorage.setItem(DEMO_PROFILE_KEY, JSON.stringify(next));
+      else {
+        const previous=JSON.parse(localStorage.getItem(DEMO_PROFILE_KEY) ?? "null");
+        localStorage.setItem(DEMO_PROFILE_KEY, JSON.stringify({...next,invoiceTemplate:previous?.invoiceTemplate}));
+      }
       setProfile(next); onSaved?.(next); onNotify("Profil bisnis berhasil disimpan");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Profil belum tersimpan. Coba lagi."); }
     finally { submitting.current = false; setBusy(false); }
@@ -32,8 +35,6 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
         <div className="field"><label className="field-label" htmlFor="business-email">Email akun</label><input id="business-email" className="input" readOnly value={cloud?.email ?? "Mode demo, belum terhubung ke akun"}/><p className="field-hint">Email akun tidak diubah melalui profil bisnis.</p></div>
         <div className="field"><label className="field-label" htmlFor="business-phone">Nomor WhatsApp usaha (opsional)</label><input id="business-phone" type="tel" className="input" autoComplete="tel" maxLength={30} disabled={busy} value={profile.phone} onChange={e=>setProfile({...profile,phone:e.target.value})} placeholder="08..."/></div>
         <div className="field"><label className="field-label" htmlFor="business-address">Alamat usaha (opsional)</label><textarea id="business-address" className="input" rows={3} autoComplete="street-address" maxLength={1000} disabled={busy} value={profile.address} onChange={e=>setProfile({...profile,address:e.target.value})}/></div>
-        <div className="field"><label className="field-label" htmlFor="invoice-store-name">Nama toko pada invoice (opsional)</label><input id="invoice-store-name" className="input" maxLength={120} disabled={busy} value={profile.invoiceStoreName} onChange={e=>setProfile({...profile,invoiceStoreName:e.target.value})} placeholder="Contoh: Titipan Naya"/><p className="field-hint">Biarkan kosong jika nama toko tidak ingin ditampilkan pada invoice.</p></div>
-        <div className="field"><label className="field-label" htmlFor="invoice-prefix">Awalan nomor invoice</label><input id="invoice-prefix" className="input" maxLength={20} required disabled={busy} value={profile.invoicePrefix} onChange={e=>setProfile({...profile,invoicePrefix:e.target.value})} placeholder="Contoh: INV atau NAYA"/><p className="field-hint">Contoh: {profile.invoicePrefix || "INV"}-KODE-PESANAN. Kode pesanan tetap unik. Perubahan awalan juga berlaku saat menyalin ulang invoice pesanan lama.</p></div>
         {error && <p className="error-message" role="alert">{error}</p>}
       </div>
       <div className="business-profile-footer"><Button type="submit" className="btn btn-primary" disabled={busy || cloud?.saving}>{busy ? "Menyimpan…" : "Simpan profil"}</Button></div>

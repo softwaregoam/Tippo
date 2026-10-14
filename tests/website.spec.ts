@@ -100,7 +100,7 @@ async function checkCalendarOnly(page:Page,input:Locator,form:Locator) {
   const pasteBlocked=await input.evaluate(element=>!element.dispatchEvent(new Event("paste",{bubbles:true,cancelable:true})));
   expect(pasteBlocked).toBe(true);
 }
-async function authenticate(page:Page, options:{failSave?:boolean;missing?:boolean;pro?:boolean;workspace?:AppData;accountId?:string;metadata?:Record<string,string>}={}) {
+async function authenticate(page:Page, options:{failSave?:boolean;missing?:boolean;pro?:boolean;workspace?:AppData;accountId?:string;metadata?:Record<string,unknown>}={}) {
   const auth=session(options.accountId); Object.assign(auth.user.user_metadata,options.metadata); let version=0; let data=structuredClone(options.workspace ?? fixture); const requests: {p_data:AppData;p_expected_version:number}[]=[];
   await page.addInitScript(({auth})=>{
     if(!sessionStorage.getItem("auth-test-seeded")){localStorage.setItem("sb-bkplemoflteubfgvqhke-auth-token",JSON.stringify(auth));sessionStorage.setItem("auth-test-seeded","1");}
@@ -517,7 +517,7 @@ for(const width of [390,1440]) for(const theme of ["light","dark"]) test(`sideba
  if(width<760) await expect(sidebar).not.toBeVisible();
  await openNavigation(page);
  await expect(sidebar.locator(".sidebar-menu-group").first().getByRole("button")).toHaveText(["Ringkasan","Pesanan","Produk","Batch PO","Pelanggan","HPP & Margin","Laporan"]);
- await expect(sidebar.getByRole("group",{name:"Menu pendukung"}).getByRole("button")).toHaveText(["Pengaturan data","Panduan & FAQ","Kritik & saran"]);
+ await expect(sidebar.getByRole("group",{name:"Menu pendukung"}).getByRole("button")).toHaveText(["Template invoice","Pengaturan data","Panduan & FAQ","Kritik & saran"]);
  await sidebar.screenshot({path:`docs/preview-sidebar-${width}-${theme}.png`});
  if(width>=760) {
   await sidebar.getByRole("button",{name:"Minimalkan sidebar"}).click();await expect(sidebar).toHaveCSS("width","76px");
@@ -1418,8 +1418,7 @@ for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as
   });
   await page.addInitScript(() => localStorage.setItem("tippo.business.demo.v1", JSON.stringify({ name: "Autre", invoiceStoreName: "DO NOT USE", invoicePrefix: "DEMO" })));
   async function profile() {
-    await page.getByRole("button", { name: "Menu akun", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Profil bisnis", exact: true }).click();
+    await openSection(page,"Template invoice");
   }
   async function invoice() {
     await openSection(page, "Pesanan");
@@ -1436,13 +1435,13 @@ for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as
   expect(await message().inputValue()).not.toMatch(/Status:|Batch:|Jenis:|Titipan Naya|DO NOT USE|Catatan internal/);
   await dialog.getByRole("button", { name: "Tutup invoice", exact: true }).click();
   await profile();
-  await expect(page.getByLabel("Nama toko pada invoice (opsional)")).toHaveValue("");
+  await expect(page.getByLabel("Nama toko (opsional)")).toHaveValue("");
   await expect(page.getByLabel("Awalan nomor invoice", { exact: true })).toHaveValue("INV");
-  await page.getByLabel("Nama toko pada invoice (opsional)").fill("Toko Invoice");
+  await page.getByLabel("Nama toko (opsional)").fill("Toko Invoice");
   await page.getByLabel("Awalan nomor invoice", { exact: true }).fill("NAYA");
-  await page.getByRole("button", { name: "Simpan profil", exact: true }).click();
-  await expect(page.locator(".toast")).toContainText("Profil bisnis berhasil disimpan");
-  expect(saved).toMatchObject({ invoice_store_name: "Toko Invoice", invoice_prefix: "NAYA", business_name: "Titipan Naya" });
+  await page.getByRole("button", { name: "Simpan template", exact: true }).click();
+  await expect(page.locator(".toast")).toContainText("Template invoice disimpan");
+  expect(saved).toMatchObject({ invoice_store_name: "Toko Invoice", invoice_prefix: "NAYA" });
   dialog = await invoice();
   await expect(message()).toHaveValue(/^\*INVOICE TOKO INVOICE\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -1452,9 +1451,9 @@ for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as
   await expect(message()).toHaveValue(/^\*INVOICE TOKO INVOICE\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
   await dialog.getByRole("button", { name: "Tutup invoice", exact: true }).click();
   await profile();
-  await page.getByLabel("Nama toko pada invoice (opsional)").fill("");
-  await page.getByRole("button", { name: "Simpan profil", exact: true }).click();
-  await expect(page.locator(".toast")).toContainText("Profil bisnis berhasil disimpan");
+  await page.getByLabel("Nama toko (opsional)").fill("");
+  await page.getByRole("button", { name: "Simpan template", exact: true }).click();
+  await expect(page.locator(".toast")).toContainText("Template invoice disimpan");
   dialog = await invoice();
   await expect(message()).toHaveValue(/^\*INVOICE\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
   expect(await message().inputValue()).not.toContain("Toko Invoice");
@@ -1462,8 +1461,8 @@ for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as
 
 
 test("invoice profile is scoped to the signed-in account rather than demo storage",async({browser})=>{
- const accounts: {id:string;metadata:Record<string,string>;store:string;prefix:string}[] = [
-  {id:owner,metadata:{invoice_store_name:"Toko Akun A",invoice_prefix:"AKUN-A"},store:"Toko Akun A",prefix:"AKUN-A"},
+ const accounts: {id:string;metadata:Record<string,unknown>;store:string;prefix:string}[] = [
+  {id:owner,metadata:{invoice_store_name:"Toko Akun A",invoice_prefix:"AKUN-A",invoice_template:{color:"#702963",logoUrl:`${endpoint}/storage/v1/object/public/invoice-logos/${owner}/logo.webp`,layout:"minimal",footer:"Akun A"}},store:"Toko Akun A",prefix:"AKUN-A"},
   {id:"00000000-0000-0000-0000-000000000002",metadata:{},store:"",prefix:"INV"},
  ];
  for(const account of accounts){
@@ -1471,9 +1470,11 @@ test("invoice profile is scoped to the signed-in account rather than demo storag
   try {
    const page=await context.newPage();await authenticate(page,{accountId:account.id,metadata:account.metadata});
    await page.addInitScript(()=>localStorage.setItem("tippo.business.demo.v1",JSON.stringify({name:"Cached account",invoiceStoreName:"Toko Akun A",invoicePrefix:"AKUN-A"})));
-   await page.goto("/app");await page.getByRole("button",{name:"Menu akun",exact:true}).click();await page.getByRole("menuitem",{name:"Profil bisnis",exact:true}).click();
-   await expect(page.getByLabel("Nama toko pada invoice (opsional)")).toHaveValue(account.store);
+   await page.goto("/app");await openSection(page,"Template invoice");
+   await expect(page.getByLabel("Nama toko (opsional)")).toHaveValue(account.store);
    await expect(page.getByLabel("Awalan nomor invoice",{exact:true})).toHaveValue(account.prefix);
+   await expect(page.getByLabel("Warna invoice")).toHaveValue(account.prefix==="INV"?"#245c4e":"#702963");
+   await expect(page.getByRole("img",{name:"Logo toko"})).toHaveCount(account.prefix==="INV"?0:1);
   } finally {await context.close();}
  }
 });
@@ -1598,4 +1599,28 @@ for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as cons
  await chooseOption(status,"incomplete");await expect(detail).toContainText("1–10 dari 21 pesanan");await chooseOption(status,"all");await expect(table.getByRole("textbox").nth(1)).toHaveValue("8.000");await search.fill("Tidak ketemu");await expect(detail).toContainText("Tidak ada pesanan yang sesuai.");await detail.getByRole("button",{name:"Simpan harga beli",exact:true}).click();await expect.poll(()=>requests.length).toBe(1);
  expect(requests[0].p_data.orders.find(order=>order.id==="hpp-00")!.items[1].unitCost).toBe(8000);expect(requests[0].p_data.orders.find(order=>order.id==="hpp-10")!.items[1].unitCost).toBe(6000);expect(requests[0].p_data.orders.find(order=>order.id==="hpp-22")!.items[1].unitCost).toBeNull();expect(requests[0].p_data.orders.find(order=>order.id===foreign.id)).toEqual(foreign);
  await page.getByRole("button",{name:"Tutup pemberitahuan"}).click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`/tmp/tippo-hpp-pagination-${type}-${width}.png`,fullPage:true});
+});
+
+for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as const)test(`invoice template logo and visual output ${business} ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:950});const data=twoBusinessWorkspace();await authenticate(page,{workspace:data});const auth=session();let saved:Record<string,unknown>={},uploads=0;
+ const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=","base64");
+ await page.route(`${endpoint}/storage/v1/object/**`,async route=>{if(route.request().method()==="POST"){uploads++;expect(route.request().url()).toContain(`/invoice-logos/${owner}/`);return route.fulfill({json:{Key:"logo"}});}return route.fulfill({contentType:"image/png",body:png});});
+ await page.route(`${endpoint}/auth/v1/user`,async route=>{if(route.request().method()==="PUT"){saved=route.request().postDataJSON().data;auth.user.user_metadata={...auth.user.user_metadata,...saved};}return route.fulfill({json:auth.user});});
+ await page.goto("/app");await openBusiness(page,business);await openSection(page,"Template invoice");await expect(page.getByLabel("Nama toko (opsional)")).toHaveValue("");await page.getByLabel("Nama toko (opsional)").fill("Toko Naya");await page.getByLabel("Awalan nomor invoice",{exact:true}).fill("NAYA");await page.getByLabel("Warna invoice").fill("#702963");await chooseOption(page.getByLabel("Tampilan",{exact:true}),"minimal");await page.getByLabel("Catatan penutup (opsional)").fill("Terima kasih dari Naya");
+ await page.locator('.invoice-template-controls input[type="file"]').setInputFiles({name:"logo.png",mimeType:"image/png",buffer:png});await expect(page.getByRole("button",{name:"Hapus logo"})).toBeVisible();await page.getByRole("button",{name:"Simpan template",exact:true}).click();await expect(page.locator(".toast")).toContainText("Template invoice disimpan");expect(uploads).toBe(1);expect(saved.invoice_template).toMatchObject({color:"#702963",layout:"minimal",footer:"Terima kasih dari Naya"});expect(saved).not.toHaveProperty("business_name");
+ await page.reload();await openSection(page,"Template invoice");await expect(page.getByLabel("Warna invoice")).toHaveValue("#702963");await expect(page.getByRole("img",{name:"Logo toko"})).toHaveAttribute("src",new RegExp(`/invoice-logos/${owner}/`));await expect(page.locator(".invoice-document h2")).toHaveText("TOKO NAYA");expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`/tmp/tippo-template-${business}-${width}.png`,fullPage:true});
+ await openBusiness(page,business);await openSection(page,"Pesanan");if(width<600){await page.getByRole("button",{name:`Detail ${business==="Jastip"?"Alya":"Bima PO"}`,exact:true}).click();await page.getByRole("dialog").getByRole("button",{name:"Invoice",exact:true}).click();}else await page.getByRole("button",{name:/^Invoice /}).click();
+ const dialog=page.getByRole("dialog",{name:"Invoice pesanan",exact:true});await expect(dialog.locator(".invoice-document h2")).toHaveText("TOKO NAYA");await expect(dialog.locator(".invoice-document")).toHaveClass(/invoice-minimal/);await expect(dialog.getByLabel("Isi invoice untuk WhatsApp")).toHaveValue(/Terima kasih dari Naya$/);await expect(dialog.locator(".invoice-document")).not.toContainText("Harga beli");await expect(dialog.locator(".invoice-document")).not.toContainText("Sisa tagihan");await expect(dialog.getByRole("button",{name:"Cetak / PDF"})).toBeVisible();
+ if(width===1440){await page.context().addInitScript(()=>{window.print=()=>document.documentElement.setAttribute("data-printed","true");});const pending=page.waitForEvent("popup");await dialog.getByRole("button",{name:"Cetak / PDF"}).click();const printed=await pending;await expect(printed.locator(".invoice-document h2")).toHaveText("TOKO NAYA");await expect(printed.locator("body")).not.toContainText("Harga beli");expect(await printed.evaluate(()=>window.opener===null)).toBe(true);await printed.close();}
+ await page.screenshot({path:`/tmp/tippo-invoice-${business}-${width}.png`,fullPage:true});
+});
+
+test("failed invoice logo upload preserves the template and can retry",async({page})=>{
+ await authenticate(page);let metadata=0;await page.route(`${endpoint}/auth/v1/user`,route=>{if(route.request().method()==="PUT")metadata++;return route.fulfill({json:session().user});});await page.route(`${endpoint}/storage/v1/object/**`,route=>route.fulfill({status:400,json:{statusCode:"404",error:"Bucket not found",message:"Bucket not found"}}));await page.goto("/app");await openSection(page,"Template invoice");await page.getByLabel("Nama toko (opsional)").fill("Tetap Ada");await page.locator('.invoice-template-controls input[type="file"]').setInputFiles({name:"logo.png",mimeType:"image/png",buffer:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=","base64")});await page.getByRole("button",{name:"Simpan template",exact:true}).click();await expect(page.locator(".invoice-template-controls [role=alert]")).toContainText("Logo belum terunggah");expect(metadata).toBe(0);await expect(page.getByLabel("Nama toko (opsional)")).toHaveValue("Tetap Ada");await expect(page.getByRole("button",{name:"Hapus logo"})).toBeVisible();
+});
+
+test("profile edits preserve invoice template settings",async({page})=>{
+ const auth=session();Object.assign(auth.user.user_metadata,{invoice_store_name:"Toko Naya",invoice_prefix:"NAYA",invoice_template:{color:"#702963",layout:"minimal",logoUrl:"",footer:"Sampai jumpa"}});
+ await authenticate(page,{metadata:auth.user.user_metadata});await page.route(`${endpoint}/auth/v1/user`,async route=>{if(route.request().method()==="PUT")auth.user.user_metadata={...auth.user.user_metadata,...route.request().postDataJSON().data};return route.fulfill({json:auth.user});});
+ await page.goto("/app");await page.getByRole("button",{name:"Menu akun",exact:true}).click();await page.getByRole("menuitem",{name:"Profil bisnis",exact:true}).click();await expect(page.getByLabel("Nama toko (opsional)")).toHaveCount(0);await page.getByLabel("Nama usaha",{exact:true}).fill("Usaha Baru");await page.getByRole("button",{name:"Simpan profil",exact:true}).click();await expect(page.locator(".toast")).toContainText("Profil bisnis berhasil disimpan");await page.reload();await openSection(page,"Template invoice");await expect(page.getByLabel("Nama toko (opsional)")).toHaveValue("Toko Naya");await expect(page.getByLabel("Warna invoice")).toHaveValue("#702963");await expect(page.getByLabel("Catatan penutup (opsional)")).toHaveValue("Sampai jumpa");
 });

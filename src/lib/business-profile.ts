@@ -1,4 +1,5 @@
-export interface InvoiceSettings { invoiceStoreName: string; invoicePrefix: string }
+import type { InvoiceAppearance } from "./invoice-template.ts";
+export interface InvoiceSettings { invoiceStoreName: string; invoicePrefix: string; appearance?: InvoiceAppearance }
 export interface BusinessProfile extends InvoiceSettings { name: string; phone: string; address: string }
 export const DEMO_PROFILE_KEY = "tippo.business.demo.v1";
 export function validateBusinessProfile(profile: Pick<BusinessProfile, "name" | "phone" | "address"> & Partial<InvoiceSettings>): BusinessProfile {

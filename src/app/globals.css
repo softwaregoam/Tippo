@@ -1168,3 +1168,27 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .hpp-list-toolbar { flex-direction:column; align-items:stretch; gap:12px; }
  .hpp-list-toolbar .search-field,.hpp-list-toolbar .select-trigger { width:100%; }
 }
+
+.invoice-template-layout { display:grid; grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr); gap:24px; align-items:start; }
+.invoice-template-controls form { padding:0 24px 24px; }
+.invoice-template-controls fieldset { min-width:0; border:0; padding:0; margin:0; }
+.invoice-template-controls .select-trigger { width:100%; }
+.invoice-logo-controls { display:flex; gap:10px; align-items:center; margin-top:8px; }
+.invoice-color-control { display:flex; align-items:center; gap:12px; font-size:14px; }
+.invoice-color-control input { width:52px; height:44px; padding:4px; background:var(--paper); border:1px solid var(--control-border); border-radius:7px; cursor:pointer; }
+.invoice-template-preview { position:sticky; top:24px; overflow:hidden; }
+.invoice-preview-surface { padding:20px; background:#e9ece9; min-width:0; }
+.invoice-whatsapp-text { margin-top:18px; }
+.invoice-whatsapp-text summary { cursor:pointer; font-size:13px; color:var(--primary); }
+.order-invoice-dialog { width:min(840px,calc(100vw - 32px)); }
+.order-invoice-dialog .modal-body { padding:20px; }
+@media(max-width:1050px) { .invoice-template-layout { grid-template-columns:minmax(0,1fr); } .invoice-template-preview { position:static; } }
+@media(max-width:600px) {
+ .invoice-template-layout { gap:18px; }
+ .invoice-template-controls form { padding:0 18px 18px; }
+ .invoice-template-controls form > .btn { width:100%; }
+ .invoice-preview-surface { padding:10px; }
+ .order-invoice-dialog { width:calc(100vw - 20px); max-height:calc(100dvh - 20px); }
+ .order-invoice-dialog .modal-body { padding:12px; }
+ .order-invoice-dialog .modal-footer { display:grid; grid-template-columns:minmax(0,1fr); }
+}

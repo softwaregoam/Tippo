@@ -1,3 +1,4 @@
+import { readInvoiceAppearance } from "./invoice-template.ts";
 import { refundedTotal } from "./refund.ts";
 import { formatCurrency, itemLabel, orderDiscount, orderRevenue } from "./finance.ts";
 import { readBusinessProfile, type InvoiceSettings } from "./business-profile.ts";
@@ -17,6 +18,7 @@ function invoiceDate(date: string): string {
 /** A customer-facing WhatsApp message. Purchase costs and internal notes stay private. */
 export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, settings?: Partial<InvoiceSettings>): string {
   const profile = readBusinessProfile(settings);
+  const footer = readInvoiceAppearance(settings?.appearance).footer;
   const cancelled = order.status === "cancelled";
   const total = orderRevenue(order);
   const lines = [
@@ -39,7 +41,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
     ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
     "",
-    cancelled ? "Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini." : "Terima kasih sudah memesan!",
+    ...(cancelled ? ["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."] : footer ? [footer] : []),
   ];
   return lines.join("\n");
 }

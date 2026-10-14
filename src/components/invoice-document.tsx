@@ -1,0 +1,38 @@
+"use client";
+import type { CSSProperties } from "react";
+import type { InvoiceSettings } from "@/lib/business-profile";
+import { readInvoiceAppearance } from "@/lib/invoice-template";
+import { formatCalendarDate } from "@/lib/calendar-date";
+import { formatCurrency, itemLabel, orderDiscount, orderRevenue } from "@/lib/finance";
+import { refundedTotal } from "@/lib/refund";
+import type { Batch, Customer, Order } from "@/lib/types";
+
+const documentCss = `
+.invoice-document{--invoice-color:#245C4E;background:#fff;color:#25312e;font:14px/1.6 Arial,sans-serif;padding:30px;box-sizing:border-box;width:100%;overflow-wrap:anywhere;border-top:6px solid var(--invoice-color);text-align:left;color-scheme:light}
+.invoice-document *{box-sizing:border-box}.invoice-document h2,.invoice-document h3,.invoice-document p{margin:0}.invoice-document .invoice-brand{display:flex;gap:16px;align-items:center;padding-bottom:22px;border-bottom:1px solid #e2e6e3}.invoice-document .invoice-brand img{width:64px;height:64px;object-fit:contain;flex-shrink:0}.invoice-document .invoice-brand div{min-width:0}.invoice-document h2{font-size:22px;line-height:1.4;letter-spacing:.5px;color:var(--invoice-ink,var(--invoice-color))}.invoice-document .invoice-kicker{font-size:11px;letter-spacing:2px;color:#63706a}.invoice-document .invoice-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 0}.invoice-document .invoice-meta p{font-size:12px;color:#63706a}.invoice-document .invoice-meta strong{display:block;font-weight:500;font-size:13px;overflow-wrap:anywhere}.invoice-document table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px}.invoice-document th{background:var(--invoice-color);color:var(--invoice-contrast,#fff);padding:10px 8px;font-weight:600;text-align:left}.invoice-document td{padding:12px 8px;border-bottom:1px solid #e2e6e3;vertical-align:top}.invoice-document .invoice-num{text-align:right;font-variant-numeric:tabular-nums}.invoice-document .invoice-qty{width:12%;text-align:center;white-space:nowrap}.invoice-document .invoice-price{width:25%}.invoice-document .invoice-amount{width:26%}.invoice-document .invoice-totals{margin:18px 0 0 auto;width:min(100%,320px)}.invoice-document .invoice-totals div{display:flex;justify-content:space-between;gap:16px;margin-top:8px;font-size:13px}.invoice-document .invoice-totals .invoice-grand-total{color:var(--invoice-ink,var(--invoice-color));font-size:17px;font-weight:700;border-top:1px solid #e2e6e3;padding-top:12px;margin-top:12px}.invoice-document .invoice-footer{font-size:12px;color:#63706a;margin-top:28px;padding-top:18px;border-top:1px solid #e2e6e3;white-space:pre-wrap}.invoice-document.invoice-minimal{border-top:0}.invoice-document.invoice-minimal th{background:#f4f6f4;color:var(--invoice-ink,var(--invoice-color))}
+@media(max-width:600px){.invoice-document{padding:18px;font-size:12px}.invoice-document h2{font-size:18px}.invoice-document .invoice-brand img{width:48px;height:48px}.invoice-document .invoice-meta{grid-template-columns:1fr}.invoice-document table{font-size:11px}.invoice-document th,.invoice-document td{padding:9px 4px}.invoice-document .invoice-num{font-size:10px;white-space:nowrap}.invoice-document .invoice-price{width:25%}.invoice-document .invoice-amount{width:28%}.invoice-document .invoice-totals .invoice-grand-total{font-size:16px}}
+@media print{@page{size:A4;margin:14mm}.invoice-document{padding:20px;font-size:13px;print-color-adjust:exact;-webkit-print-color-adjust:exact}.invoice-document .invoice-meta{grid-template-columns:1fr 1fr}.invoice-document thead{display:table-header-group}.invoice-document tr,.invoice-document .invoice-totals{break-inside:avoid}.invoice-document .invoice-footer{break-inside:avoid}}
+`;
+export function InvoiceDocument({order,batch,customer,settings,logoPreviewUrl}:{logoPreviewUrl?:string;order:Order;batch?:Batch;customer?:Customer;settings?:Partial<InvoiceSettings>}) {
+ const appearance=readInvoiceAppearance(settings?.appearance),discount=orderDiscount(order),refund=refundedTotal(order);
+ const hex=appearance.color.slice(1),light=(parseInt(hex.slice(0,2),16)*299+parseInt(hex.slice(2,4),16)*587+parseInt(hex.slice(4,6),16)*114)/1000>170;
+ const name=(settings?.invoiceStoreName ?? "").trim().toLocaleUpperCase("id-ID");
+ return <article className={`invoice-document invoice-${appearance.layout}`} style={{"--invoice-color":appearance.color,"--invoice-contrast":light?"#25312e":"#fff","--invoice-ink":light?"#25312e":appearance.color} as CSSProperties} aria-label="Pratinjau invoice"><style>{documentCss}</style>
+  <header className="invoice-brand">{/* eslint-disable-next-line @next/next/no-img-element */}
+   {(logoPreviewUrl||appearance.logoUrl)&&<img src={logoPreviewUrl||appearance.logoUrl} alt="Logo toko"/>}<div>{name&&<p className="invoice-kicker">INVOICE</p>}<h2>{name||"INVOICE"}</h2></div>
+  </header>
+  <div className="invoice-meta"><div><p>Nomor invoice</p><strong>{settings?.invoicePrefix||"INV"}-{order.id.toUpperCase()}</strong><p>{formatCalendarDate(order.date)}</p></div><div><p>Pelanggan</p><strong>{customer?.name||"Pelanggan"}</strong>{customer?.phone&&<p>{customer.phone}</p>}</div></div>
+  <table aria-label="Produk invoice"><thead><tr><th>Produk</th><th className="invoice-qty">Qty</th><th className="invoice-num invoice-price">Harga</th><th className="invoice-num invoice-amount">Total</th></tr></thead><tbody>{order.items.map(item=><tr key={item.id}><td>{itemLabel(item)}</td><td className="invoice-qty">{item.quantity}</td><td className="invoice-num">{formatCurrency(item.unitPrice)}</td><td className="invoice-num">{formatCurrency(item.unitPrice*item.quantity)}</td></tr>)}</tbody></table>
+  <div className="invoice-totals"><div><span>Subtotal produk</span><span>{formatCurrency(order.items.reduce((sum,item)=>sum+item.unitPrice*item.quantity,0))}</span></div>{(batch?.type!=="po"||order.serviceFee>0)&&<div><span>{batch?.type==="po"?"Biaya tambahan":"Fee jastip"}</span><span>{formatCurrency(order.serviceFee)}</span></div>}{discount>0&&<div><span>Diskon</span><span>−{formatCurrency(discount)}</span></div>}{order.shippingCharge>0&&<div><span>Ongkir</span><span>{formatCurrency(order.shippingCharge)}</span></div>}<div className="invoice-grand-total"><span>{order.status==="cancelled"?"Total sebelum pembatalan":"Total tagihan"}</span><span>{formatCurrency(orderRevenue(order))}</span></div>{refund>0&&<div><span>Refund</span><span>{formatCurrency(refund)}</span></div>}</div>
+  {(order.status==="cancelled"||appearance.footer)&&<p className="invoice-footer">{order.status==="cancelled"?"Pesanan dibatalkan. Tidak ada tagihan.":appearance.footer}</p>}
+ </article>;
+}
+
+export async function printInvoice(element: HTMLElement) {
+ const popup=window.open("","_blank");
+ if(!popup)throw new Error("Izinkan pop-up untuk mencetak invoice.");
+ popup.opener=null;
+ popup.document.open();popup.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice</title><style>body{margin:0;background:white}</style></head><body>${element.innerHTML}</body></html>`);popup.document.close();
+ await Promise.all(Array.from(popup.document.images).map(image=>image.decode().catch(()=>undefined)));
+ if(!popup.closed){popup.focus();popup.print();}
+}

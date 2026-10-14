@@ -6,6 +6,9 @@ import { FeedbackPanel } from "@/components/feedback-panel";
 import { HelpPanel } from "@/components/help-panel";
 import { applyRefund, refundedTotal } from "@/lib/refund";
 import { DEMO_PROFILE_KEY, readBusinessProfile } from "@/lib/business-profile";
+import { InvoiceTemplatePanel } from "@/components/invoice-template-panel";
+import { readInvoiceAppearance, type InvoiceTemplate } from "@/lib/invoice-template";
+import { getSupabaseClient } from "@/lib/supabase";
 import { BusinessProfilePanel } from "@/components/business-profile";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -13,7 +16,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import {
   ArrowRight, ArrowUpRight, CalendarDays, Crown,
   Check, ChevronDown, CircleHelp, Download, FileJson, Layers3,
-  FileBarChart2, LayoutDashboard, LogOut, MapPin, Menu, MessageSquare, Package, Pencil, Plus, ReceiptText, Search, Settings2,
+  FileBarChart2, LayoutDashboard, LogOut, MapPin, Menu, MessageSquare, Package, Palette, Pencil, Plus, ReceiptText, Search, Settings2,
   ShoppingBag, Trash2, Upload, UsersRound, Wallet, X,
 } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
@@ -36,7 +39,7 @@ import type { AppData, Batch, Customer, Order, Product } from "@/lib/types";
 import type { AccountWorkspace } from "./cloud-workspace";
 import Link from "next/link";
 
-type Page = "dashboard" | "orders" | "products" | "batches" | "hpp" | "reports" | "customers" | "settings" | "profile" | "subscription" | "feedback" | "help";
+type Page = "dashboard" | "orders" | "products" | "batches" | "hpp" | "reports" | "customers" | "settings" | "invoice-template" | "profile" | "subscription" | "feedback" | "help";
 const businessModeKey = "tippo.business-mode.v1";
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const subtitles = {
@@ -47,6 +50,7 @@ const subtitles = {
   hpp: "Harga beli, HPP, dan margin pesanan.",
   reports: "Lihat penjualan dan estimasi laba usaha ini.",
   customers: "Kontak dipakai bersama. Jumlah pesanan mengikuti usaha yang dipilih.",
+  "invoice-template": "Atur identitas dan tampilan invoice.",
   profile: "Nama dan kontak usaha dalam satu tempat.",
   settings: "Kelola cadangan dan data usahamu.",
   subscription: "Pilih ruang yang sesuai untuk usaha yang terus tumbuh.",
@@ -69,7 +73,35 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     try { return readBusinessProfile(JSON.parse(localStorage.getItem(DEMO_PROFILE_KEY) ?? "null")); }
     catch { return readBusinessProfile(null); }
   });
-  const invoiceSettings = cloud ? readBusinessProfile(cloud) : demoProfile;
+  const [demoAppearance,setDemoAppearance]=useState(()=>{
+    try{return readInvoiceAppearance(JSON.parse(localStorage.getItem(DEMO_PROFILE_KEY)??"null")?.invoiceTemplate);}catch{return readInvoiceAppearance(null);}
+  });
+  const invoiceSettings = {...(cloud ? readBusinessProfile(cloud) : demoProfile),appearance:cloud?.invoiceAppearance ?? demoAppearance};
+  async function saveInvoiceTemplate(template:InvoiceTemplate,logo:Blob|null):Promise<InvoiceTemplate>{
+    let uploadedPath="";
+    const client=getSupabaseClient();
+    const next={...template,appearance:{...template.appearance}};
+    if(logo){
+      if(cloud){
+        if(!client)throw new Error("Layanan akun belum tersedia.");
+        uploadedPath=`${cloud.ownerId}/${crypto.randomUUID()}.${logo.type==="image/png"?"png":logo.type==="image/jpeg"?"jpg":"webp"}`;
+        const {error}=await client.storage.from("invoice-logos").upload(uploadedPath,logo,{contentType:logo.type,upsert:false});
+        if(error)throw new Error("Logo belum terunggah. Periksa koneksi dan bucket invoice-logos di Supabase.");
+        next.appearance.logoUrl=client.storage.from("invoice-logos").getPublicUrl(uploadedPath).data.publicUrl;
+      }else{
+        next.appearance.logoUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Logo belum tersimpan."));reader.readAsDataURL(logo);});
+      }
+    }
+    try{
+      if(cloud)await cloud.saveInvoiceTemplate(next);
+      else{const profile={...demoProfile,invoiceStoreName:next.invoiceStoreName,invoicePrefix:next.invoicePrefix};localStorage.setItem(DEMO_PROFILE_KEY,JSON.stringify({...profile,invoiceTemplate:next.appearance}));setDemoProfile(profile);setDemoAppearance(next.appearance);}
+    }catch(error){if(uploadedPath&&client)await client.storage.from("invoice-logos").remove([uploadedPath]).catch(()=>undefined);throw error;}
+    if(cloud&&client&&cloud.invoiceAppearance.logoUrl!==next.appearance.logoUrl){
+      const base=client.storage.from("invoice-logos").getPublicUrl("placeholder").data.publicUrl.replace(/placeholder$/,""),old=cloud.invoiceAppearance.logoUrl;
+      if(old.startsWith(base)){const path=old.slice(base.length);if(path.startsWith(`${cloud.ownerId}/`) && /^[^/]+\/[a-zA-Z0-9-]+\.(?:webp|png|jpg)$/.test(path))await client.storage.from("invoice-logos").remove([path]).catch(()=>undefined);}
+    }
+    return next;
+  }
   const data = cloud?.record.data ?? demoData;
   const demoSubscription = useSubscription();
   const subscription = cloud?.record.subscription ?? demoSubscription;
@@ -80,7 +112,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     catch { return "jastip"; }
   });
   const modeLabel = mode === "po" ? "Open PO" : "Jastip";
-  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, reports: `Laporan ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
+  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, reports: `Laporan ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", "invoice-template": "Template invoice", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
   const navigation = [
     { id: "dashboard" as Page, label: "Ringkasan", icon: LayoutDashboard },
     { id: "orders" as Page, label: "Pesanan", icon: ReceiptText },
@@ -91,6 +123,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     { id: "reports" as Page, label: "Laporan", icon: FileBarChart2 },
   ];
   const supportNavigation = [
+    { id: "invoice-template" as Page, label: "Template invoice", icon: Palette },
     { id: "settings" as Page, label: "Pengaturan data", icon: Settings2 },
     { id: "help" as Page, label: "Panduan & FAQ", icon: CircleHelp },
     { id: "feedback" as Page, label: "Kritik & saran", icon: MessageSquare },
@@ -347,7 +380,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
         <main className="main-content">
           <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && page !== "reports" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
 
-          {!isPro && page !== "settings" && page !== "hpp" && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
+          {!isPro && page !== "settings" && page !== "hpp" && page !== "invoice-template" && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
             <div key={page}>
               {page === "dashboard" && <>
                 <div className="stats-grid">
@@ -396,6 +429,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
               {page === "subscription" && <SubscriptionPanel data={data} subscription={subscription} account={cloud ? { id: cloud.ownerId, name: cloud.name, email: cloud.email } : undefined} onNotify={notify} onSubscriptionChanged={cloud?.refreshSubscription} />}
 
               {page === "reports" && <ReportsPanel key={mode} data={data} type={mode} isPro={isPro} onUpgrade={()=>go("subscription")} />}
+              {page === "invoice-template" && <InvoiceTemplatePanel settings={invoiceSettings} onSave={saveInvoiceTemplate} onNotify={notify}/>}
               {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} onSaved={setDemoProfile} />}
               {page === "feedback" && <FeedbackPanel key={cloud?.ownerId ?? "local"} onNotify={notify} />}
               {page === "help" && <HelpPanel mode={mode} onNavigate={go} />}

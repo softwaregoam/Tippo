@@ -10,10 +10,11 @@ import { setAccountUsage } from "@/lib/subscription";
 import { isAppData } from "@/lib/validation";
 import type { AppData } from "@/lib/types";
 import { readBusinessProfile, validateBusinessProfile, type BusinessProfile } from "@/lib/business-profile";
+import { readInvoiceAppearance, validateInvoiceTemplate, type InvoiceAppearance, type InvoiceTemplate } from "@/lib/invoice-template";
 import { TippoApp } from "./tippo-app";
 import { Wordmark } from "./wordmark";
 
-export interface AccountWorkspace extends Pick<BusinessProfile, "invoiceStoreName" | "invoicePrefix"> { ownerId: string; name: string; email: string; phone: string; address: string; saveProfile: (profile: BusinessProfile) => Promise<void>; saving: boolean; record: CloudRecord; commit: (data: AppData) => Promise<boolean>; logout: () => Promise<void>; refreshSubscription:()=>Promise<void> }
+export interface AccountWorkspace extends Pick<BusinessProfile, "invoiceStoreName" | "invoicePrefix"> { invoiceAppearance: InvoiceAppearance; saveInvoiceTemplate: (template: InvoiceTemplate) => Promise<void>; ownerId: string; name: string; email: string; phone: string; address: string; saveProfile: (profile: BusinessProfile) => Promise<void>; saving: boolean; record: CloudRecord; commit: (data: AppData) => Promise<boolean>; logout: () => Promise<void>; refreshSubscription:()=>Promise<void> }
 export function CloudWorkspace() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -82,6 +83,20 @@ export function CloudWorkspace() {
       setUser(data.user);
     } finally { saving.current = false; setBusy(false); }
   }
+  async function saveInvoiceTemplate(template: InvoiceTemplate) {
+    const next=validateInvoiceTemplate(template);
+    if (saving.current) throw new Error("Tunggu penyimpanan sebelumnya selesai.");
+    const client=getSupabaseClient();
+    if (!client || !user || owner.current!==user.id) throw new Error("Masuk kembali sebelum menyimpan template.");
+    const request=epoch.current, accountId=user.id;
+    saving.current=true;setBusy(true);
+    try {
+      const {data,error}=await client.auth.updateUser({data:{invoice_store_name:next.invoiceStoreName,invoice_prefix:next.invoicePrefix,invoice_template:next.appearance}});
+      if (request!==epoch.current || owner.current!==accountId) throw new Error("Sesi akun berubah. Masuk kembali.");
+      if (error || !data.user) throw new Error("Template belum tersimpan. Coba lagi.");
+      setUser(data.user);
+    } finally {saving.current=false;setBusy(false);}
+  }
   async function logout() {
     if (saving.current) return;
     const result = await getSupabaseClient()?.auth.signOut();
@@ -101,5 +116,5 @@ export function CloudWorkspace() {
   if (!record) return <main className="workspace-wait"><Wordmark /><div className="workspace-wait-card" role={loading ? "status" : undefined}>{loading ? <><LoaderCircle size={32} className="spin" /><h1>Memuat catatan usahamu…</h1><p>Pesanan, produk, dan pembayaran sedang diambil dari akunmu.</p></> : <><Cloud size={36} /><h1>Ruang usahamu belum terbuka.</h1><p role="alert">{error}</p><div>{user ? <button className="landing-button primary" onClick={() => void load(user)}><RefreshCw size={17} />Coba lagi</button> : <Link href="/masuk" className="landing-button primary">Masuk ke akun</Link>}</div><button className="text-action" onClick={logout}>Keluar akun</button></>}</div></main>;
   const profile = readBusinessProfile({ name: user?.user_metadata.business_name, phone: user?.user_metadata.business_phone, address: user?.user_metadata.business_address, invoiceStoreName: user?.user_metadata.invoice_store_name, invoicePrefix: user?.user_metadata.invoice_prefix });
   if (!user) return null;
-  return <>{error && <div className="cloud-error" role="alert">{error} <button onClick={() => user && void load(user)}>Muat data terbaru</button></div>}<TippoApp cloud={{ ownerId: user.id, name: profile.name, phone: profile.phone, address: profile.address, invoiceStoreName: profile.invoiceStoreName, invoicePrefix: profile.invoicePrefix, saveProfile, email: user.email ?? "", saving: busy, record, commit, logout, refreshSubscription }} />{(busy || loading) && <div className="cloud-saving" role="status"><LoaderCircle size={26} className="spin" /><span>{busy ? "Menyimpan perubahan…" : "Memuat data terbaru…"}</span></div>}</>;
+  return <>{error && <div className="cloud-error" role="alert">{error} <button onClick={() => user && void load(user)}>Muat data terbaru</button></div>}<TippoApp cloud={{ invoiceAppearance:readInvoiceAppearance(user.user_metadata.invoice_template),saveInvoiceTemplate, ownerId: user.id, name: profile.name, phone: profile.phone, address: profile.address, invoiceStoreName: profile.invoiceStoreName, invoicePrefix: profile.invoicePrefix, saveProfile, email: user.email ?? "", saving: busy, record, commit, logout, refreshSubscription }} />{(busy || loading) && <div className="cloud-saving" role="status"><LoaderCircle size={26} className="spin" /><span>{busy ? "Menyimpan perubahan…" : "Memuat data terbaru…"}</span></div>}</>;
 }

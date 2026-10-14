@@ -637,7 +637,7 @@ test("a multi-item jastip order retains each option and copies a customer invoic
   await invoice.getByRole("button", { name: "Salin invoice WhatsApp", exact: true }).click();
   await expect(invoice.getByRole("status")).toContainText("Invoice disalin.");
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(text);
-  await invoice.getByRole("button", { name: "Tutup", exact: true }).click();
+  await invoice.getByRole("button", { name: "Tutup invoice", exact: true }).click();
   await page.reload();
   await modeOrders(page, "Jastip");
   await expect(page.getByRole("row").filter({ hasText: "Kaos multi item" })).toContainText("Porsi besar");
