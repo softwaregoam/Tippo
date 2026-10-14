@@ -1,5 +1,5 @@
 import { refundedTotal } from "./refund.ts";
-import { formatCurrency, itemLabel, orderDiscount, orderRevenue, outstanding } from "./finance.ts";
+import { formatCurrency, itemLabel, orderDiscount, orderRevenue } from "./finance.ts";
 import { readBusinessProfile, type InvoiceSettings } from "./business-profile.ts";
 import type { Batch, Customer, Order } from "./types.ts";
 
@@ -15,12 +15,12 @@ function invoiceDate(date: string): string {
 }
 
 /** A customer-facing WhatsApp message. Purchase costs and internal notes stay private. */
-export function buildInvoice(order: Order, _batch?: Batch, customer?: Customer, settings?: Partial<InvoiceSettings>): string {
+export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, settings?: Partial<InvoiceSettings>): string {
   const profile = readBusinessProfile(settings);
   const cancelled = order.status === "cancelled";
   const total = orderRevenue(order);
   const lines = [
-    `*INVOICE ${profile.invoiceStoreName ? textLine(profile.invoiceStoreName) : "TIPPO"}*`,
+    `*INVOICE${profile.invoiceStoreName ? ` ${textLine(profile.invoiceStoreName).toLocaleUpperCase("id-ID")}` : ""}*`,
     `No. invoice: ${profile.invoicePrefix}-${textLine(order.id).toUpperCase()}`,
     `Tanggal: ${invoiceDate(order.date)}`,
     `Pelanggan: ${textLine(customer?.name ?? "Pelanggan")}`,
@@ -33,12 +33,11 @@ export function buildInvoice(order: Order, _batch?: Batch, customer?: Customer, 
     ]),
     "",
     `Subtotal produk: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
-    `Fee jastip: ${formatCurrency(order.serviceFee)}`,
+    ...(batch?.type === "po" ? order.serviceFee > 0 ? [`Biaya tambahan: ${formatCurrency(order.serviceFee)}`] : [] : [`Fee jastip: ${formatCurrency(order.serviceFee)}`]),
     ...(orderDiscount(order) > 0 ? [`Diskon${order.discount?.type === "percent" ? ` (${order.discount.value}%)` : ""}: -${formatCurrency(orderDiscount(order))}`] : []),
     `Ongkir: ${formatCurrency(order.shippingCharge)}`,
     `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
-    ...(refundedTotal(order) > 0 ? [`Pembayaran sebelum refund: ${formatCurrency(order.paid + refundedTotal(order))}`, `Refund: ${formatCurrency(refundedTotal(order))}`, `Pembayaran tersisa: ${formatCurrency(order.paid)}`] : [`Sudah dibayar: ${formatCurrency(order.paid)}`]),
-    `*Sisa tagihan*: ${formatCurrency(outstanding(order))}`,
+    ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
     "",
     cancelled ? "Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini." : "Terima kasih sudah memesan!",
   ];

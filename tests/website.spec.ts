@@ -1432,7 +1432,7 @@ for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as
   await page.goto("/app"); await openBusiness(page, business);
   let dialog = await invoice();
   const message = () => dialog.getByLabel("Isi invoice untuk WhatsApp");
-  await expect(message()).toHaveValue(/^\*INVOICE TIPPO\*\nNo\. invoice: INV-INVOICE-ORDER/);
+  await expect(message()).toHaveValue(/^\*INVOICE\*\nNo\. invoice: INV-INVOICE-ORDER/);
   expect(await message().inputValue()).not.toMatch(/Status:|Batch:|Jenis:|Titipan Naya|DO NOT USE|Catatan internal/);
   await dialog.getByRole("button", { name: "Tutup invoice", exact: true }).click();
   await profile();
@@ -1444,19 +1444,19 @@ for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as
   await expect(page.locator(".toast")).toContainText("Profil bisnis berhasil disimpan");
   expect(saved).toMatchObject({ invoice_store_name: "Toko Invoice", invoice_prefix: "NAYA", business_name: "Titipan Naya" });
   dialog = await invoice();
-  await expect(message()).toHaveValue(/^\*INVOICE Toko Invoice\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
+  await expect(message()).toHaveValue(/^\*INVOICE TOKO INVOICE\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await dialog.getByRole("button", { name: "Tutup invoice", exact: true }).click();
   await page.reload(); await openSection(page, "Pesanan");
   dialog = await invoice();
-  await expect(message()).toHaveValue(/^\*INVOICE Toko Invoice\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
+  await expect(message()).toHaveValue(/^\*INVOICE TOKO INVOICE\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
   await dialog.getByRole("button", { name: "Tutup invoice", exact: true }).click();
   await profile();
   await page.getByLabel("Nama toko pada invoice (opsional)").fill("");
   await page.getByRole("button", { name: "Simpan profil", exact: true }).click();
   await expect(page.locator(".toast")).toContainText("Profil bisnis berhasil disimpan");
   dialog = await invoice();
-  await expect(message()).toHaveValue(/^\*INVOICE TIPPO\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
+  await expect(message()).toHaveValue(/^\*INVOICE\*\nNo\. invoice: NAYA-INVOICE-ORDER/);
   expect(await message().inputValue()).not.toContain("Toko Invoice");
 });
 
