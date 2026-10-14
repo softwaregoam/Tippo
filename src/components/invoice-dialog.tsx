@@ -1,16 +1,25 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Copy, Download, FileImage, MessageSquare, Printer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDocument, printInvoice } from "@/components/invoice-document";
-import { downloadInvoiceImage } from "@/lib/invoice-image";
+import { InvoicePhoto } from "@/components/invoice-photo";
+import { downloadInvoiceImage, renderInvoiceImage } from "@/lib/invoice-image";
 import { buildInvoice, invoiceWhatsAppUrl } from "@/lib/invoice";
 import type { AppData, Order } from "@/lib/types";
 
+const mobileQuery="(max-width:600px)";
+const subscribeMobile=(listener:()=>void)=>{const media=window.matchMedia(mobileQuery);media.addEventListener("change",listener);return()=>media.removeEventListener("change",listener);};
+const mobileSnapshot=()=>window.matchMedia(mobileQuery).matches;
+const serverSnapshot=()=>false;
+
 export function InvoiceDialog({ order, data, settings, onClose }: { order: Order; data: AppData; settings?: InvoiceSettings; onClose: () => void }) {
   const id = useId();
+  const mobile=useSyncExternalStore(subscribeMobile,mobileSnapshot,serverSnapshot);
+  const [photo,setPhoto]=useState<{key:string;url:string;error:string}|null>(null);
+  const [previewAttempt,retryPreview]=useState(0);
   const [tab, setTab] = useState<"image" | "whatsapp">("image");
   function selectTab(next: "image" | "whatsapp") { setTab(next); setFeedback(""); }
   const body=useRef<HTMLDivElement>(null);
@@ -24,6 +33,16 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
   const downloadingRef=useRef(false);
   const customer=data.customers.find(customer=>customer.id===order.customerId);
   const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings);
+
+  const photoKey=JSON.stringify([order,data.batches.find(batch=>batch.id===order.batchId),customer,settings]);
+  useEffect(()=>{
+    if(!mobile||!document.current)return;
+    let active=true;
+    void renderInvoiceImage(document.current).then(blob=>{if(active)setPhoto({key:photoKey,url:URL.createObjectURL(blob),error:""});}).catch(error=>{if(active)setPhoto({key:photoKey,url:"",error:error instanceof Error?error.message:"Pratinjau belum dapat dimuat."});});
+    return()=>{active=false;};
+  },[mobile,photoKey,previewAttempt]);
+
+  useEffect(()=>()=>{if(photo?.url)URL.revokeObjectURL(photo.url);},[photo]);
 
   useLayoutEffect(()=>{
     // Reset after the new panel is mounted, before the browser paints it.
@@ -83,7 +102,9 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
       </div>
       <div key={tab} ref={body} className={`modal-body invoice-${tab}-body`}>
         <div role="tabpanel" id={`${id}-image-panel`} aria-labelledby={`${id}-image-tab`} hidden={tab!=="image"}>
-        <div ref={document} className="invoice-preview-surface"><InvoiceDocument order={order} batch={data.batches.find(batch=>batch.id===order.batchId)} customer={data.customers.find(customer=>customer.id===order.customerId)} settings={settings}/></div>
+        <div ref={document} className="invoice-preview-surface"><div className="invoice-preview-source"><InvoiceDocument order={order} batch={data.batches.find(batch=>batch.id===order.batchId)} customer={customer} settings={settings}/></div>
+          {mobile&&(photo?.key===photoKey&&photo.url?<InvoicePhoto src={photo.url}/>:photo?.key===photoKey&&photo.error?<div className="invoice-photo-placeholder"><p role="alert">{photo.error}</p><Button type="button" className="btn btn-secondary" onClick={()=>{setPhoto(null);retryPreview(value=>value+1);}}>Coba lagi</Button></div>:<div className="invoice-photo-placeholder" role="status">Menyiapkan pratinjau…</div>)}
+        </div>
         </div>
         <div role="tabpanel" id={`${id}-whatsapp-panel`} aria-labelledby={`${id}-whatsapp-tab`} hidden={tab!=="whatsapp"}>
         <label className="field-label" htmlFor="invoice-message">Isi invoice untuk WhatsApp</label>

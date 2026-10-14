@@ -1,5 +1,5 @@
 /** Render a standalone invoice at a readable width, independent of the phone viewport. */
-export async function downloadInvoiceImage(preview: HTMLElement, filename: string): Promise<void> {
+export async function renderInvoiceImage(preview: HTMLElement): Promise<Blob> {
   const invoice=preview.querySelector<HTMLElement>(".invoice-document");
   if(!invoice)throw new Error("Invoice belum siap diunduh.");
   const frame=document.createElement("iframe");
@@ -28,9 +28,14 @@ export async function downloadInvoiceImage(preview: HTMLElement, filename: strin
     const {toBlob}=await import("html-to-image");
     const blob=await toBlob(output,{pixelRatio:2,backgroundColor:"#ffffff",skipFonts:true});
     if(!blob)throw new Error("Gambar invoice belum dapat dibuat. Coba kembali.");
-    const url=URL.createObjectURL(blob),link=document.createElement("a");
-    link.href=url;link.download=filename;
-    document.body.append(link);link.click();link.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    return blob;
   } finally {frame.remove();}
+}
+
+export async function downloadInvoiceImage(preview: HTMLElement, filename: string): Promise<void> {
+  const blob=await renderInvoiceImage(preview);
+  const url=URL.createObjectURL(blob),link=document.createElement("a");
+  link.href=url;link.download=filename;
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
 }
