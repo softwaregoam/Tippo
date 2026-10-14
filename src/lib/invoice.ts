@@ -1,8 +1,13 @@
 import { invoiceBankDetails, readInvoiceAppearance } from "./invoice-template.ts";
 import { refundedTotal } from "./refund.ts";
-import { formatCurrency, itemLabel, orderDiscount, orderRevenue } from "./finance.ts";
+import { formatCurrency, orderDiscount, orderRevenue } from "./finance.ts";
 import { readBusinessProfile, type InvoiceSettings } from "./business-profile.ts";
-import type { Batch, Customer, Order } from "./types.ts";
+import type { Batch, Customer, Order, OrderItem } from "./types.ts";
+
+export function invoiceItemLabel(item: OrderItem): string {
+  const name=[item.product,item.variant].map(value=>value.trim()).filter(Boolean).join(" ");
+  return [name,item.color.trim(),item.size.trim()].filter(Boolean).join(" · ");
+}
 
 function textLine(value: string): string {
   return value.replace(/[\r\n]+/g, " ").trim();
@@ -47,7 +52,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     divider,
     "*Pesanan*",
     ...order.items.flatMap(item => [
-      `• ${textLine(itemLabel(item))}`,
+      `• ${textLine(invoiceItemLabel(item))}`,
       `  ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
     ]),
     "",

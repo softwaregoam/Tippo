@@ -2,9 +2,9 @@
 import type { CSSProperties } from "react";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { invoiceAppearanceForMode, invoiceBankDetails } from "@/lib/invoice-template";
-import { isInvoicePaid } from "@/lib/invoice";
+import { invoiceItemLabel, isInvoicePaid } from "@/lib/invoice";
 import { formatCalendarDate } from "@/lib/calendar-date";
-import { formatCurrency, itemLabel, orderDiscount, orderRevenue } from "@/lib/finance";
+import { formatCurrency, orderDiscount, orderRevenue } from "@/lib/finance";
 import { refundedTotal } from "@/lib/refund";
 import type { Batch, Customer, Order } from "@/lib/types";
 
@@ -31,7 +31,7 @@ export function InvoiceDocument({order,batch,customer,settings,logoPreviewUrl}:{
    {(logoPreviewUrl||appearance.logoUrl)&&<img src={logoPreviewUrl||appearance.logoUrl} alt="Logo toko"/>}<div>{name&&<p className="invoice-kicker">INVOICE</p>}<h2>{name||"INVOICE"}</h2></div>
   </div>{isInvoicePaid(order)&&<p className="invoice-paid-stamp">LUNAS</p>}</header>
   <div className="invoice-meta"><div><p>Nomor invoice</p><strong>{settings?.invoicePrefix||"INV"}-{order.id.toUpperCase()}</strong><p>{formatCalendarDate(order.date)}</p></div><div><p>Pelanggan</p><strong>{customer?.name||"Pelanggan"}</strong>{customer?.phone&&<p>{customer.phone}</p>}{customer?.address?.trim()&&<p className="invoice-customer-address">{customer.address.trim()}</p>}</div></div>
-  <table aria-label="Produk invoice"><thead><tr><th>Produk</th><th className="invoice-qty">Jumlah</th><th className="invoice-num invoice-price">Harga</th><th className="invoice-num invoice-amount">Total</th></tr></thead><tbody>{order.items.map(item=><tr key={item.id}><td>{itemLabel(item)}</td><td className="invoice-qty">{item.quantity}</td><td className="invoice-num">{formatCurrency(item.unitPrice)}</td><td className="invoice-num">{formatCurrency(item.unitPrice*item.quantity)}</td></tr>)}</tbody></table>
+  <table aria-label="Produk invoice"><thead><tr><th>Produk</th><th className="invoice-qty">Jumlah</th><th className="invoice-num invoice-price">Harga</th><th className="invoice-num invoice-amount">Total</th></tr></thead><tbody>{order.items.map(item=><tr key={item.id}><td>{invoiceItemLabel(item)}</td><td className="invoice-qty">{item.quantity}</td><td className="invoice-num">{formatCurrency(item.unitPrice)}</td><td className="invoice-num">{formatCurrency(item.unitPrice*item.quantity)}</td></tr>)}</tbody></table>
   <div className="invoice-settlement"><div className="invoice-totals"><div><span>Subtotal produk</span><span>{formatCurrency(order.items.reduce((sum,item)=>sum+item.unitPrice*item.quantity,0))}</span></div>{(batch?.type!=="po"||order.serviceFee>0)&&<div><span>{batch?.type==="po"?"Biaya tambahan":"Fee jastip"}</span><span>{formatCurrency(order.serviceFee)}</span></div>}{discount>0&&<div><span>Diskon</span><span>−{formatCurrency(discount)}</span></div>}{order.shippingCharge>0&&<div><span>Ongkir</span><span>{formatCurrency(order.shippingCharge)}</span></div>}<div className="invoice-grand-total"><span>{order.status==="cancelled"?"Total sebelum pembatalan":"Total tagihan"}</span><span>{formatCurrency(orderRevenue(order))}</span></div>{refund>0&&<div><span>Refund</span><span>{formatCurrency(refund)}</span></div>}</div>
   {order.status!=="cancelled"&&bank&&<section className="invoice-bank-details" aria-label="Rekening pembayaran"><h3>Pembayaran transfer</h3><p>{bank.name}</p><strong>{bank.account}</strong><p className="invoice-bank-holder">a.n {bank.holder}</p></section>}
   </div>

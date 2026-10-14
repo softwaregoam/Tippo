@@ -25,8 +25,8 @@ test("WhatsApp invoice includes every item and option, one order fee, and total 
   assert.ok(!invoice.includes("Batch:"));
   assert.ok(invoice.startsWith("Halo, Dina!\n"));
   assert.ok(invoice.includes("WhatsApp: 081234567890"));
-  assert.ok(invoice.includes("• Kaos · Oversize · Biru · L"));
-  assert.ok(invoice.includes("• Kimbap · Tuna"));
+  assert.ok(invoice.includes("• Kaos Oversize · Biru · L"));
+  assert.ok(invoice.includes("• Kimbap Tuna"));
   assert.ok(invoice.includes(`2 × ${formatCurrency(100000)} = ${formatCurrency(200000)}`));
   assert.ok(invoice.includes(`3 × ${formatCurrency(50000)} = ${formatCurrency(150000)}`));
   assert.ok(invoice.includes(`Ongkir: ${formatCurrency(15000)}`));
