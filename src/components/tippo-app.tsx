@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import {
   ArrowRight, ArrowUpRight, CalendarDays, Crown,
   Check, ChevronDown, CircleHelp, Download, FileJson, Layers3,
-  LayoutDashboard, LogOut, MapPin, Menu, MessageSquare, Package, Pencil, Plus, ReceiptText, Search, Settings2,
+  FileBarChart2, LayoutDashboard, LogOut, MapPin, Menu, MessageSquare, Package, Pencil, Plus, ReceiptText, Search, Settings2,
   ShoppingBag, Upload, UsersRound, Wallet, X,
 } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
@@ -24,6 +24,7 @@ import { PoOrderForm } from "@/components/po-order-form";
 import { ModeWorkspace, ProductForm, WorkspaceEmptyState } from "@/components/mode-workspace";
 import {MobileDataList} from "@/components/mobile-data-list";
 import { OrdersTable } from "@/components/orders-table";
+import { ReportsPanel } from "@/components/reports-panel";
 import { HppPanel } from "@/components/hpp-panel";
 import { SubscriptionPanel } from "@/components/subscription-panel";
 import { useAppData, saveAppData, normalizeAppData } from "@/lib/store";
@@ -34,7 +35,7 @@ import type { AppData, Batch, Customer, Order, Product } from "@/lib/types";
 import type { AccountWorkspace } from "./cloud-workspace";
 import Link from "next/link";
 
-type Page = "dashboard" | "orders" | "products" | "batches" | "hpp" | "customers" | "settings" | "profile" | "subscription" | "feedback" | "help";
+type Page = "dashboard" | "orders" | "products" | "batches" | "hpp" | "reports" | "customers" | "settings" | "profile" | "subscription" | "feedback" | "help";
 const businessModeKey = "tippo.business-mode.v1";
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const subtitles = {
@@ -43,6 +44,7 @@ const subtitles = {
   products: "Katalog produk sendiri, harga siap untuk pesanan berikutnya.",
   batches: "Kelompokkan pesanan sesuai perjalanan atau periode PO.",
   hpp: "Kenali biaya sebenarnya, tentukan harga dengan percaya diri.",
+  reports: "Lihat penjualan dan estimasi laba usaha ini.",
   customers: "Kontak dipakai bersama. Jumlah pesanan mengikuti usaha yang dipilih.",
   profile: "Nama dan kontak usaha dalam satu tempat.",
   settings: "Simpan cadangan data Jastip dan Open PO dalam akun ini.",
@@ -77,7 +79,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     catch { return "jastip"; }
   });
   const modeLabel = mode === "po" ? "Open PO" : "Jastip";
-  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
+  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, reports: `Laporan ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
   const navigation = [
     { id: "dashboard" as Page, label: "Ringkasan", icon: LayoutDashboard },
     { id: "orders" as Page, label: "Pesanan", icon: ReceiptText },
@@ -85,6 +87,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     { id: "batches" as Page, label: mode === "po" ? "Batch PO" : "Perjalanan", icon: Layers3 },
     { id: "customers" as Page, label: "Pelanggan", icon: UsersRound },
     { id: "hpp" as Page, label: "HPP & Margin", icon: Wallet },
+    { id: "reports" as Page, label: "Laporan", icon: FileBarChart2 },
   ];
   const supportNavigation = [
     { id: "settings" as Page, label: "Pengaturan data", icon: Settings2 },
@@ -341,7 +344,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
           </div>
         </header>
         <main className="main-content">
-          <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
+          <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && page !== "reports" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
 
           {!isPro && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
             <div key={page}>
@@ -391,6 +394,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
 
               {page === "subscription" && <SubscriptionPanel data={data} subscription={subscription} account={cloud ? { id: cloud.ownerId, name: cloud.name, email: cloud.email } : undefined} onNotify={notify} onSubscriptionChanged={cloud?.refreshSubscription} />}
 
+              {page === "reports" && <ReportsPanel key={mode} data={data} type={mode} isPro={isPro} onUpgrade={()=>go("subscription")} />}
               {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} onSaved={setDemoProfile} />}
               {page === "feedback" && <FeedbackPanel key={cloud?.ownerId ?? "local"} onNotify={notify} />}
               {page === "help" && <HelpPanel mode={mode} onNavigate={go} />}

@@ -511,12 +511,12 @@ for(const width of [390,1440]) for(const theme of ["light","dark"]) test(`sideba
  await expect(sidebar.locator(".sidebar-plan-badge")).toHaveText("Gratis");await expect(sidebar.getByText("Bantuan & pengaturan",{exact:true})).toBeVisible();
  const switchWidths=await sidebar.locator(".business-switch button").evaluateAll(buttons=>buttons.map(b=>b.getBoundingClientRect().width));expect(Math.abs(switchWidths[0]-switchWidths[1])).toBeLessThan(1);
  await expect(page.locator("main .business-switch")).toHaveCount(0);
- await expect(sidebar.locator(".sidebar-menu-group").first().getByRole("button")).toHaveText(["Ringkasan","Pesanan","Perjalanan","Pelanggan","HPP & Margin"]);
+ await expect(sidebar.locator(".sidebar-menu-group").first().getByRole("button")).toHaveText(["Ringkasan","Pesanan","Perjalanan","Pelanggan","HPP & Margin","Laporan"]);
  await sidebar.getByRole("button",{name:"Open PO",exact:true}).click();
  await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Open PO.");
  if(width<760) await expect(sidebar).not.toBeVisible();
  await openNavigation(page);
- await expect(sidebar.locator(".sidebar-menu-group").first().getByRole("button")).toHaveText(["Ringkasan","Pesanan","Produk","Batch PO","Pelanggan","HPP & Margin"]);
+ await expect(sidebar.locator(".sidebar-menu-group").first().getByRole("button")).toHaveText(["Ringkasan","Pesanan","Produk","Batch PO","Pelanggan","HPP & Margin","Laporan"]);
  await expect(sidebar.getByRole("group",{name:"Menu pendukung"}).getByRole("button")).toHaveText(["Pengaturan data","Panduan & FAQ","Kritik & saran"]);
  await sidebar.screenshot({path:`docs/preview-sidebar-${width}-${theme}.png`});
  if(width>=760) {
@@ -1516,4 +1516,36 @@ for(const missing of [false,true])test(`product search preserves historical opti
  const picker=page.getByRole("dialog",{name:"Pilih produk pesanan",exact:true});await picker.getByRole("textbox",{name:"Cari produk pesanan"}).fill("Nama Lama");
  await expect(picker.getByRole("option")).toHaveCount(1);await expect(picker.getByRole("option")).toContainText("25.000");await expect(picker.getByRole("option")).toContainText("Data pesanan asal");await expect(picker.getByRole("option")).not.toContainText("Toko Baru");await picker.getByRole("option").click();
  await form.getByLabel("Jumlah produk",{exact:true}).fill("3");await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);expect(requests[0].p_data.orders[0].items[0]).toMatchObject({product:"Nama Lama",variant:"Coklat",unitPrice:25000,quantity:3});
+});
+
+for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as const)for(const theme of width===320?["light","dark"]:["light"])test(`sales report filters scope and exports ${business} ${width} ${theme}`,async({page})=>{
+ await page.setViewportSize({width,height:900});await page.addInitScript(theme=>localStorage.setItem("tippo.theme.v1",theme),theme);
+ const month=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}).slice(0,7),type=business==="Open PO"?"po":"jastip";
+ const workspace=structuredClone(fixture);
+ workspace.batches=(["po","jastip"] as const).flatMap(type=>[1,2].map(index=>({...fixture.batches[0],id:`${type}-${index}`,type,name:`${type} ${index}`})));
+ const make=(id:string,batchId:string,unknown=false,cancelled=false)=>({id,batchId,customerId:"aly",date:`${month}-14`,createdAt:`${month}-14T00:00:00Z`,status:cancelled?"cancelled" as const:"new" as const,paid:0,shippingCharge:0,serviceFee:0,notes:"",items:[{id:`i-${id}`,product:unknown?"Produk Tanpa HPP":"Produk Laporan",variant:"Coklat",color:"",size:"",quantity:1,unitPrice:unknown?10000:50000,unitCost:unknown?null:24000}]});
+ workspace.orders=[make("known",`${type}-1`),make("unknown",`${type}-2`,true),make("cancel",`${type}-1`,false,true),make("foreign",`${type==="po"?"jastip":"po"}-1`)];
+ await authenticate(page,{workspace,pro:true});await page.goto("/app");await openBusiness(page,business);await openSection(page,"Laporan");
+ await expect(page.getByRole("heading",{level:1})).toHaveText(`Laporan ${business}.`);
+ const stats=page.getByRole("region",{name:"Ringkasan laporan"});
+ await expect(stats.locator(".report-stat-value").nth(0)).toContainText("60.000");await expect(stats.locator(".report-stat-value").nth(1)).toContainText("24.000");await expect(stats.locator(".report-stat-value").nth(2)).toContainText("26.000");await expect(stats.locator(".report-stat-value").nth(3)).toHaveText("2");
+ await expect(page.getByRole("status").filter({hasText:"Margin belum mencakup"})).toContainText("1 pesanan");
+ await chooseOption(page.getByRole("combobox",{name:"Filter batch laporan"}),`${type}-1`);
+ await expect(stats.locator(".report-stat-value").nth(0)).toContainText("50.000");await expect(stats.locator(".report-stat-value").nth(3)).toHaveText("1");
+ const downloadPromise=page.waitForEvent("download");await page.getByRole("button",{name:"Ekspor Excel",exact:true}).click();const download=await downloadPromise;
+ expect(download.suggestedFilename()).toMatch(new RegExp(`tippo-laporan-${type}-.*\\.xlsx$`));
+ const ExcelJS=(await import("exceljs")).default,fs=await import("node:fs/promises");const bytes=await fs.readFile((await download.path())!);const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(bytes).buffer);
+ const orders=book.getWorksheet("Pesanan")!;expect(orders.rowCount).toBe(2);expect(orders.getCell("A2").value).toBe("known");expect(orders.getCell("I2").value).toBe(50000);
+ await page.getByLabel("Dari tanggal",{exact:true}).fill(`${month}-15`);await page.getByLabel("Sampai tanggal",{exact:true}).fill(`${month}-14`);await expect(page.locator(".reports-layout").getByRole("alert")).toContainText("tanggal mulai");await expect(page.getByRole("button",{name:"Ekspor Excel",exact:true})).toBeDisabled();
+ await page.getByLabel("Dari tanggal",{exact:true}).fill(`${month}-01`);await page.getByLabel("Sampai tanggal",{exact:true}).fill(`${month}-13`);await expect(page.getByText("Belum ada pesanan pada periode ini",{exact:true})).toBeVisible();
+ await page.getByLabel("Sampai tanggal",{exact:true}).fill(`${month}-14`);await expect(stats.locator(".report-stat-value").nth(0)).toContainText("50.000");
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:`/tmp/tippo-report-${business}-${width}-${theme}.png`,fullPage:true});
+});
+
+test("Free sales report stays in current month and export opens upgrade",async({page})=>{
+ await page.setViewportSize({width:390,height:844});await authenticate(page);await page.goto("/app");await openSection(page,"Laporan");
+ await expect(page.getByLabel("Dari tanggal",{exact:true})).toBeDisabled();await expect(page.getByLabel("Sampai tanggal",{exact:true})).toBeDisabled();
+ const month=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}).slice(0,7);await expect(page.getByLabel("Dari tanggal",{exact:true})).toHaveValue(`${month}-01`);
+ let downloads=0;page.on("download",()=>downloads++);await page.getByRole("button",{name:"Ekspor Excel Pro",exact:true}).click();await expect(page.getByRole("heading",{level:1})).toHaveText("Paket & langganan.");expect(downloads).toBe(0);
 });
