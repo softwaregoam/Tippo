@@ -74,6 +74,10 @@ export interface Order {
   date: string;
   status: OrderStatus;
   notes: string;
+  shippingDate?: string;
+  /** Local delivery time in 24-hour HH:mm format. */
+  shippingTime?: string;
+  shippingMethod?: string;
 }
 
 export interface AppData {

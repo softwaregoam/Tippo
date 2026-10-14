@@ -1207,3 +1207,12 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 
 .invoice-bank-settings { border-top:1px solid var(--border); padding-top:20px; margin-top:4px; }
 .invoice-bank-settings h3 { font-size:15px; margin-bottom:18px; }
+
+.order-shipping-fields { min-width:0; padding:0 0 24px; margin:0 0 24px; border:0; border-bottom:1px solid var(--border); }
+.order-shipping-fields legend { padding:0; margin-bottom:16px; font-size:15px; font-weight:600; }
+.order-shipping-fields legend span { font-size:13px; font-weight:400; }
+.shipping-date-control,.shipping-time-control { display:flex; align-items:center; gap:8px; min-width:0; }
+.shipping-date-control .date-picker { flex:1; min-width:0; }
+.shipping-date-control .icon-button,.shipping-time-control .icon-button { flex-shrink:0; }
+.shipping-time-control .select-trigger { flex:1; min-width:0; width:100%; }
+.shipping-method-field { grid-column:1/-1; }

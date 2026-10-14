@@ -13,7 +13,7 @@ const order: Order = {
     { id: "item-b", product: "Kimbap", variant: "Tuna", color: "", size: "", quantity: 3, unitPrice: 50000, unitCost: null },
   ],
   createdAt: "2026-10-08T01:00:00.000Z", serviceFee: 25000, shippingCharge: 15000,
-  paid: 100000, date: "2026-10-08", status: "new", notes: "INTERNAL: supplier rahasia",
+  paid: 100000, date: "2026-10-08", status: "new", notes: "Tolong bungkus rapi",
 };
 
 test("WhatsApp invoice includes every item and option, one order fee, and total without payment balances", () => {
@@ -37,9 +37,9 @@ test("WhatsApp invoice includes every item and option, one order fee, and total 
   assert.equal(invoice.match(/Fee jastip:/g)?.length, 1);
 });
 
-test("customer invoice excludes purchase costs, batch costs, and private notes", () => {
+test("customer invoice excludes purchase and batch costs", () => {
   const invoice = buildInvoice(order, batch, customer);
-  for (const privateValue of ["73.123", "543.210", "supplier rahasia", "INTERNAL", "HPP", "harga beli", "unitCost", "directCosts"]) {
+  for (const privateValue of ["73.123", "543.210", "HPP", "harga beli", "unitCost", "directCosts"]) {
     assert.ok(!invoice.includes(privateValue), privateValue);
   }
 });

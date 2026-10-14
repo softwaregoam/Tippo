@@ -33,7 +33,7 @@ const questions = [
   ["Bagaimana batas paket Gratis dihitung?", "Kamu mendapat 5 pesanan Jastip dan 5 pesanan Open PO secara terpisah setiap bulan, serta maksimal 5 produk Open PO termasuk produk yang diarsipkan. Kuota pesanan kembali tersedia tanggal 1 pukul 00.00 WIB. Pesanan yang dibatalkan tetap terhitung."],
   ["Bisa pindahkan pesanan dari Excel?", "Bisa, dengan paket Pro. Tersedia template produk, pesanan Jastip, dan pesanan Open PO. Pilih mode usaha lalu buka Pesanan untuk import pesanan, atau Produk pada Open PO untuk import katalog. Unduh template, isi data, lalu unggah. Baris dengan nomor pesanan yang sama digabung menjadi satu pesanan. Kamu bisa memeriksa hasilnya sebelum menyimpan."],
   ["Bagaimana status batch atau perjalanan diubah?", "Dari daftar Batch PO atau Perjalanan, gunakan ikon Tutup batch atau Selesaikan batch lalu konfirmasi. Alurnya Dibuka, Ditutup, lalu Selesai. Batch yang ditutup tidak bisa dibuka kembali; status Selesai terkunci. Status pesanan di dalamnya tetap diatur secara terpisah."],
-  ["Apakah invoice langsung terkirim ke WhatsApp?", "Invoice dapat disalin lalu kamu tempel ke chat WhatsApp pelanggan. Pengiriman tetap kamu lakukan sendiri. Harga beli, HPP, dan catatan internal tidak ikut dalam invoice."],
+  ["Apakah invoice langsung terkirim ke WhatsApp?", "Invoice dapat disalin lalu kamu tempel ke chat WhatsApp pelanggan. Pengiriman tetap kamu lakukan sendiri. Harga beli dan HPP tidak ikut dalam invoice. Catatan pesanan ditampilkan jika diisi."],
   ["Apakah paket Pro sudah bisa dibeli?", "Harga Pro adalah Rp25.000 per bulan. Pembayaran langganan sedang disiapkan. Kamu dapat mulai memakai paket Gratis."],
 ];
 
@@ -167,7 +167,7 @@ export function LandingPage() {
               <article><h3>Isi cepat atau impor Excel</h3><p>Dengan Pro, gunakan template sesuai jenis usaha. Baris dengan nomor pesanan yang sama akan menjadi satu pesanan. Periksa pratinjau sebelum menyimpan.</p></article>
               <article><h3>Lengkapi modal, cek margin</h3><p>HPP memakai harga beli per produk dan jumlahnya. Tippo menandai biaya yang belum lengkap agar kamu tahu pesanan mana yang perlu diperiksa.</p></article>
               <article><h3>Periksa ringkasan usaha terpilih</h3><p>Penjualan, HPP, margin, pembayaran, dan tagihan mengikuti mode Jastip atau Open PO yang aktif. Grafik kedua usaha tidak digabung. Paket Gratis menampilkan bulan berjalan.</p></article>
-              <article><h3>Salin invoice ke WhatsApp</h3><p>Invoice memuat seluruh produk, pembayaran, dan sisa tagihan. Kamu salin lalu tempel ke chat pelanggan. HPP serta catatan internal tetap di catatanmu.</p></article>
+              <article><h3>Salin invoice ke WhatsApp</h3><p>Invoice memuat produk, total tagihan, dan pengiriman jika diisi. Salin lalu tempel ke chat pelanggan. Harga beli dan HPP tidak disertakan.</p></article>
             </div>
           </div>
         </section>

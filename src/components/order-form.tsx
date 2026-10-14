@@ -2,6 +2,8 @@
 
 import { NumberInput } from "@/components/ui/number-input";
 import { DatePicker } from "@/components/ui/date-picker";
+import { OrderShippingFields } from "@/components/order-shipping-fields";
+import { shippingFieldErrors } from "@/lib/order-shipping";
 import { OrderDiscountFields } from "@/components/order-discount-fields";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -34,6 +36,9 @@ type Fields = {
   paid: string;
   date: string;
   notes: string;
+  shippingDate: string;
+  shippingTime: string;
+  shippingMethod: string;
 };
 type ItemFields = {
   id: string;
@@ -74,6 +79,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     discountType: order?.discount?.type ?? "amount", discountValue: order?.discount ? String(order.discount.value) : "",
     paid: String(order?.paid ?? 0),
     date: order?.date ?? "", notes: order?.notes ?? "",
+    shippingDate:order?.shippingDate??"",shippingTime:order?.shippingTime??"",shippingMethod:order?.shippingMethod??"",
   }));
   const [items, setItems] = useState<ItemFields[]>(() => order?.items.map((item) => ({
     id: item.id, product: item.product, store: item.store ?? "", variant: item.variant, color: item.color, size: item.size,
@@ -130,6 +136,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     serviceFee: previewAmount(fields.serviceFee), shippingCharge: previewAmount(fields.shippingCharge), paid: previewAmount(fields.paid),
     discount: { type: fields.discountType, value: previewAmount(fields.discountValue) }, refunds: order?.refunds,
     date: fields.date, createdAt, status: order?.status ?? "new", notes: fields.notes.trim(),
+    shippingDate:fields.shippingDate||undefined,shippingTime:fields.shippingTime||undefined,shippingMethod:fields.shippingMethod.trim()||undefined,
   }), [fields, items, order, createdAt]);
   const revenue = orderRevenue(draft);
   const previewOrders = [...data.orders.filter((entry) => entry.id !== draft.id), draft];
@@ -212,6 +219,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     else if (fields.discountType === "amount" && discountValue > orderSubtotal(draft) + draft.shippingCharge) nextErrors.discountValue = "Diskon tidak boleh melebihi total tagihan sebelum diskon.";
     if (!nextErrors.paid && Number(fields.paid) > revenue) nextErrors.paid = "Pembayaran tidak boleh melebihi total tagihan setelah diskon.";
     if (order?.status === "cancelled" && Number(fields.paid) > 0) nextErrors.paid = "Untuk pesanan yang dibatalkan, pembayaran harus 0.";
+    Object.assign(nextErrors,shippingFieldErrors(fields));
     const parsedDate = new Date(`${fields.date}T00:00:00Z`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.date) || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== fields.date) nextErrors.date = "Pilih tanggal yang valid.";
     const totalQuantity = draft.items.reduce((total, item) => total + item.quantity, 0);
@@ -321,9 +329,10 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
               {amountField("shippingCharge", "Ongkir yang ditagihkan")}
 
 
-              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="order-notes">Catatan <span className="muted">(opsional)</span></label><input id="order-notes" name="notes" className="input" maxLength={textLimits.notes} value={fields.notes} placeholder="Permintaan atau catatan pelanggan" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "error-notes" : undefined} />{errors.notes && <span id="error-notes" className="error-message">{errors.notes}</span>}</div>
+              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="order-notes">Catatan invoice <span className="muted">(opsional)</span></label><input id="order-notes" name="notes" className="input" maxLength={textLimits.notes} value={fields.notes} placeholder="Catatan untuk pelanggan" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "error-notes" : undefined} />{errors.notes && <span id="error-notes" className="error-message">{errors.notes}</span>}</div>
             </div>
           </div>
+          <OrderShippingFields id="order" values={fields} onChange={update} errors={errors}/>
           <section className="order-section"><h3><span className="order-section-number">4</span>Pembayaran</h3><div className="order-payment"><p className="payment-total">Total tagihan <strong>{formatCurrency(revenue)}</strong></p>{amountField("paid", "Sudah dibayar (DP / lunas)")}</div></section>
           <div className="summary-strip" aria-live="polite" style={{ marginTop: 20 }}>
             <div className="summary-cell"><span>Total tagihan</span><strong>{formatCurrency(revenue)}</strong></div>

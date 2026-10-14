@@ -11,9 +11,9 @@ test("invoice appearance accepts only safe image URLs and normalized settings",(
  assert.throws(()=>validateInvoiceTemplate({...next,appearance:{...next.appearance,logoUrl:"javascript:alert(1)"}}));assert.throws(()=>validateInvoiceTemplate({...next,appearance:{...next.appearance,color:"red"}}));
 });
 test("WhatsApp uses configured footer and keeps logo and color out of its text",()=>{
- const order:Order={id:"order",batchId:"batch",customerId:"c",date:"2026-10-14",createdAt:"2026-10-14T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"Secret",items:[{id:"i",product:"Produk",variant:"",color:"",size:"",quantity:1,unitPrice:10000,unitCost:5000}]};
+ const order:Order={id:"order",batchId:"batch",customerId:"c",date:"2026-10-14",createdAt:"2026-10-14T00:00:00Z",status:"new",paid:0,shippingCharge:0,serviceFee:0,notes:"Catatan pelanggan",items:[{id:"i",product:"Produk",variant:"",color:"",size:"",quantity:1,unitPrice:10000,unitCost:5000}]};
  const template={invoiceStoreName:"Toko",invoicePrefix:"INV",appearance:{...DEFAULT_INVOICE_APPEARANCE,logoUrl:"https://site.test/logo.png",footer:"Terima kasih, Naya"}};
- const text=buildInvoice(order,undefined,undefined,template);assert.ok(text.endsWith("Terima kasih, Naya"));assert.doesNotMatch(text,/logo.png|245C4E|Secret|5\.000/);assert.ok(!buildInvoice(order,undefined,undefined,{...template,appearance:{...template.appearance,footer:""}}).includes("Terima kasih"));
+ const text=buildInvoice(order,undefined,undefined,template);assert.ok(text.endsWith("Terima kasih, Naya"));assert.doesNotMatch(text,/logo.png|245C4E|5\.000/);assert.ok(!buildInvoice(order,undefined,undefined,{...template,appearance:{...template.appearance,footer:""}}).includes("Terima kasih"));
 });
 
 test("bank details keep leading zeros, reject partial details, and are absent on cancelled invoices",()=>{

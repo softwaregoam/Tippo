@@ -19,7 +19,7 @@ export function isInvoicePaid(order: Order): boolean {
   return order.status !== "cancelled" && order.paid >= orderRevenue(order);
 }
 
-/** A customer-facing WhatsApp message. Purchase costs and internal notes stay private. */
+/** A customer-facing WhatsApp message. Purchase costs stay private. Order notes are customer-facing. */
 export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, settings?: Partial<InvoiceSettings>): string {
   const profile = readBusinessProfile(settings);
   const appearance=readInvoiceAppearance(settings?.appearance),footer=appearance.footer,bank=invoiceBankDetails(appearance);
@@ -31,6 +31,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     `Tanggal: ${invoiceDate(order.date)}`,
     `Pelanggan: ${textLine(customer?.name ?? "Pelanggan")}`,
     ...(customer?.phone ? [`WhatsApp: ${textLine(customer.phone)}`] : []),
+    ...(customer?.address?.trim() ? [`Alamat: ${textLine(customer.address)}`] : []),
     "",
     "*Rincian pesanan*",
     ...order.items.flatMap((item, index) => [
@@ -46,6 +47,8 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
     ...(isInvoicePaid(order) ? ["*LUNAS*"] : []),
     "",
+    ...((order.shippingDate||order.shippingTime||order.shippingMethod?.trim()) ? ["*Pengiriman*",...(order.shippingDate ? [`Tanggal kirim: ${invoiceDate(order.shippingDate)}`] : []),...(order.shippingTime ? [`Jam kirim: ${order.shippingTime}`] : []),...(order.shippingMethod?.trim() ? [`Metode kirim: ${textLine(order.shippingMethod)}`] : []),""] : []),
+    ...(order.notes.trim() ? ["*Catatan*",order.notes.trim(),""] : []),
     ...(!cancelled&&bank ? ["*Transfer bank*",`Bank: ${bank.name}`,`No. rekening: ${bank.account}`,`Atas nama: ${bank.holder}`,""] : []),
     ...(cancelled ? ["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."] : footer ? [footer] : []),
   ];

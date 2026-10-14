@@ -3,6 +3,8 @@
 import { ProductPicker, type ProductChoice } from "@/components/product-picker";
 import { NumberInput } from "@/components/ui/number-input";
 import { DatePicker } from "@/components/ui/date-picker";
+import { OrderShippingFields } from "@/components/order-shipping-fields";
+import { shippingFieldErrors } from "@/lib/order-shipping";
 import { OrderDiscountFields } from "@/components/order-discount-fields";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +35,9 @@ type Fields = {
   serviceFee: string;
   date: string;
   notes: string;
+  shippingDate: string;
+  shippingTime: string;
+  shippingMethod: string;
 };
 type ItemFields = { id: string; productId: string; quantity: string };
 type FieldErrors = Partial<Record<keyof Fields | "items", string>>;
@@ -57,6 +62,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     paid: order ? String(order.paid) : "", shippingCharge: order ? String(order.shippingCharge) : "", serviceFee: order ? String(order.serviceFee) : "",
     discountType: order?.discount?.type ?? "amount", discountValue: order?.discount ? String(order.discount.value) : "",
     date: order?.date ?? "", notes: order?.notes ?? "",
+    shippingDate:order?.shippingDate??"",shippingTime:order?.shippingTime??"",shippingMethod:order?.shippingMethod??"",
   }));
   const [items, setItems] = useState<ItemFields[]>(() => order?.items.map((item) => ({
     id: item.id, productId: originalProductValue(item), quantity: String(item.quantity),
@@ -138,6 +144,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     serviceFee: previewAmount(fields.serviceFee), shippingCharge: previewAmount(fields.shippingCharge), paid: previewAmount(fields.paid),
     discount: { type: fields.discountType, value: previewAmount(fields.discountValue) }, refunds: order?.refunds,
     date: fields.date, createdAt, status: order?.status ?? "new", notes: fields.notes.trim(),
+    shippingDate:fields.shippingDate||undefined,shippingTime:fields.shippingTime||undefined,shippingMethod:fields.shippingMethod.trim()||undefined,
   }), [fields, items, order, data.products, createdAt]);
   const revenue = orderRevenue(draft);
   const previewOrders = [...data.orders.filter((entry) => entry.id !== draft.id), draft];
@@ -204,6 +211,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     else if (fields.discountType === "amount" && discountValue > orderSubtotal(draft) + draft.shippingCharge) nextErrors.discountValue = "Diskon tidak boleh melebihi total tagihan sebelum diskon.";
     if (!nextErrors.paid && Number(fields.paid) > revenue) nextErrors.paid = "Pembayaran tidak boleh melebihi total tagihan setelah diskon.";
     if (order?.status === "cancelled" && Number(fields.paid) > 0) nextErrors.paid = "Untuk pesanan yang dibatalkan, pembayaran harus 0.";
+    Object.assign(nextErrors,shippingFieldErrors(fields));
     const parsedDate = new Date(`${fields.date}T00:00:00Z`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.date) || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== fields.date) nextErrors.date = "Pilih tanggal yang valid.";
     const totalQuantity = draft.items.reduce((total, item) => total + item.quantity, 0);
@@ -321,9 +329,10 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               {amountField("shippingCharge", "Ongkir yang ditagihkan")}
 
               {Boolean(order?.serviceFee) && amountField("serviceFee", "Fee tambahan pesanan asal")}
-              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="po-order-notes">Catatan</label><input id="po-order-notes" name="notes" className="input" value={fields.notes} maxLength={textLimits.notes} placeholder="Permintaan atau catatan pelanggan" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "po-error-notes" : undefined} />{errors.notes && <span id="po-error-notes" className="error-message">{errors.notes}</span>}</div>
+              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="po-order-notes">Catatan invoice <span className="muted">(opsional)</span></label><input id="po-order-notes" name="notes" className="input" value={fields.notes} maxLength={textLimits.notes} placeholder="Catatan untuk pelanggan" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "po-error-notes" : undefined} />{errors.notes && <span id="po-error-notes" className="error-message">{errors.notes}</span>}</div>
             </div>
           </section>
+          <OrderShippingFields id="po-order" values={fields} onChange={update} errors={errors}/>
           <section className="order-section"><h3><span className="order-section-number">4</span>Pembayaran</h3><div className="order-payment"><p className="payment-total">Total tagihan <strong>{formatCurrency(revenue)}</strong></p><div className="form-grid">{amountField("paid", "Sudah dibayar (DP / lunas)")}</div></div></section>
           <div className="summary-strip" aria-live="polite"><div className="summary-cell"><span>Total tagihan</span><strong>{formatCurrency(revenue)}</strong></div><div className="summary-cell"><span>Estimasi HPP</span><strong>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</strong></div><div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div></div>
         </div>

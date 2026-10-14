@@ -17,5 +17,7 @@ Sebelum migrasi dijalankan, pengaturan nama toko, nomor, warna, tata letak, dan 
 
 - Simpan template lalu muat ulang: identitas dan tampilan harus tetap sama.
 - Buka invoice pesanan: gunakan **Cetak / PDF**, atau **Salin invoice WhatsApp**.
-- Invoice pelanggan tidak memuat HPP, catatan internal, status/batch, saldo pembayaran, atau ongkir bernilai nol.
+- Invoice pelanggan tidak memuat HPP, status/batch, saldo pembayaran, atau ongkir bernilai nol.
 - Periksa akun lain: logo dan template tidak mengikuti akun sebelumnya.
+
+Tanggal kirim, jam kirim (24 jam), dan metode kirim opsional pada pesanan. Pengiriman, catatan pesanan, dan alamat pelanggan hanya muncul di invoice jika diisi. Catatan penutup ditampilkan rata tengah. Data pengiriman disimpan bersama JSON pesanan, sehingga tidak memerlukan migrasi tabel baru.

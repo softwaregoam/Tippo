@@ -610,7 +610,7 @@ test("a multi-item jastip order retains each option and copies a customer invoic
   await form.getByLabel("Fee jastip / pesanan").fill("10000");
   await form.getByLabel("Ongkir yang ditagihkan").fill("5000");
   await form.getByLabel("Sudah dibayar (DP / lunas)").fill("100000");
-  await form.getByLabel("Catatan (opsional)").fill("INTERNAL-COST-TEST: supplier khusus");
+  await form.getByLabel("Catatan invoice (opsional)").fill("Tolong bungkus rapi");
   await form.getByRole("button", { name: "Simpan pesanan" }).click();
   await expect(form).not.toBeVisible();
   expect(await workspaceOrderCount(page)).toBe(fixture.orders.length + 1);
@@ -633,7 +633,7 @@ test("a multi-item jastip order retains each option and copies a customer invoic
   expect(text).toContain("Nasi ayam multi item · Pedas · Porsi besar");
   expect(text).toMatch(/Total tagihan\*: Rp\s*265\.000/);
   expect(text).toMatch(/Sisa tagihan\*: Rp\s*165\.000/);
-  expect(text).not.toMatch(/HPP|Harga beli|Margin|INTERNAL-COST-TEST|60\.000|30\.000/);
+  expect(text).not.toMatch(/HPP|Harga beli|Margin|60\.000|30\.000/);
   await invoice.getByRole("button", { name: "Salin invoice WhatsApp", exact: true }).click();
   await expect(invoice.getByRole("status")).toContainText("Invoice disalin.");
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(text);
@@ -797,7 +797,7 @@ test("product category saves, persists and filters the catalogue",async({page})=
  });
 
 test("single active batch is selected and delivery fields precede payment",async({page})=>{
- await replaceWorkspace(page,poFixture);await navigate(page,"Open PO");await page.getByRole("button",{name:"Pesanan PO baru",exact:true}).click();const d=page.getByRole("dialog",{name:"Pesanan PO baru",exact:true});await expect(d.getByLabel("Batch PO",{exact:true})).toHaveAttribute("data-value","acceptance-po-batch");await expect(d.getByLabel("Ongkir yang ditagihkan")).toBeVisible();await expect(d.getByLabel("Catatan",{exact:true})).toBeVisible();const positions=await d.evaluate(e=>['po-order-shippingCharge','po-order-notes','po-order-paid'].map(id=>e.querySelector('#'+id)!.getBoundingClientRect().top));expect(positions[0]).toBeLessThan(positions[1]);expect(positions[1]).toBeLessThan(positions[2]);const widths=await d.evaluate(e=>['po-order-productId','po-order-quantity'].map(id=>e.querySelector('#'+id)!.getBoundingClientRect().width));expect(Math.abs(widths[0]-widths[1])).toBeLessThan(1);
+ await replaceWorkspace(page,poFixture);await navigate(page,"Open PO");await page.getByRole("button",{name:"Pesanan PO baru",exact:true}).click();const d=page.getByRole("dialog",{name:"Pesanan PO baru",exact:true});await expect(d.getByLabel("Batch PO",{exact:true})).toHaveAttribute("data-value","acceptance-po-batch");await expect(d.getByLabel("Ongkir yang ditagihkan")).toBeVisible();await expect(d.getByLabel("Catatan invoice (opsional)",{exact:true})).toBeVisible();const positions=await d.evaluate(e=>['po-order-shippingCharge','po-order-notes','po-order-paid'].map(id=>e.querySelector('#'+id)!.getBoundingClientRect().top));expect(positions[0]).toBeLessThan(positions[1]);expect(positions[1]).toBeLessThan(positions[2]);const widths=await d.evaluate(e=>['po-order-productId','po-order-quantity'].map(id=>e.querySelector('#'+id)!.getBoundingClientRect().width));expect(Math.abs(widths[0]-widths[1])).toBeLessThan(1);
 });
 
 test("new PO batch choices exclude closed and completed batches",async({page})=>{

@@ -1,3 +1,4 @@
+import { shippingFieldErrors } from "./order-shipping.ts";
 import type { AppData, Order } from "./types.ts";
 
 /** Scalar snapshots used only when reading validated v1/v2 backups. */
@@ -62,6 +63,8 @@ function validRefunds(order: Record<string, unknown>) {
 }
 
 function validOrderHeader(order: Record<string, unknown>, batchIds: Set<string>, customerIds: Set<string>) {
+  if(!["shippingDate","shippingTime","shippingMethod"].every(key=>order[key]===undefined||typeof order[key]==="string"))return false;
+  if(Object.keys(shippingFieldErrors({shippingDate:(order.shippingDate as string|undefined)??"",shippingTime:(order.shippingTime as string|undefined)??"",shippingMethod:(order.shippingMethod as string|undefined)??""})).length)return false;
   return validRefunds(order) && id(order.id) && typeof order.batchId === "string" && batchIds.has(order.batchId) && typeof order.customerId === "string" && customerIds.has(order.customerId) && money(order.serviceFee) && money(order.shippingCharge) && money(order.paid) && validDate(order.date) && ["new", "purchased", "ready", "shipped", "done", "cancelled"].includes(order.status as string) && text(order.notes) && (order.status !== "cancelled" || order.paid === 0);
 }
 
