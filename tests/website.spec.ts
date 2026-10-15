@@ -1311,6 +1311,10 @@ for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as cons
  const line=group.locator(".shopping-recap-lines > li").filter({has:page.getByText("L",{exact:true})});await expect(line).toContainText("5 unit");
  await line.locator("summary").click();await expect(line).toContainText("Alya");await expect(line).toContainText("Bima");await expect(line).toContainText("3 unit");await expect(dialog).not.toContainText("99 unit");
  expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ const pending=page.waitForEvent("download");await dialog.getByRole("button",{name:"Unduh Excel",exact:true}).click();const downloaded=await pending;expect(downloaded.suggestedFilename()).toBe(`tippo-rekap-${po?"po":"jastip"}-Batch-Rekap.xlsx`);
+ const ExcelJS=(await import("exceljs")).default,fs=await import("node:fs/promises"),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await fs.readFile((await downloaded.path())!)).buffer);expect(book.worksheets.map(sheet=>sheet.name)).toEqual(["Per produk","Per pesanan"]);
+ const productSheet=book.getWorksheet("Per produk")!,orderSheet=book.getWorksheet("Per pesanan")!;expect(productSheet.getCell(`G${productSheet.rowCount}`).value).toBe(6);expect(productSheet.getCell(`J${productSheet.rowCount}`).value).toBe(72000);expect(orderSheet.getCell(`J${orderSheet.rowCount}`).value).toBe(6);expect(orderSheet.getCell(`L${orderSheet.rowCount}`).value).toBe(150000);expect(orderSheet.getCell(`O${orderSheet.rowCount}`).value).toBe(72000);
+ await downloaded.saveAs(`/tmp/tippo-rekap-${business}-${width}-${theme}.xlsx`);
  await dialog.screenshot({path:`/tmp/tippo-shopping-recap-${business}-${width}-${theme}.png`});await dialog.getByRole("button",{name:"Tutup rekap",exact:true}).click();await expect(dialog).toHaveCount(0);
 });
 

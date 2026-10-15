@@ -1276,3 +1276,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .order-detail-row:focus-visible { outline:2px solid var(--primary); outline-offset:-2px; }
 .order-preview-product { display:block; }
 .order-more-products,.row-subtitle.order-more-products { color:var(--primary); font-size:12px; margin-top:5px; }
+
+.shopping-recap-summary { align-items:center; }
+.shopping-recap-export { margin-left:auto; }
+@media(max-width:600px) { .shopping-recap-export { flex-basis:100%; margin-left:0; } }
