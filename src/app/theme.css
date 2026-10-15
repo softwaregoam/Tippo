@@ -282,10 +282,7 @@
 @media(max-width:360px) { .order-status-options { grid-template-columns:1fr; } }
 
 /* Set the token on ::backdrop as well for browsers that do not inherit its custom properties. */
-:root,::backdrop { --dialog-backdrop:#18312880; }
-:root[data-theme="dark"],:root[data-theme="dark"] ::backdrop { --dialog-backdrop:#081a13b3; }
-:root[data-business-mode="po"],:root[data-business-mode="po"] ::backdrop { --dialog-backdrop:#402b1f80; }
-:root[data-theme="dark"][data-business-mode="po"],:root[data-theme="dark"][data-business-mode="po"] ::backdrop { --dialog-backdrop:#1b120cb3; }
+:root,::backdrop { --dialog-backdrop:#00000099; }
 
 :root .sidebar .subscription-nav { display:grid; grid-template-columns:32px minmax(0,1fr); gap:5px 9px; min-height:76px; padding:12px 10px; border:1px solid var(--border); border-radius:12px; background:var(--tone-surface-fffefa); text-align:left; }
 :root .sidebar .subscription-nav.is-pro { border-color:color-mix(in srgb,var(--primary) 30%,var(--border)); background:linear-gradient(135deg,var(--sidebar-active),var(--tone-surface-fffefa)); }
