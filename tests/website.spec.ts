@@ -760,7 +760,7 @@ test("dashboard recent orders are read only while Jastip retains actions",async(
  await authenticate(page,{workspace:data}); await page.goto("/app"); const recent=page.locator(".recent-card");
  await expect(recent).toContainText("Produk Ringkasan"); await expect(recent).toContainText("Tercatat");
  await expect(recent.getByRole("button")).toHaveCount(0); await expect(recent.getByRole("combobox")).toHaveCount(0);
- await expect(recent.getByRole("columnheader",{name:"Tindakan"})).toHaveCount(0);
+ await expect(recent.getByRole("columnheader",{name:"Aksi"})).toHaveCount(0);
  const alignment=await recent.locator("table").evaluate(t=>{
    const h=t.querySelector(".status-column-title")!,v=t.querySelector("tbody .status-tag")!;
    const hr=h.getBoundingClientRect(),vr=v.getBoundingClientRect();
@@ -1683,4 +1683,37 @@ for(const [width,height] of [[320,568],[390,844],[430,932]] as const)test(`mobil
   await message.evaluate(el=>el.scrollTop=el.scrollHeight);expect(await message.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);await dialog.getByRole("tab",{name:"Invoice gambar",exact:true}).click();await dialog.getByRole("button",{name:"Perbesar invoice",exact:true}).click();await dialog.locator(".invoice-photo-viewport").evaluate(el=>{el.scrollTop=el.scrollHeight;el.scrollLeft=el.scrollWidth;});await dialog.getByRole("tab",{name:"Teks WhatsApp",exact:true}).click();await expect.poll(()=>message.evaluate(el=>el.scrollTop)).toBe(0);await expect.poll(()=>dialog.locator(".modal-body").evaluate(el=>el.scrollTop)).toBe(0);await expect(dialog.getByRole("tab",{name:"Teks WhatsApp",exact:true})).toBeFocused();const area=await message.boundingBox(),body=await dialog.locator(".modal-body").boundingBox();expect(area!.y).toBeGreaterThanOrEqual(body!.y);expect(area!.height).toBeGreaterThan(100);expect(area!.y+area!.height).toBeLessThanOrEqual(body!.y+body!.height);expect(body!.height).toBeGreaterThan(100);expect(await dialog.evaluate(el=>el.scrollTop)).toBe(0);
  }
 
+});
+
+for(const width of [390,1440])test(`duplicate product opens an editable copy and preserves the original ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:900});
+ const data=structuredClone(fixture);
+ const source={id:"copy-source",name:"Roti Asli",variant:"Coklat",sku:"ORIGINAL",store:"Toko Roti",category:"Makanan",color:"Coklat",size:"Besar",unitPrice:25000,unitCost:12000,active:true};
+ data.products=[source];
+ const requests=await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,"Open PO");
+ if(width<600){await page.getByRole("button",{name:"Detail Roti Asli",exact:true}).click();await page.getByRole("dialog",{name:"Detail Roti Asli",exact:true}).getByRole("button",{name:"Duplikat produk",exact:true}).click();}
+ else await page.getByRole("button",{name:"Duplikat produk Roti Asli",exact:true}).click();
+ let form=page.getByRole("dialog",{name:"Duplikat produk",exact:true});
+ await expect(form).toBeVisible();await expect(form.getByLabel("Nama produk",{exact:true})).toHaveValue("Roti Asli (salinan)");await expect(form.getByLabel("SKU (opsional)")).toHaveValue("");await expect(form.getByLabel("Varian (opsional)")).toHaveValue("Coklat");
+ expect(requests).toHaveLength(0);
+ await form.getByRole("button",{name:"Batal",exact:true}).click();expect(requests).toHaveLength(0);
+ if(width<600){await page.getByRole("button",{name:"Detail Roti Asli",exact:true}).click();await page.getByRole("dialog",{name:"Detail Roti Asli",exact:true}).getByRole("button",{name:"Duplikat produk",exact:true}).click();}
+ else await page.getByRole("button",{name:"Duplikat produk Roti Asli",exact:true}).click();
+ form=page.getByRole("dialog",{name:"Duplikat produk",exact:true});await form.getByLabel("Nama produk",{exact:true}).fill("Roti Baru");await form.getByRole("button",{name:/Simpan produk/}).click();
+ await expect(form).toHaveCount(0);await expect.poll(()=>requests.length).toBe(1);
+ const saved=requests[0].p_data.products;expect(saved).toHaveLength(2);expect(saved.find(p=>p.id===source.id)).toEqual(source);
+ const copy=saved.find(p=>p.id!==source.id)!;expect(copy).toMatchObject({...source,id:copy.id,name:"Roti Baru",sku:""});expect(copy.id).not.toBe(source.id);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+});
+
+test("desktop batch recap is an action in its own row",async({page})=>{
+ const data=structuredClone(fixture);data.batches.push({...data.batches[0],id:"recap-po",name:"PO Rekap",type:"po"});await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,"Open PO");await openSection(page,"Batch PO");
+ const row=page.getByRole("row").filter({hasText:"PO Rekap"});await expect(row.locator('td[data-label="Nama batch"] button')).toHaveCount(0);await row.locator('td[data-label="Aksi"]').getByRole("button",{name:"Rekap kebutuhan produk PO Rekap",exact:true}).click();await expect(page.getByRole("dialog",{name:"Rekap kebutuhan produk",exact:true})).toBeVisible();
+});
+
+
+test("duplicate product respects the Free product limit including archived products",async({page})=>{
+ const data=structuredClone(fixture);data.products=Array.from({length:5},(_,i)=>({id:`quota-product-${i}`,name:`Produk ${i}`,variant:"",sku:"",unitPrice:10000,unitCost:null,active:i===0}));
+ const requests=await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,"Open PO");await page.getByRole("button",{name:"Duplikat produk Produk 0",exact:true}).click();
+ await expect(page.getByRole("heading",{level:1})).toContainText("Paket & langganan");await expect(page.getByRole("dialog",{name:"Duplikat produk",exact:true})).toHaveCount(0);expect(requests).toHaveLength(0);
 });

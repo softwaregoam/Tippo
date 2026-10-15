@@ -28,6 +28,7 @@ type Props = {
   onBatchStatus: (batch: Batch, status: Batch["status"]) => boolean | Promise<boolean>;
   onHpp: (batch: Batch) => void;
   onEditProduct: (product: Product) => void;
+  onDuplicateProduct: (product: Product) => void;
   onRefund: (id: string, amount: number, date: string, reason: string, cancel: boolean) => Promise<boolean>;
   onImportProducts: (products: Product[]) => boolean | Promise<boolean>;
   onProductStatus: (product: Product) => boolean | Promise<boolean>;
@@ -37,7 +38,7 @@ type Props = {
   onUpgrade: () => void;
 };
 
-export function ModeWorkspace({ tab, type, data, invoiceSettings, onEditBatch, onEditOrder, onStatus, onBatchStatus, onEditProduct, onImportProducts, onRefund, onProductStatus, onImport, importAllowed, productLimit, onUpgrade }: Props) {
+export function ModeWorkspace({ tab, type, data, invoiceSettings, onEditBatch, onEditOrder, onStatus, onBatchStatus, onEditProduct, onDuplicateProduct, onImportProducts, onRefund, onProductStatus, onImport, importAllowed, productLimit, onUpgrade }: Props) {
   const po = type === "po";
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -71,7 +72,7 @@ export function ModeWorkspace({ tab, type, data, invoiceSettings, onEditBatch, o
               <Select className="input filter-input" aria-label="Filter kategori produk" value={categoryFilter} onValueChange={setCategoryFilter}><SelectOption value="all">Semua kategori</SelectOption>{categories.map(category => <SelectOption key={category} value={category}>{category}</SelectOption>)}</Select>
             </div>
           </div>
-          {products.length > 0 ? <ProductsTable products={products} onEdit={onEditProduct} onRemove={setRemovingProduct} /> : <WorkspaceEmptyState kind="products" hasData={data.products.length > 0} onReset={() => { setSearch(""); setProductStatus("all"); setCategoryFilter("all"); }} />}
+          {products.length > 0 ? <ProductsTable products={products} onEdit={onEditProduct} onDuplicate={onDuplicateProduct} onRemove={setRemovingProduct} /> : <WorkspaceEmptyState kind="products" hasData={data.products.length > 0} onReset={() => { setSearch(""); setProductStatus("all"); setCategoryFilter("all"); }} />}
           <div className="table-footer">{listCount(products.length, data.products.length, "produk")} {productLimit !== undefined && <span>{data.products.length} / {productLimit} produk Gratis (termasuk arsip)</span>}</div>
         </section>
       </>}
@@ -117,13 +118,13 @@ function ExcelImportButton({ allowed, onClick }: { allowed: boolean; onClick: ()
   return <Button className="btn btn-secondary excel-import-button" onClick={onClick}><Upload size={16} aria-hidden="true" /><span>Import Excel</span>{!allowed && <span className="import-plan-badge" aria-hidden="true">Pro</span>}</Button>;
 }
 
-export function ProductForm({ product, categories, onSave, onClose }: { categories: string[]; product?: Product; onSave: (product: Product) => boolean | Promise<boolean>; onClose: () => void }) {
-  const [name, setName] = useState(product?.name ?? "");
+export function ProductForm({ product, duplicate=false, categories, onSave, onClose }: { categories: string[]; product?: Product; duplicate?: boolean; onSave: (product: Product) => boolean | Promise<boolean>; onClose: () => void }) {
+  const [name, setName] = useState(duplicate && product ? `${product.name.slice(0,110)} (salinan)` : product?.name ?? "");
   const [variant, setVariant] = useState(product?.variant ?? "");
   const [store,setStore]=useState(product?.store ?? "");
   const [color,setColor]=useState(product?.color ?? "");
   const [size,setSize]=useState(product?.size ?? "");
-  const [sku, setSku] = useState(product?.sku ?? "");
+  const [sku, setSku] = useState(duplicate ? "" : product?.sku ?? "");
   const [category, setCategory] = useState(product?.category ?? "");
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategory, setNewCategory] = useState("");
@@ -132,7 +133,7 @@ export function ProductForm({ product, categories, onSave, onClose }: { categori
   const [cost, setCost] = useState(product?.unitCost == null ? "" : String(product.unitCost));
   const [error, setError] = useState("");
   const showDialog = (element: HTMLDialogElement | null) => { if (element && !element.open) element.showModal(); };
-  return <dialog className="native-dialog" ref={showDialog} aria-label={product ? "Edit produk" : "Produk baru"} onCancel={(e) => { e.preventDefault(); onClose(); }}><div className="modal-header"><div><span className="eyebrow">MASTER PRODUK OPEN PO</span><h2>{product ? "Edit produk" : "Produk baru"}</h2><p>Simpan harga sekali, buat pesanan lebih cepat.</p></div><button className="icon-button" aria-label="Tutup produk" onClick={onClose}><X size={20} /></button></div><form onSubmit={async (e) => { e.preventDefault(); setError(""); if (!name.trim() || !price.trim() || !Number.isSafeInteger(Number(price)) || Number(price) < 0 || (cost.trim() && (!Number.isSafeInteger(Number(cost)) || Number(cost) < 0))) { setError("Isi nama dan harga jual. Nominal harus rupiah bulat, minimal nol."); return; } const saved = await onSave({ id: product?.id ?? crypto.randomUUID(), name: name.trim(), variant: variant.trim(), store:store.trim(), color:color.trim(), size:size.trim(), sku: sku.trim(), category: (addingCategory ? newCategory : category).trim(), unitPrice: Number(price), unitCost: cost.trim() ? Number(cost) : null, active: product?.active ?? true }); if (!saved) setError("Produk belum tersimpan. Periksa data dan koneksi, lalu coba lagi."); }}><div className="modal-body"><div className="field"><label className="field-label" htmlFor="product-name">Nama produk<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama produk" id="product-name" className="input" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Kaos Studio Oversize" /></div><div className="field">
+  return <dialog className="native-dialog" ref={showDialog} aria-label={duplicate ? "Duplikat produk" : product ? "Edit produk" : "Produk baru"} onCancel={(e) => { e.preventDefault(); onClose(); }}><div className="modal-header"><div><span className="eyebrow">MASTER PRODUK OPEN PO</span><h2>{duplicate ? "Duplikat produk" : product ? "Edit produk" : "Produk baru"}</h2><p>Simpan harga sekali, buat pesanan lebih cepat.</p></div><button className="icon-button" aria-label="Tutup produk" onClick={onClose}><X size={20} /></button></div><form onSubmit={async (e) => { e.preventDefault(); setError(""); if (!name.trim() || !price.trim() || !Number.isSafeInteger(Number(price)) || Number(price) < 0 || (cost.trim() && (!Number.isSafeInteger(Number(cost)) || Number(cost) < 0))) { setError("Isi nama dan harga jual. Nominal harus rupiah bulat, minimal nol."); return; } const saved = await onSave({ id: duplicate ? crypto.randomUUID() : product?.id ?? crypto.randomUUID(), name: name.trim(), variant: variant.trim(), store:store.trim(), color:color.trim(), size:size.trim(), sku: sku.trim(), category: (addingCategory ? newCategory : category).trim(), unitPrice: Number(price), unitCost: cost.trim() ? Number(cost) : null, active: duplicate ? true : product?.active ?? true }); if (!saved) setError("Produk belum tersimpan. Periksa data dan koneksi, lalu coba lagi."); }}><div className="modal-body"><div className="field"><label className="field-label" htmlFor="product-name">Nama produk<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama produk" id="product-name" className="input" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Kaos Studio Oversize" /></div><div className="field">
   <label className="field-label" htmlFor="product-category">Kategori (opsional)</label>
   {addingCategory ? <input id="product-category" aria-label="Kategori (opsional)" className="input" maxLength={80} value={newCategory} onChange={event => setNewCategory(event.target.value)} placeholder="Contoh: Makanan, pakaian, skincare" /> : <Select id="product-category" className="input" aria-label="Kategori (opsional)" placeholder="Pilih kategori" value={category.trim()} onValueChange={setCategory}>
     <SelectOption value="">Tanpa kategori</SelectOption>

@@ -25,7 +25,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
         "Pilih tanggal lewat kalender, lalu isi produk dan jumlahnya. Field bertanda bintang merah wajib diisi.",
         "Tambahkan diskon, ongkir yang ditagihkan, dan catatan jika diperlukan. Periksa total tagihan sebelum mengisi pembayaran.",
         "Gunakan Lunas untuk mengisi seluruh total tagihan atau Bayar sebagian untuk menulis nominal yang sudah diterima. Klik Simpan pesanan setelah datanya lengkap.",
-        "Untuk mengubah status pesanan, klik ikon panah dua arah pada kolom Tindakan atau Ubah status pada detail ponsel. Pilih status baru, lalu klik Simpan status. Pesanan yang sudah dibayar perlu refund seluruh pembayaran sebelum dibatalkan.",
+        "Untuk mengubah status pesanan, klik ikon panah dua arah pada kolom Aksi atau Ubah status pada detail ponsel. Pilih status baru, lalu klik Simpan status. Pesanan yang sudah dibayar perlu refund seluruh pembayaran sebelum dibatalkan.",
       ], destination: "orders", action: "Buka Pesanan",
     },
     {

@@ -135,6 +135,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const [search, setSearch] = useState("");
   const [orderModal, setOrderModal] = useState<{ type: Batch["type"]; order?: Order; batchId?: string; productId?: string } | null>(null);
   const [batchModal, setBatchModal] = useState<{ type: Batch["type"]; batch?: Batch } | null>(null);
+  const [duplicateProduct, setDuplicateProduct] = useState<Product | null>(null);
   const [productModal, setProductModal] = useState<Product | "new" | null>(null);
   const [batchRequired, setBatchRequired] = useState<Batch["type"] | null>(null);
   const [productRequired, setProductRequired] = useState(false);
@@ -417,7 +418,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                 onEditOrder={editOrder} onStatus={updateStatus} onRefund={refundOrder}
                 onBatchStatus={(batch, status) => persist({ ...data, batches: data.batches.map((b) => b.id === batch.id ? { ...b, status } : b) }, "Status batch diperbarui")}
                 onHpp={(batch) => { setSelectedHpp(batch.id); go("hpp"); }}
-                onEditProduct={setProductModal} onImportProducts={importProducts}
+                onEditProduct={setProductModal} onDuplicateProduct={(product) => { if (!isPro && data.products.length >= 5) go("subscription"); else setDuplicateProduct(product); }} onImportProducts={importProducts}
                 onProductStatus={(product) => persist({ ...data, products: data.products.map((p) => p.id === product.id ? { ...p, active: !p.active } : p) }, product.active ? "Produk diarsipkan. Histori pesanan tetap tersedia." : "Produk aktif kembali")}
                 onImport={importOrders} importAllowed={isPro} productLimit={!isPro ? 5 : undefined} onUpgrade={() => go("subscription")}
               />}
@@ -438,6 +439,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
         </main>
       </div>
       {orderModal && (orderModal.type === "po" ? <PoOrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} onSave={saveOrder} onClose={() => setOrderModal(null)} /> : <OrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} defaultBatchId={orderModal.batchId} onSave={saveOrder} onClose={() => setOrderModal(null)} />)}
+      {duplicateProduct && <ProductForm duplicate product={duplicateProduct} categories={[...new Set(data.products.map(product => product.category?.trim()).filter((category): category is string => Boolean(category)))]} onClose={() => setDuplicateProduct(null)} onSave={async (product) => { const saved = await saveProduct(product); if (saved) setDuplicateProduct(null); return saved; }} />}
       {productModal && <ProductForm categories={[...new Set(data.products.map(product => product.category?.trim()).filter((category): category is string => Boolean(category)))]} product={productModal === "new" ? undefined : productModal} onClose={() => setProductModal(null)} onSave={async (product) => { const saved = await saveProduct(product); if (saved) setProductModal(null); return saved; }} />}
       {productRequired && <SimpleModal title="Belum ada produk aktif" onClose={() => setProductRequired(false)}><div className="modal-body"><p>Tambahkan produk terlebih dahulu agar kamu bisa mencatat pesanan Open PO. Produk yang diarsipkan tidak bisa dipilih untuk pesanan baru, kamu bisa mengaktifkannya kembali di halaman Produk.</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setProductRequired(false)}>Nanti dulu</Button><Button className="btn btn-primary" onClick={() => { setProductRequired(false); go("products"); }}><Plus size={17} />Tambah produk</Button></div></SimpleModal>}
       {batchRequired && <SimpleModal title={batchRequired === "po" ? "Belum ada batch yang dibuka" : "Belum ada perjalanan yang dibuka"} onClose={() => setBatchRequired(null)}><div className="modal-body"><p>{batchRequired === "po" ? "Buat batch baru dengan status Dibuka terlebih dahulu agar kamu bisa mencatat pesanan. Batch yang sudah ditutup atau selesai tidak bisa menerima pesanan baru." : "Buat perjalanan baru dengan status Dibuka terlebih dahulu agar kamu bisa mencatat pesanan jastip. Perjalanan yang sudah ditutup atau selesai tidak bisa menerima pesanan baru."}</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setBatchRequired(null)}>Nanti dulu</Button><Button className="btn btn-primary" onClick={() => { setBatchRequired(null); go("batches"); }}><Plus size={17} />{batchRequired === "po" ? "Buat batch" : "Buat perjalanan"}</Button></div></SimpleModal>}

@@ -997,8 +997,6 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .product-mobile-price strong { font-size:16px; }
 
 
-.batch-recap-trigger { display:inline-flex; align-items:center; gap:6px; margin-top:8px; padding:5px 0; font-size:12px; color:var(--primary); background:none; border:0; text-align:left; }
-.batch-recap-trigger:focus-visible { outline:2px solid var(--primary); outline-offset:3px; border-radius:3px; }
 .shopping-recap-dialog { width:min(720px,calc(100vw - 32px)); background:var(--paper); }
 .shopping-recap-summary { display:flex; flex-wrap:wrap; gap:8px 18px; padding:0 0 12px; border-bottom:1px solid var(--border); margin-bottom:14px; }
 .shopping-recap-summary strong { color:var(--primary); }

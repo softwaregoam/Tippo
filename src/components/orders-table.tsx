@@ -60,7 +60,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
             {!compact && <th scope="col" className="numeric-cell">HPP</th>}
             <th scope="col">Pembayaran</th>
             <th scope="col" className="center-cell"><span className="status-column-title">Status</span></th>
-            {!readOnly && <th scope="col" className="actions-cell">Tindakan</th>}
+            {!readOnly && <th scope="col" className="actions-cell">Aksi</th>}
           </tr>
         </thead>
         <tbody>
