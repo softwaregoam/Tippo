@@ -31,7 +31,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
     {
       id: "hpp", title: "Periksa HPP dan margin",
       steps: [
-        "Buka HPP & Margin dan pilih batch yang ingin diperiksa. Lengkapi harga beli per produk yang belum diketahui, lalu simpan.",
+        "Buka HPP & Margin dan pilih batch. Klik Isi HPP atau Edit HPP pada pesanan, isi harga beli per produk dalam dialog, lalu klik Simpan HPP.",
         "HPP produk dihitung dari harga beli dikalikan jumlah produk. Jika ongkir supplier atau kemasan ingin masuk HPP, sertakan dalam harga beli per produk.",
         "Ringkasan menampilkan penjualan, estimasi margin, pembayaran, dan sisa tagihan untuk usaha serta bulan yang dipilih. Periksa HPP yang belum lengkap sebelum menilai margin.",
       ], destination: "hpp", action: "Buka HPP & Margin",
