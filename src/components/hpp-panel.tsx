@@ -83,7 +83,7 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
       ["HPP belum lengkap",String(totals.incomplete),totals.incomplete?"Pesanan perlu dilengkapi":"Semua HPP lengkap"],
     ].map(([label,value,note],index)=><div className="card stat-card" key={index}><p className="muted">{label}</p><strong className={`report-stat-value${index===1&&totalsKnown&&totals.margin<0?" negative":""}`}>{value}</strong><p className="field-hint">{note}</p></div>)}</section>
     <section ref={details} className="card hpp-detail-card" aria-label="HPP per pesanan">
-      <div className="card-header"><h2>HPP per pesanan</h2><span className="type-badge">{orders.length} PESANAN</span></div>
+      <div className="card-header"><h2>HPP per pesanan</h2></div>
       <div className="list-toolbar hpp-list-toolbar" role="group" aria-label="Pencarian dan filter HPP">
         <div className="search-field"><Search size={18}/><input aria-label="Cari produk atau pelanggan HPP" placeholder="Cari produk atau pelanggan…" value={search} onChange={event=>{setSearch(event.target.value);setPage(1);}}/></div>
         <Select className="input" aria-label="Filter kelengkapan HPP" value={status} onValueChange={value=>{setStatus(value);setPage(1);}}><SelectOption value="all">Semua</SelectOption><SelectOption value="incomplete">Belum lengkap</SelectOption><SelectOption value="complete">Lengkap</SelectOption></Select>
