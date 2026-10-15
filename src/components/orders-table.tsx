@@ -10,7 +10,7 @@ import { refundedTotal } from "@/lib/refund";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDialog } from "@/components/invoice-dialog";
 import { formatCurrency, itemLabel, orderHpp, orderLabel, orderRevenue, outstanding } from "@/lib/finance";
-import {MobileDataList} from "@/components/mobile-data-list";
+import {MobileDataList,DataDetailDialog} from "@/components/mobile-data-list";
 import type { AppData, Order } from "@/lib/types";
 
 type OrdersTableProps = {
@@ -32,6 +32,9 @@ function initials(name: string) {
 }
 
 export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, onRefund, compact = false, readOnly = false }: OrdersTableProps) {
+  const [detailOrderId,setDetailOrderId]=useState<string|null>(null);
+  const detailOrder=data.orders.find(order=>order.id===detailOrderId);
+  const detailContent=(order:Order)=><MobileOrderDetail order={order} data={data} readOnly={readOnly} onEdit={()=>onEdit(order)} onStatus={()=>setStatusOrderId(order.id)} onInvoice={()=>setInvoiceOrderId(order.id)} onRefund={()=>setRefundId(order.id)}/>;
   const [statusOrderId, setStatusOrderId] = useState<string | null>(null);
   const statusOrder = data.orders.find(order => order.id === statusOrderId);
   const [refundId,setRefundId]=useState<string|null>(null);
@@ -49,7 +52,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
   }
 
   return (
-    <><MobileDataList entries={orders.map(order=>({id:order.id,title:data.customers.find(c=>c.id===order.customerId)?.name||"Pelanggan",subtitle:orderLabel(order),meta:`${formatCurrency(orderRevenue(order))} · ${outstanding(order)>0?`Sisa ${formatCurrency(outstanding(order))}`:"Lunas"}`,status:statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label,statusClassName:`status-tag order-status-${visibleOrderStatus(order.status)}`,details:<MobileOrderDetail order={order} data={data} readOnly={readOnly} onEdit={()=>onEdit(order)} onStatus={()=>setStatusOrderId(order.id)} onInvoice={()=>setInvoiceOrderId(order.id)} onRefund={()=>setRefundId(order.id)} />}))}/><div className="table-wrap desktop-data-table">
+    <><MobileDataList entries={orders.map(order=>({id:order.id,title:data.customers.find(c=>c.id===order.customerId)?.name||"Pelanggan",subtitle:<>{order.items.slice(0,2).map(item=><span className="order-preview-product" key={item.id}>{itemLabel(item)} × {item.quantity}</span>)}{order.items.length>2&&<span className="order-more-products">+{order.items.length-2} produk lainnya</span>}</>,meta:`${formatCurrency(orderRevenue(order))} · ${outstanding(order)>0?`Sisa ${formatCurrency(outstanding(order))}`:"Lunas"}`,status:statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label,statusClassName:`status-tag order-status-${visibleOrderStatus(order.status)}`,details:detailContent(order)}))}/><div className="table-wrap desktop-data-table">
       <table className={`orders-table ${readOnly ? "orders-readonly" : ""}`}>
         <caption className="sr-only">Daftar pesanan jastip dan open PO</caption>
         <thead>
@@ -74,13 +77,14 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
             const cancelled = order.status === "cancelled";
             const label = orderLabel(order);
             return (
-              <tr key={order.id}>
+              <tr key={order.id} className="order-detail-row" tabIndex={0} aria-label={`Detail ${customer?.name??"Pelanggan"}`} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))setDetailOrderId(order.id);}} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();setDetailOrderId(order.id);}}}>
                 <td>
                   <div className="customer-cell">
                     <span className={`avatar avatar-${color}`} aria-hidden="true">{initials(customer?.name ?? "Pelanggan")}</span>
                     <div>
                       <div className="row-title">{customer?.name ?? "Pelanggan tidak ditemukan"}</div>
-                      {order.items.map((item) => <div className="row-subtitle" key={item.id} title={itemLabel(item)} style={{ maxWidth: 270, overflow: "hidden", textOverflow: "ellipsis" }}>{itemLabel(item)} <span className="muted">× {item.quantity}</span></div>)}
+                      {order.items.slice(0,2).map((item) => <div className="row-subtitle" key={item.id} title={itemLabel(item)} style={{ maxWidth: 270, overflow: "hidden", textOverflow: "ellipsis" }}>{itemLabel(item)} <span className="muted">× {item.quantity}</span></div>)}
+                      {order.items.length>2&&<div className="row-subtitle order-more-products">+{order.items.length-2} produk lainnya</div>}
                     </div>
                   </div>
                 </td>
@@ -106,7 +110,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
           })}
         </tbody>
       </table>
-    </div>{statusOrder && !readOnly && <OrderStatusDialog order={statusOrder} onSave={onStatus} onClose={()=>setStatusOrderId(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && <InvoiceDialog settings={invoiceSettings} order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
+    </div>{detailOrder&&<DataDetailDialog entry={{id:detailOrder.id,title:data.customers.find(customer=>customer.id===detailOrder.customerId)?.name||"Pelanggan",meta:"",details:detailContent(detailOrder)}} onClose={()=>setDetailOrderId(null)}/ >}{statusOrder && !readOnly && <OrderStatusDialog order={statusOrder} onSave={onStatus} onClose={()=>setStatusOrderId(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && <InvoiceDialog settings={invoiceSettings} order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
   );
 }
 

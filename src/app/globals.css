@@ -1271,3 +1271,8 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .hpp-edit-dialog .modal-footer { padding:16px 20px; }
  .hpp-card-totals .status-tag { white-space:normal; text-align:left; }
 }
+
+.order-detail-row { cursor:pointer; }
+.order-detail-row:focus-visible { outline:2px solid var(--primary); outline-offset:-2px; }
+.order-preview-product { display:block; }
+.order-more-products,.row-subtitle.order-more-products { color:var(--primary); font-size:12px; margin-top:5px; }
