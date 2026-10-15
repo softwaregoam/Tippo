@@ -40,7 +40,7 @@ test("Excel export matches the filtered report, preserves numeric amounts and ne
  const known=make("a"),unknown=make("b");unknown.items[0].unitCost=null;
  const report=buildSalesReport(data([known,unknown,make("excluded",{batchId:"p"})]),filter);
  const bytes=await createReportExcel(report),workbook=new ExcelJS.Workbook();await workbook.xlsx.load(new Uint8Array(bytes).buffer);
- assert.deepEqual(workbook.worksheets.map(sheet=>sheet.name),["Ringkasan","Pesanan","Produk terlaris"]);
+ assert.deepEqual(workbook.worksheets.map(sheet=>sheet.name),["Ringkasan","Pesanan","Rincian produk","Produk terlaris"]);
  const sheet=workbook.getWorksheet("Pesanan")!;assert.equal(sheet.rowCount,7);
  assert.equal(sheet.getCell("C5").value,"=SUM(1,2)");assert.equal(sheet.getCell("I5").value,100);
  assert.equal(sheet.getCell("J6").value,"Belum lengkap");assert.equal(sheet.getCell("K6").value,"Belum lengkap");
@@ -48,7 +48,7 @@ test("Excel export matches the filtered report, preserves numeric amounts and ne
  assert.equal(sheet.getCell("I7").value,200);assert.equal(sheet.getCell("J7").value,65);assert.equal(sheet.getCell("K7").value,35);assert.match(String(sheet.getCell("A7").value),/HPP\/margin diketahui/);
  for(const worksheet of workbook.worksheets)for(const row of [1,2,3])assert.equal(worksheet.getCell(row,1).alignment.horizontal,"left");
  assert.equal(sheet.getCell("I5").alignment.horizontal,"right");
- assert.equal(sheet.getColumn("I").numFmt,'"Rp" #,##0;[Red]-"Rp" #,##0');assert.equal(sheet.autoFilter,"A4:K6");
+ assert.equal(sheet.getColumn("I").numFmt,'"Rp" #,##0;[Red]-"Rp" #,##0');assert.equal(sheet.autoFilter,"A4:L6");
  assert.equal(workbook.getWorksheet("Ringkasan")!.getCell("B5").value,200);assert.equal(workbook.getWorksheet("Produk terlaris")!.getCell("D6").value,2);
 });
 
@@ -57,4 +57,11 @@ test("empty and incomplete report workbooks keep unknown costs explicit and gran
  const workspace=data(empty?[]:[make("unknown",{items:[{...make("x").items[0],unitCost:null}]})]);const report=buildSalesReport(workspace,filter),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createReportExcel(report)).buffer);const orders=book.getWorksheet("Pesanan")!;
  assert.equal(orders.getCell(`I${orders.rowCount}`).value,empty?0:100);assert.equal(orders.getCell(`J${orders.rowCount}`).value,empty?0:"Belum lengkap");assert.equal(orders.getCell(`K${orders.rowCount}`).value,empty?0:"Belum lengkap");
  }
+});
+
+test("product details link each item to its order without duplicating fees or losing variants",async()=>{
+ const first=make("a");first.items.push({...first.items[0],id:"second-item",product:"Produk kedua",variant:"Vanila",quantity:3,unitPrice:200,unitCost:null});
+ const report=buildSalesReport(data([first,make("b"),make("foreign",{batchId:"p"})]),filter),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createReportExcel(report)).buffer);const orders=book.getWorksheet("Pesanan")!,lines=book.getWorksheet("Rincian produk")!;
+ assert.deepEqual(orders.getCell("L5").value,{text:"Lihat 2 produk",hyperlink:"#'Rincian produk'!A5"});assert.deepEqual(orders.getCell("L6").value,{text:"Lihat 1 produk",hyperlink:"#'Rincian produk'!A7"});
+ assert.equal(lines.rowCount,8);assert.equal(lines.getCell("A5").value,"a");assert.equal(lines.getCell("A6").value,"a");assert.equal(lines.getCell("A7").value,"b");assert.equal(lines.getCell("C6").value,"=SUM(1,2)");assert.equal(lines.getCell("E6").value,"Produk kedua");assert.equal(lines.getCell("F6").value,"Vanila");assert.equal(lines.getCell("J6").value,3);assert.equal(lines.getCell("L6").value,600);assert.equal(lines.getCell("N6").value,"Belum lengkap");assert.equal(lines.getCell("J8").value,5);assert.equal(lines.getCell("L8").value,800);assert.equal(lines.getCell("N8").value,120);
 });
