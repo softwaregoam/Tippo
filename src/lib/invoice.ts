@@ -1,6 +1,6 @@
 import { invoiceBankDetails, readInvoiceAppearance } from "./invoice-template.ts";
 import { refundedTotal } from "./refund.ts";
-import { formatCurrency, orderDiscount, orderRevenue } from "./finance.ts";
+import { formatCurrency, orderDiscount, orderRevenue, outstanding } from "./finance.ts";
 import { readBusinessProfile, type InvoiceSettings } from "./business-profile.ts";
 import type { Batch, Customer, Order, OrderItem } from "./types.ts";
 
@@ -62,6 +62,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ...(orderDiscount(order) > 0 ? [`Diskon${order.discount?.type === "percent" ? ` (${order.discount.value}%)` : ""}: -${formatCurrency(orderDiscount(order))}`] : []),
     ...(order.shippingCharge > 0 ? [`Ongkir: ${formatCurrency(order.shippingCharge)}`] : []),
     `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
+    ...(outstanding(order) > 0 ? [`*Sisa tagihan*: ${formatCurrency(outstanding(order))}`] : []),
     ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
     ...(paid ? ["*LUNAS*"] : !cancelled ? ["Status: *BELUM LUNAS*"] : []),
     "",

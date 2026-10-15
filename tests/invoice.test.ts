@@ -16,7 +16,7 @@ const order: Order = {
   paid: 100000, date: "2026-10-08", status: "new", notes: "Tolong bungkus rapi",
 };
 
-test("WhatsApp invoice includes every item and option, one order fee, and total without payment balances", () => {
+test("WhatsApp invoice includes every item and option, one order fee, total and remaining balance", () => {
   const invoice = buildInvoice(order, batch, customer);
   assert.ok(invoice.includes("No. invoice: INV-ORDER-FIXED"));
   assert.ok(invoice.includes("Tanggal: 8 Oktober 2026"));
@@ -33,7 +33,7 @@ test("WhatsApp invoice includes every item and option, one order fee, and total 
   assert.ok(invoice.includes(`Subtotal produk: ${formatCurrency(350000)}`));
   assert.ok(invoice.includes(`*Total tagihan*: ${formatCurrency(390000)}`));
   assert.ok(!invoice.includes("Sudah dibayar:"));
-  assert.ok(!invoice.includes("Sisa tagihan"));
+  assert.ok(invoice.includes(`*Sisa tagihan*: ${formatCurrency(290000)}`));
   assert.equal(invoice.match(/Fee jastip:/g)?.length, 1);
 });
 
@@ -87,11 +87,11 @@ test("invoice uses account-specific prefix and only explicitly configured store 
 });
 
 
-test("normal Open PO invoice has no fee or payment balance lines",()=>{
+test("normal Open PO invoice omits fees and shows the remaining balance",()=>{
  const message=buildInvoice({...order,serviceFee:0}, {...batch,type:"po"},customer);
  assert.ok(message.includes("*INVOICE*\n"));
  assert.ok(!message.includes("Fee jastip"));assert.ok(!message.includes("Biaya tambahan"));
- assert.ok(!message.includes("Sudah dibayar"));assert.ok(!message.includes("Sisa tagihan"));
+ assert.ok(!message.includes("Sudah dibayar"));assert.ok(message.includes(`*Sisa tagihan*: ${formatCurrency(265000)}`));
  assert.ok(message.includes(`*Total tagihan*: ${formatCurrency(365000)}`));
 });
 
@@ -130,4 +130,11 @@ test("payment labels distinguish unpaid, partial, paid, zero and cancelled invoi
  for(const next of [{...order,paid:390000},{...order,status:"cancelled" as const}, {...order,items:order.items.map(item=>({...item,unitPrice:0})),serviceFee:0,shippingCharge:0,paid:0}])assert.doesNotMatch(buildInvoice(next,batch,customer),/BELUM LUNAS/);
  assert.match(buildInvoice(order,batch,{...customer,name:"Dina\nBaru"}),/Nama: Dina Baru\nWhatsApp:/);
  assert.match(buildInvoice(order,batch,{...customer,phone:""}),/Nama: Dina/);
+});
+
+
+test("invoice remaining balance follows net payment and discount and is hidden when settled or cancelled",()=>{
+ assert.ok(buildInvoice({...order,paid:0},batch,customer).includes(`*Sisa tagihan*: ${formatCurrency(390000)}`));
+ assert.ok(buildInvoice({...order,discount:{type:"amount",value:90000},paid:100000},batch,customer).includes(`*Sisa tagihan*: ${formatCurrency(200000)}`));
+ for(const next of [{...order,paid:390000},{...order,paid:400000},{...order,status:"cancelled" as const,paid:0}])assert.doesNotMatch(buildInvoice(next,batch,customer),/Sisa tagihan/);
 });
