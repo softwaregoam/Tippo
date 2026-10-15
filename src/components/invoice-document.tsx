@@ -1,5 +1,6 @@
 "use client";
 import type { CSSProperties } from "react";
+import { renderInvoiceImage } from "@/lib/invoice-image";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { invoiceAppearanceForMode, invoiceBankDetails } from "@/lib/invoice-template";
 import { invoiceItemLabel, isInvoicePaid } from "@/lib/invoice";
@@ -46,13 +47,31 @@ export function InvoiceDocument({order,batch,customer,settings,logoPreviewUrl}:{
  </article>;
 }
 
+/** Print the same fixed-width render as the PNG, without responsive print reflow. */
 export async function printInvoice(element: HTMLElement) {
- const invoice=element.querySelector<HTMLElement>(".invoice-document");
- if(!invoice)throw new Error("Invoice belum siap dicetak.");
  const popup=window.open("","_blank");
  if(!popup)throw new Error("Izinkan pop-up untuk mencetak invoice.");
  popup.opener=null;
- popup.document.open();popup.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice</title><style>body{margin:0;background:white}</style></head><body>${invoice.outerHTML}</body></html>`);popup.document.close();
- await Promise.all(Array.from(popup.document.images).map(image=>image.decode().catch(()=>undefined)));
- if(!popup.closed){popup.focus();popup.print();}
+ popup.document.open();popup.document.write('<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Invoice</title></head><body>Menyiapkan invoice…</body></html>');popup.document.close();
+ let url:string|undefined;
+ try {
+  const blob=await renderInvoiceImage(element);
+  if(popup.closed)return;
+  url=URL.createObjectURL(blob);
+  const image=popup.document.createElement("img");image.alt="Invoice pesanan";image.src=url;
+  await image.decode();
+  if(popup.closed){URL.revokeObjectURL(url);return;}
+  const width=794,height=Math.ceil(image.naturalHeight*width/image.naturalWidth);
+  const style=popup.document.createElement("style");
+  // Size the PDF page to the artwork instead of stretching a short invoice onto A4.
+  style.textContent=`@page{size:${width}px ${height+1}px;margin:0}html,body{margin:0;padding:0;background:#fff}img{display:block;width:100%;height:auto}body{max-width:${width}px;margin:auto}@media print{html,body{width:${width}px;height:${height}px;max-width:none}img{width:${width}px;height:${height}px;break-inside:avoid;print-color-adjust:exact;-webkit-print-color-adjust:exact}}`;
+  popup.document.head.append(style);popup.document.body.replaceChildren(image);
+  const cleanup=()=>{if(url){URL.revokeObjectURL(url);url=undefined;}};
+  popup.addEventListener("afterprint",cleanup,{once:true});popup.addEventListener("beforeunload",cleanup,{once:true});
+  popup.focus();popup.print();
+ } catch(error) {
+  if(url)URL.revokeObjectURL(url);
+  if(!popup.closed)popup.close();
+  throw error;
+ }
 }

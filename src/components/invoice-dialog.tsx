@@ -30,6 +30,8 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
   const [manualCopy, setManualCopy] = useState(false);
   const [copying, setCopying] = useState(false);
   const [downloading,setDownloading]=useState(false);
+  const [printing,setPrinting]=useState(false);
+  const printingRef=useRef(false);
   const downloadingRef=useRef(false);
   const customer=data.customers.find(customer=>customer.id===order.customerId);
   const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings);
@@ -59,6 +61,14 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
       await downloadInvoiceImage(document.current,filename);
     } catch(error){setManualCopy(true);setFeedback(error instanceof Error?error.message:"Invoice belum dapat diunduh.");}
     finally{downloadingRef.current=false;setDownloading(false);}
+  }
+
+  async function printDocument() {
+    if(printingRef.current||!document.current)return;
+    printingRef.current=true;setPrinting(true);setFeedback("");
+    try {await printInvoice(document.current);}
+    catch(error){setFeedback(error instanceof Error?error.message:"Invoice belum dapat dicetak.");}
+    finally{printingRef.current=false;setPrinting(false);}
   }
 
   async function copyInvoice() {
@@ -121,7 +131,7 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
       </div>
       <div className="modal-footer">
         {tab==="image"?<>
-          <Button type="button" className="btn btn-secondary" onClick={()=>{if(document.current)void printInvoice(document.current).catch(error=>setFeedback(error instanceof Error?error.message:"Invoice belum dapat dicetak."));}}><Printer size={16}/>Cetak / PDF</Button>
+          <Button type="button" className="btn btn-secondary" disabled={printing} onClick={()=>void printDocument()}><Printer size={16}/>{printing?"Menyiapkan PDF…":"Cetak / PDF"}</Button>
           <Button type="button" className="btn btn-primary" disabled={downloading} onClick={downloadImage}><Download size={16}/>{downloading?"Menyiapkan gambar…":"Unduh gambar"}</Button>
         </>:<>
           <Button type="button" className="btn btn-secondary" disabled={copying} onClick={copyInvoice}><Copy size={16} />{copying ? "Menyalin..." : "Salin invoice WhatsApp"}</Button>
