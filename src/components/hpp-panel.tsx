@@ -7,7 +7,6 @@ import { ArrowDownLeft, Check, Search, ShoppingBag, TrendingUp } from "lucide-re
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { allocatedBatchCosts, formatCurrency, itemLabel, orderHpp, orderQuantity, orderRevenue } from "@/lib/finance";
-import { formatCalendarDate } from "@/lib/calendar-date";
 import { isAppData } from "@/lib/validation";
 import type { AppData, Batch, OrderItem } from "@/lib/types";
 
@@ -93,21 +92,16 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
         <div className="search-field"><Search size={18}/><input aria-label="Cari produk atau pelanggan HPP" placeholder="Cari produk atau pelanggan…" value={search} onChange={event=>{setSearch(event.target.value);setPage(1);}} onKeyDown={event=>{if(event.key==="Enter")event.preventDefault();}}/></div>
         <Select className="input" aria-label="Filter kelengkapan HPP" value={status} onValueChange={value=>{setStatus(value);setPage(1);}}><SelectOption value="all">Semua</SelectOption><SelectOption value="incomplete">Belum lengkap</SelectOption><SelectOption value="complete">Lengkap</SelectOption></Select>
       </div>
-      {visibleOrders.length>0&&<div className="table-wrap"><table className="orders-table hpp-table" aria-label="Rincian HPP"><thead><tr><th scope="col">Produk</th><th scope="col" className="numeric-cell center-cell">Jumlah</th><th scope="col">Harga beli / unit</th></tr></thead>
+      {visibleOrders.length>0&&<div className="table-wrap"><table className="orders-table hpp-table" aria-label="Rincian HPP"><thead><tr><th scope="col">Produk</th><th scope="col" className="numeric-cell center-cell">Jumlah</th><th scope="col">Harga beli / unit</th>{hasLegacyCosts && <th scope="col" className="numeric-cell">Biaya lama</th>}<th scope="col" className="numeric-cell">HPP pesanan</th><th scope="col" className="numeric-cell">Margin pesanan</th></tr></thead>
         {visibleOrders.map((order) => {
           const preview = previewOrders.find((entry) => entry.id === order.id)!;
           const cost = orderHpp(preview, previewOrders, data.batches);
-          const customerName = data.customers.find((customer) => customer.id === order.customerId)?.name || "Pelanggan";
-          return <tbody key={order.id} aria-label={`Pesanan ${customerName}`}><tr className="hpp-order-header"><th scope="rowgroup" colSpan={3}><div className="hpp-order-heading"><strong>{customerName}</strong><span>{formatCalendarDate(order.date)} · {order.items.length} produk</span></div></th></tr>{order.items.map((item) => <tr key={fieldKey(order.id, item.id)}>
-            <td className="hpp-product-cell"><div className="row-title">{itemLabel(item)}</div></td>
+          return <tbody key={order.id}>{order.items.map((item, index) => <tr key={fieldKey(order.id, item.id)}>
+            <td className="hpp-product-cell"><div className="row-title">{itemLabel(item)}</div><div className="row-subtitle">{data.customers.find((customer) => customer.id === order.customerId)?.name}{order.items.length > 1 ? ` · Produk ${index + 1}/${order.items.length}` : ""}</div></td>
             <td className="numeric-cell center-cell hpp-quantity-cell">{item.quantity} unit</td>
             <td className="hpp-input-cell" data-label="Harga beli / unit"><div className="cost-input small"><span>Rp</span><NumberInput className="input" aria-label={inputLabel(order.id, item, order.items.length)} min="0" step="1" placeholder="Belum diisi" value={costs[fieldKey(order.id, item.id)] ?? ""} onValueChange={(value) => setCosts({ ...costs, [fieldKey(order.id, item.id)]: value })} /></div></td>
-
-          </tr>)}<tr className="hpp-summary-row"><td colSpan={3}><dl className={`hpp-order-summary${hasLegacyCosts ? " has-legacy" : ""}`}>
-            {hasLegacyCosts && <div className="hpp-legacy-cell"><dt>Biaya lama</dt><dd>{formatCurrency(allocated[order.id] ?? 0)}</dd></div>}
-            <div className="hpp-total-cell"><dt>Total HPP</dt><dd>{cost === null ? <span className="status-tag status-new">Belum lengkap</span> : formatCurrency(cost)}</dd></div>
-            <div className="hpp-total-cell"><dt>Margin pesanan</dt><dd className={cost === null ? "muted" : orderRevenue(order) - cost < 0 ? "negative" : "positive"}>{cost === null ? "Belum lengkap" : formatCurrency(orderRevenue(order) - cost)}</dd></div>
-          </dl></td></tr></tbody>;
+            {index === 0 && <>{hasLegacyCosts && <td className="numeric-cell hpp-legacy-cell" data-label="Biaya lama" rowSpan={order.items.length}>{formatCurrency(allocated[order.id] ?? 0)}</td>}<td className="numeric-cell hpp-total-cell" data-label="HPP pesanan" rowSpan={order.items.length}>{cost === null ? <span className="status-tag status-new">Belum lengkap</span> : formatCurrency(cost)}</td><td rowSpan={order.items.length} data-label="Margin pesanan" className={`numeric-cell hpp-total-cell ${cost !== null && orderRevenue(order) - cost < 0 ? "negative" : "positive"}`}>{cost === null ? "Belum lengkap" : formatCurrency(orderRevenue(order) - cost)}</td></>}
+          </tr>)}</tbody>;
         })}
       </table></div>}
       {!visibleOrders.length&&<div className="empty-state compact"><p>{orders.length ? "Tidak ada pesanan yang sesuai." : "Belum ada pesanan aktif."}</p>{orders.length>0&&<Button type="button" className="btn btn-secondary" onClick={()=>{setSearch("");setStatus("all");setPage(1);}}>Reset filter</Button>}</div>}
