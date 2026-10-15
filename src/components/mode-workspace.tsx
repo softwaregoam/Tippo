@@ -1,5 +1,6 @@
 "use client";
 import { BatchPicker } from "./batch-picker";
+import { CategoryFilter } from "./category-filter";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { visibleOrderStatus } from "@/lib/order-status";
 
@@ -70,7 +71,7 @@ export function ModeWorkspace({ tab, type, data, invoiceSettings, onEditBatch, o
             <div className="search-field"><Search size={18} /><input aria-label="Cari produk master" placeholder="Cari produk, varian, atau SKU..." value={search} onChange={e => setSearch(e.target.value)} /></div>
             <div className="toolbar-filters">
               <Select className="input filter-input" aria-label="Filter produk" value={productStatus} onValueChange={setProductStatus}><SelectOption value="active">Produk aktif</SelectOption><SelectOption value="archived">Diarsipkan</SelectOption><SelectOption value="all">Semua produk</SelectOption></Select>
-              <Select className="input filter-input" aria-label="Filter kategori produk" value={categoryFilter} onValueChange={setCategoryFilter}><SelectOption value="all">Semua kategori</SelectOption>{categories.map(category => <SelectOption key={category} value={category}>{category}</SelectOption>)}</Select>
+              <CategoryFilter categories={categories} value={categoryFilter} onValueChange={setCategoryFilter}/>
             </div>
           </div>
           {products.length > 0 ? <ProductsTable products={products} onEdit={onEditProduct} onDuplicate={onDuplicateProduct} onRemove={setRemovingProduct} /> : <WorkspaceEmptyState kind="products" hasData={data.products.length > 0} onReset={() => { setSearch(""); setProductStatus("all"); setCategoryFilter("all"); }} />}
