@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDownLeft, Check, ChevronRight, Search, ShoppingBag, TrendingUp, X } from "lucide-react";
+import { Check, ChevronRight, Search, X } from "lucide-react";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,6 @@ type SaveHpp = (next: AppData) => boolean | Promise<boolean>;
 function purchaseCost(value: string): number | null {
   const parsed = Number(value);
   return value.trim() && Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
-}
-function SummaryStat({ title, value, icon, tone, note, warning = false }: { title: string; value: string; icon: React.ReactNode; tone: string; note: string; warning?: boolean }) {
-  return <section className="card stat-card"><div className="stat-top"><span>{title}</span><div className={`stat-icon ${tone}`}>{icon}</div></div><strong className="stat-value">{value}</strong><div className={`stat-note ${warning ? "warning" : ""}`}><span className={`stat-note-dot ${warning ? "gold" : "teal"}`} />{note}</div></section>;
 }
 function HppOrderDialog({order,batch,data,onSave,onClose}:{order:Order;batch:Batch;data:AppData;onSave:SaveHpp;onClose:()=>void}) {
   const dialog=useRef<HTMLDialogElement>(null);
@@ -55,10 +52,6 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
   const [requestedPage,setPage]=useState(1);
   const [editing,setEditing]=useState<string|null>(null);
   const details=useRef<HTMLElement>(null);
-  const known=orders.filter(order=>orderHpp(order,data.orders,data.batches)!==null);
-  const missing=orders.length-known.length;
-  const hpp=known.reduce((sum,order)=>sum+(orderHpp(order,data.orders,data.batches)??0),0);
-  const knownRevenue=known.reduce((sum,order)=>sum+orderRevenue(order),0);
   const customerName=(order:Order)=>data.customers.find(customer=>customer.id===order.customerId)?.name||"Pelanggan";
   const normalize=(text:string)=>text.normalize("NFKC").toLocaleLowerCase("id").trim();
   const tokens=normalize(search).split(/\s+/).filter(Boolean);
@@ -76,11 +69,6 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
   const actionLabel=(order:Order)=>orderHpp(order,data.orders,data.batches)===null?"Isi HPP":"Edit HPP";
   function changePage(next:number){setPage(next);details.current?.scrollIntoView({block:"start"});}
   return <div>
-    <div className="hpp-summary-grid">
-      <SummaryStat title="Total penjualan" value={formatCurrency(orders.reduce((sum,order)=>sum+orderRevenue(order),0))} icon={<ShoppingBag size={19}/>} tone="mint" note={`${orders.length} pesanan`}/>
-      <SummaryStat title="HPP diketahui" value={missing&&!known.length?"Belum lengkap":formatCurrency(hpp)} icon={<ArrowDownLeft size={19}/>} tone="orange" note={missing?`${missing} pesanan belum lengkap`:"Harga beli lengkap"} warning={missing>0}/>
-      <SummaryStat title={missing?"Margin diketahui":"Estimasi margin"} value={missing&&!known.length?"Belum lengkap":formatCurrency(knownRevenue-hpp)} icon={<TrendingUp size={19}/>} tone="lavender" note="Laba kotor sebelum biaya umum"/>
-    </div>
     <section ref={details} className="card hpp-detail-card" aria-label="HPP per pesanan">
       <div className="card-header"><h2>HPP per pesanan</h2><span className="type-badge">{orders.length} PESANAN</span></div>
       <div className="list-toolbar hpp-list-toolbar" role="group" aria-label="Pencarian dan filter HPP">
