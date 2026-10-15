@@ -1250,13 +1250,14 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .hpp-edit-dialog[open] { display:flex; flex-direction:column; }
 .hpp-edit-dialog > form { display:flex; flex-direction:column; min-height:0; }
 .hpp-edit-dialog .modal-body { overflow:auto; }
-.hpp-edit-products { display:grid; gap:20px; }
-.hpp-edit-product { display:grid; grid-template-columns:minmax(0,1fr) 190px; align-items:center; gap:16px; padding-bottom:20px; border-bottom:1px solid var(--border); }
-.hpp-edit-product > div { min-width:0; overflow-wrap:anywhere; }
-.hpp-edit-product strong { display:block; }
-.hpp-edit-product > div > span { color:var(--muted); font-size:13px; }
+.hpp-edit-products { display:grid; gap:12px; }
+.hpp-edit-product { display:grid; grid-template-columns:minmax(0,1fr) 190px; align-items:center; gap:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+.hpp-edit-product > div { display:flex; align-items:baseline; gap:12px; min-width:0; overflow-wrap:anywhere; }
+.hpp-edit-product strong { display:block; flex:1; min-width:0; }
+.hpp-edit-product > div > span { color:var(--muted); font-size:13px; flex-shrink:0; white-space:nowrap; }
 .hpp-edit-product .cost-input { width:100%; }
-.hpp-edit-product .field-label { font-size:12px; font-weight:400; margin-bottom:6px; color:var(--muted); }
+.hpp-edit-product .field { margin:0; gap:4px; }
+.hpp-edit-product .field-label { font-size:12px; font-weight:400; margin:0; color:var(--muted); }
 .hpp-dialog-summary { display:grid; gap:12px; margin-top:20px; }
 .hpp-dialog-summary > div { display:flex; justify-content:space-between; align-items:baseline; gap:16px; }
 .hpp-dialog-summary dt { color:var(--muted); }
@@ -1264,7 +1265,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .hpp-detail-card .positive,.hpp-edit-dialog .positive { color:var(--primary); }
 .hpp-detail-card .negative,.hpp-edit-dialog .negative { color:var(--danger); }
 @media(max-width:600px) {
- .hpp-edit-product { grid-template-columns:minmax(0,1fr); gap:12px; }
+ .hpp-edit-product { grid-template-columns:minmax(0,1fr); gap:6px; }
  .hpp-edit-dialog .modal-body { padding:20px; }
  .hpp-edit-dialog .modal-header { padding:18px 20px; }
  .hpp-edit-dialog .modal-footer { padding:16px 20px; }
