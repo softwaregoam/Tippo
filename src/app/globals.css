@@ -1238,9 +1238,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .select-trigger[data-placeholder] > span:first-child,
 .select-trigger[data-value=""] > span:first-child { color: var(--placeholder); }
 
-.hpp-orders-table tbody tr { cursor:pointer; }
-.hpp-orders-table .btn { white-space:nowrap; }
-.hpp-order-cards .mobile-row-heading small { background:none; color:var(--muted); padding:0; font-weight:400; }
+.hpp-order-cards .mobile-row-heading { align-items:center; }
 .hpp-card-totals { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; font-weight:600; }
 .hpp-card-totals > span { min-width:0; overflow-wrap:anywhere; }
 .hpp-card-totals small { display:block; margin-bottom:5px; font-size:12px; font-weight:400; color:var(--muted); }

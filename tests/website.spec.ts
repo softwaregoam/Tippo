@@ -1583,7 +1583,11 @@ for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as cons
  data.batches.find(batch=>batch.id===batchId)!.directCosts=1000;order.items.push({id:"extra-hpp-item",product:"Produk Tambahan Dengan Nama Panjang",variant:"Merah",color:"",size:"L",quantity:2,unitPrice:20000,unitCost:null});
  const requests=await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,business);await openSection(page,"HPP & Margin");
  const list=page.getByRole("region",{name:"HPP per pesanan"});await expect(list.getByRole("textbox")).toHaveCount(1);
- const action=list.getByRole("button",{name:/^Isi HPP /});await action.click();let dialog=page.getByRole("dialog",{name:/^HPP pesanan /});await expect(dialog.getByRole("textbox")).toHaveCount(2);await expect(dialog.locator(".hpp-dialog-summary")).toContainText("Belum lengkap");
+ const action=list.getByRole("button",{name:/^Isi HPP /});
+ await expect(action).toHaveText("");await expect(action).toHaveAttribute("title","Isi HPP");
+ if(width===320)await list.locator(".hpp-order-cards .mobile-row-heading strong").click();else await list.locator(".hpp-orders-table tbody .row-title").click();
+ await expect(page.getByRole("dialog",{name:/^HPP pesanan /})).toHaveCount(0);
+ await action.click();let dialog=page.getByRole("dialog",{name:/^HPP pesanan /});await expect(dialog.getByRole("textbox")).toHaveCount(2);await expect(dialog.locator(".hpp-dialog-summary")).toContainText("Belum lengkap");
  await dialog.getByRole("textbox").nth(1).fill("8000");const expected=(business==="Jastip"?12000:50000)+16000+1000;await expect(dialog.locator(".hpp-dialog-summary")).toContainText(expected.toLocaleString("id-ID"));
  expect(requests).toHaveLength(0);await dialog.getByRole("button",{name:"Batal",exact:true}).click();await expect(dialog).toHaveCount(0);await action.click();dialog=page.getByRole("dialog",{name:/^HPP pesanan /});await expect(dialog.getByRole("textbox").nth(1)).toHaveValue("");
  await dialog.getByRole("textbox").nth(1).fill("8000");await dialog.screenshot({path:`/tmp/tippo-hpp-dialog-${business}-${width}.png`});await dialog.getByRole("button",{name:"Simpan HPP",exact:true}).click();await expect(dialog).toHaveCount(0);await expect.poll(()=>requests.length).toBe(1);
