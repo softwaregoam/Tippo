@@ -34,7 +34,8 @@ function initials(name: string) {
 export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, onRefund, compact = false, readOnly = false }: OrdersTableProps) {
   const [detailOrderId,setDetailOrderId]=useState<string|null>(null);
   const detailOrder=data.orders.find(order=>order.id===detailOrderId);
-  const detailContent=(order:Order)=><MobileOrderDetail order={order} data={data} readOnly={readOnly} onEdit={()=>onEdit(order)} onStatus={()=>setStatusOrderId(order.id)} onInvoice={()=>setInvoiceOrderId(order.id)} onRefund={()=>setRefundId(order.id)}/>;
+  const detailContent=(order:Order)=><MobileOrderDetail order={order} data={data}/>;
+  const detailFooter=(order:Order)=>readOnly?undefined:<OrderDetailActions order={order} onEdit={()=>onEdit(order)} onStatus={()=>setStatusOrderId(order.id)} onInvoice={()=>setInvoiceOrderId(order.id)} onRefund={()=>setRefundId(order.id)}/>;
   const [statusOrderId, setStatusOrderId] = useState<string | null>(null);
   const statusOrder = data.orders.find(order => order.id === statusOrderId);
   const [refundId,setRefundId]=useState<string|null>(null);
@@ -52,7 +53,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
   }
 
   return (
-    <><MobileDataList entries={orders.map(order=>({id:order.id,dialogClassName:"order-data-dialog",title:data.customers.find(c=>c.id===order.customerId)?.name||"Pelanggan",subtitle:<>{order.items.slice(0,2).map(item=><span className="order-preview-product" key={item.id}>{itemLabel(item)} × {item.quantity}</span>)}{order.items.length>2&&<span className="order-more-products">+{order.items.length-2} produk lainnya</span>}</>,meta:`${formatCurrency(orderRevenue(order))} · ${outstanding(order)>0?`Sisa ${formatCurrency(outstanding(order))}`:"Lunas"}`,status:statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label,statusClassName:`status-tag order-status-${visibleOrderStatus(order.status)}`,details:detailContent(order)}))}/><div className="table-wrap desktop-data-table">
+    <><MobileDataList entries={orders.map(order=>({id:order.id,dialogClassName:"order-data-dialog",footer:detailFooter(order),title:data.customers.find(c=>c.id===order.customerId)?.name||"Pelanggan",subtitle:<>{order.items.slice(0,2).map(item=><span className="order-preview-product" key={item.id}>{itemLabel(item)} × {item.quantity}</span>)}{order.items.length>2&&<span className="order-more-products">+{order.items.length-2} produk lainnya</span>}</>,meta:`${formatCurrency(orderRevenue(order))} · ${outstanding(order)>0?`Sisa ${formatCurrency(outstanding(order))}`:"Lunas"}`,status:statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label,statusClassName:`status-tag order-status-${visibleOrderStatus(order.status)}`,details:detailContent(order)}))}/><div className="table-wrap desktop-data-table">
       <table className={`orders-table ${readOnly ? "orders-readonly" : ""}`}>
         <caption className="sr-only">Daftar pesanan jastip dan open PO</caption>
         <thead>
@@ -110,12 +111,12 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
           })}
         </tbody>
       </table>
-    </div>{detailOrder&&<DataDetailDialog entry={{id:detailOrder.id,dialogClassName:"order-data-dialog",title:data.customers.find(customer=>customer.id===detailOrder.customerId)?.name||"Pelanggan",meta:"",details:detailContent(detailOrder)}} onClose={()=>setDetailOrderId(null)}/ >}{statusOrder && !readOnly && <OrderStatusDialog order={statusOrder} onSave={onStatus} onClose={()=>setStatusOrderId(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && <InvoiceDialog settings={invoiceSettings} order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
+    </div>{detailOrder&&<DataDetailDialog entry={{id:detailOrder.id,dialogClassName:"order-data-dialog",footer:detailFooter(detailOrder),title:data.customers.find(customer=>customer.id===detailOrder.customerId)?.name||"Pelanggan",meta:"",details:detailContent(detailOrder)}} onClose={()=>setDetailOrderId(null)}/ >}{statusOrder && !readOnly && <OrderStatusDialog order={statusOrder} onSave={onStatus} onClose={()=>setStatusOrderId(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && <InvoiceDialog settings={invoiceSettings} order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
   );
 }
 
 
-function MobileOrderDetail({ order, data, readOnly, onEdit, onStatus, onInvoice, onRefund }: { order: Order; data: AppData; readOnly: boolean; onEdit: () => void; onStatus: () => void; onInvoice: () => void; onRefund: () => void }) {
+function MobileOrderDetail({order,data}:{order:Order;data:AppData}) {
   const hpp = orderHpp(order, data.orders, data.batches);
   const [search,setSearch]=useState("");
   const list=useRef<HTMLDivElement>(null);
@@ -133,6 +134,10 @@ function MobileOrderDetail({ order, data, readOnly, onEdit, onStatus, onInvoice,
       </div>
     </section>
     <dl className="order-detail-payment"><div className="order-detail-total"><dt>Total tagihan</dt><dd>{formatCurrency(orderRevenue(order))}</dd></div><div><dt>Sudah dibayar</dt><dd>{formatCurrency(order.paid)}</dd></div><div><dt>Sisa tagihan</dt><dd>{formatCurrency(outstanding(order))}</dd></div><div><dt>HPP</dt><dd>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</dd></div></dl>
-    {!readOnly && <div className="order-detail-actions"><button data-close-detail className="btn btn-primary" onClick={onEdit}><Pencil size={16} aria-hidden="true"/>Edit</button><button data-close-detail className="btn btn-secondary" onClick={onInvoice}><FileText size={16} aria-hidden="true"/>Invoice</button><button data-close-detail className="btn btn-secondary" aria-label="Ubah status" onClick={onStatus}><ArrowLeftRight size={16} aria-hidden="true"/>Status</button><button data-close-detail className="btn btn-secondary" disabled={order.paid === 0 && !order.refunds?.length} onClick={onRefund}><RotateCcw size={16} aria-hidden="true"/>Refund</button></div>}
+
   </div>;
+}
+
+function OrderDetailActions({order,onEdit,onStatus,onInvoice,onRefund}:{order:Order;onEdit:()=>void;onStatus:()=>void;onInvoice:()=>void;onRefund:()=>void}) {
+ return <div className="order-detail-actions"><button data-close-detail className="btn btn-primary" onClick={onEdit}><Pencil size={16} aria-hidden="true"/>Edit</button><button data-close-detail className="btn btn-secondary" onClick={onInvoice}><FileText size={16} aria-hidden="true"/>Invoice</button><button data-close-detail className="btn btn-secondary" aria-label="Ubah status" onClick={onStatus}><ArrowLeftRight size={16} aria-hidden="true"/>Status</button><button data-close-detail className="btn btn-secondary" disabled={order.paid === 0 && !order.refunds?.length} onClick={onRefund}><RotateCcw size={16} aria-hidden="true"/>Refund</button></div>;
 }
