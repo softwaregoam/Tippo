@@ -1143,6 +1143,8 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 }
 
 
+.hpp-detail-card > .card-header { padding-bottom:8px; }
+.hpp-list-toolbar { padding-top:8px; }
 .hpp-list-toolbar .select-trigger { width:190px; flex-shrink:0; }
 .hpp-list-toolbar .search-field { width:min(440px,100%); }
 .hpp-detail-card { scroll-margin-top:90px; }
