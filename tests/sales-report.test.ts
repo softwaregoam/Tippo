@@ -43,27 +43,27 @@ test("Excel export matches the filtered report, preserves numeric amounts and ne
  const bytes=await createReportExcel(report);await assertXlsxSheetProperties(bytes);const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(new Uint8Array(bytes).buffer);
  assert.deepEqual(workbook.worksheets.map(sheet=>sheet.name),["Ringkasan","Pesanan","Produk terlaris"]);
  const sheet=workbook.getWorksheet("Pesanan")!;assert.equal(sheet.rowCount,7);
- assert.equal(sheet.getCell("C5").value,"=SUM(1,2)");assert.equal(sheet.getCell("N5").value,100);
- assert.equal(sheet.getCell("O6").value,"Belum lengkap");assert.equal(sheet.getCell("P6").value,"Belum lengkap");
+ assert.equal(sheet.getCell("C5").value,"=SUM(1,2)");assert.equal(sheet.getCell("I5").value,100);
+ assert.equal(sheet.getCell("J6").value,"Belum lengkap");assert.equal(sheet.getCell("K6").value,"Belum lengkap");
  assert.equal(workbook.getWorksheet("Produk terlaris")!.getCell("D5").value,2);
- assert.equal(sheet.getCell("N7").value,200);assert.equal(sheet.getCell("O7").value,65);assert.equal(sheet.getCell("P7").value,35);assert.match(String(sheet.getCell("A7").value),/HPP\/margin pesanan diketahui/);
+ assert.equal(sheet.getCell("I7").value,200);assert.equal(sheet.getCell("J7").value,65);assert.equal(sheet.getCell("K7").value,35);assert.match(String(sheet.getCell("A7").value),/HPP\/margin diketahui/);
  for(const worksheet of workbook.worksheets)for(const row of [1,2,3])assert.equal(worksheet.getCell(row,1).alignment.horizontal,"left");
  assert.equal(sheet.getCell("I5").alignment.horizontal,"right");
- assert.equal(sheet.getColumn("I").numFmt,'"Rp" #,##0;[Red]-"Rp" #,##0');assert.equal(sheet.autoFilter,undefined);
+ assert.equal(sheet.getColumn("I").numFmt,'"Rp" #,##0;[Red]-"Rp" #,##0');assert.equal(sheet.autoFilter,"A4:K6");
  assert.equal(workbook.getWorksheet("Ringkasan")!.getCell("B5").value,200);assert.equal(workbook.getWorksheet("Produk terlaris")!.getCell("D6").value,2);
 });
 
 test("empty and incomplete report workbooks keep unknown costs explicit and grand totals valid",async()=>{
  for(const empty of [true,false]){
  const workspace=data(empty?[]:[make("unknown",{items:[{...make("x").items[0],unitCost:null}]})]);const report=buildSalesReport(workspace,filter),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createReportExcel(report)).buffer);const orders=book.getWorksheet("Pesanan")!;
- assert.equal(orders.getCell(`N${orders.rowCount}`).value,empty?0:100);assert.equal(orders.getCell(`O${orders.rowCount}`).value,empty?0:"Belum lengkap");assert.equal(orders.getCell(`P${orders.rowCount}`).value,empty?0:"Belum lengkap");
+ assert.equal(orders.getCell(`I${orders.rowCount}`).value,empty?0:100);assert.equal(orders.getCell(`J${orders.rowCount}`).value,empty?0:"Belum lengkap");assert.equal(orders.getCell(`K${orders.rowCount}`).value,empty?0:"Belum lengkap");
  }
 });
 
-test("order sheet embeds products and merges order totals without duplicating fees",async()=>{
- const first=make("a");first.items.push({...first.items[0],id:"second-item",product:"Produk kedua",variant:"Vanila",quantity:3,unitPrice:200,unitCost:null});
- const report=buildSalesReport(data([first,make("b"),make("foreign",{batchId:"p"})]),filter),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createReportExcel(report)).buffer);const orders=book.getWorksheet("Pesanan")!;
- assert.equal(book.getWorksheet("Rincian produk"),undefined);assert.equal(orders.rowCount,8);assert.equal(orders.getCell("A5").value,"a");assert.equal(orders.getCell("A6").value,"a");assert.equal(orders.getCell("A7").value,"b");assert.match(String(orders.getCell("E6").value),/Produk kedua Vanila/);assert.equal(orders.getCell("F6").value,3);assert.equal(orders.getCell("H6").value,600);assert.equal(orders.getCell("J6").value,"Belum lengkap");
- for(const merge of ["A5:A6","C5:C6","K5:K6","N5:N6","O5:O6"])assert.ok(orders.model.merges!.includes(merge));
- assert.equal(orders.getCell("F8").value,5);assert.equal(orders.getCell("H8").value,800);assert.equal(orders.getCell("K8").value,20);assert.equal(orders.getCell("L8").value,30);assert.equal(orders.getCell("M8").value,10);assert.equal(orders.getCell("N8").value,800);
-});
+ test("multi-product orders remain one row per order in both business modes",async()=>{
+ for(const type of ["jastip","po"] as const){
+ const first=make("a",{batchId:type==="po"?"p":"j"});first.items.push({...first.items[0],id:"second-item",product:"Produk kedua",quantity:3,unitPrice:200,unitCost:null});
+ const second=make("b",{batchId:first.batchId});const report=buildSalesReport(data([first,second]),{...filter,type});const bytes=await createReportExcel(report);await assertXlsxSheetProperties(bytes);const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(bytes).buffer);const sheet=book.getWorksheet("Pesanan")!;
+ assert.equal(sheet.rowCount,7);assert.equal(sheet.columnCount,11);assert.equal(sheet.getCell("A5").value,"a");assert.equal(sheet.getCell("A6").value,"b");assert.equal(sheet.getCell("E5").value,4);assert.equal(sheet.getCell("I5").value,700);assert.equal(sheet.getCell("J5").value,"Belum lengkap");assert.equal(sheet.getCell("E7").value,5);assert.equal(sheet.getCell("I7").value,800);assert.equal(sheet.autoFilter,"A4:K6");assert.equal(book.getWorksheet("Rincian produk"),undefined);
+ }
+ });
