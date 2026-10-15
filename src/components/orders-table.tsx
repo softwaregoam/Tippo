@@ -3,7 +3,7 @@ import { visibleOrderStatus } from "@/lib/order-status";
 
 import { OrderStatusDialog, orderStatuses as statuses, type OrderStatusHandler } from "@/components/order-status-dialog";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeftRight, FileText, Pencil, Search, ShoppingBag, RotateCcw } from "lucide-react";
 import { RefundDialog, type RefundHandler } from "@/components/refund-dialog";
 import { refundedTotal } from "@/lib/refund";
@@ -123,14 +123,30 @@ function MobileOrderDetail({order,data}:{order:Order;data:AppData}) {
   const normalize=(value:string)=>value.normalize("NFKC").toLocaleLowerCase("id").trim();
   const tokens=normalize(search).split(/\s+/).filter(Boolean);
   const products=order.items.filter(item=>tokens.every(token=>normalize([itemLabel(item),item.store].filter(Boolean).join(" ")).includes(token)));
+  const [scrollbar,setScrollbar]=useState({visible:false,height:0,top:0});
+  useLayoutEffect(()=>{
+    const area=list.current;if(!area||products.length<=5)return;
+    function sync(){
+      if(!area)return;
+      const track=Math.max(0,area.clientHeight-8),distance=area.scrollHeight-area.clientHeight;
+      const height=Math.min(track,Math.max(20,track*area.clientHeight/Math.max(1,area.scrollHeight)));
+      const top=distance>0?Math.max(0,Math.min(1,area.scrollTop/distance))*(track-height):0;
+      setScrollbar(previous=>previous.visible===(distance>1)&&previous.height===height&&previous.top===top?previous:{visible:distance>1,height,top});
+    }
+    sync();const observer=new ResizeObserver(sync);observer.observe(area);if(area.firstElementChild)observer.observe(area.firstElementChild);
+    area.addEventListener("scroll",sync,{passive:true});
+    return()=>{observer.disconnect();area.removeEventListener("scroll",sync);};
+  },[products.length,search]);
   return <div className="order-mobile-detail">
     <p className="order-detail-batch"><span>Batch</span><strong>{data.batches.find(batch => batch.id === order.batchId)?.name || "Belum diisi"}</strong></p>
     <section className="order-detail-product-section" aria-label="Rincian produk pesanan">
       <div className="order-detail-product-heading"><h3>Produk</h3><span aria-live="polite">{tokens.length?`${products.length} dari ${order.items.length} produk`:`${order.items.length} produk · ${orderQuantity(order)} unit`}</span></div>
       {order.items.length>5&&<div className="search-field order-detail-search"><Search size={17} aria-hidden="true"/><input aria-label="Cari produk di detail pesanan" placeholder="Cari produk, varian, atau toko…" value={search} onChange={event=>{setSearch(event.target.value);if(list.current)list.current.scrollTop=0;}}/></div>}
-      <div ref={list} className="order-detail-products-scroll" role="region" aria-label="Daftar produk pesanan" tabIndex={0}>
+      <div className={`order-detail-products-frame ${products.length>5?"has-scroll-indicator":""}`}><div ref={list} className="order-detail-products-scroll" role="region" aria-label="Daftar produk pesanan" tabIndex={0}>
         <ul className="order-detail-products" aria-label="Produk pesanan">{products.map(item => <li key={item.id}><div><strong>{item.product}</strong>{[item.variant, item.color, item.size, item.store].filter(Boolean).length > 0 && <small>{[item.variant, item.color, item.size, item.store].filter(Boolean).join(" · ")}</small>}</div><span>× {item.quantity}</span></li>)}</ul>
         {!products.length&&<p className="order-detail-products-empty" role="status">Produk tidak ditemukan.</p>}
+      </div>
+      {products.length>5&&scrollbar.visible&&<span className="order-detail-scrollbar" aria-hidden="true"><span style={{height:scrollbar.height,transform:`translateY(${scrollbar.top}px)`}}/></span>}
       </div>
     </section>
     <dl className="order-detail-payment"><div className="order-detail-total"><dt>Total tagihan</dt><dd>{formatCurrency(orderRevenue(order))}</dd></div><div><dt>Sudah dibayar</dt><dd>{formatCurrency(order.paid)}</dd></div><div><dt>Sisa tagihan</dt><dd>{formatCurrency(outstanding(order))}</dd></div><div><dt>HPP</dt><dd>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</dd></div></dl>

@@ -1347,3 +1347,12 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 }
 
 .order-data-dialog .order-detail-search input { font-size:16px; }
+
+.order-detail-products-frame { position:relative; min-height:0; flex-shrink:0; }
+.order-detail-scrollbar { display:none; }
+@media(max-width:600px) {
+ .has-scroll-indicator .order-detail-products-scroll { padding-right:14px; scrollbar-width:none; }
+ .has-scroll-indicator .order-detail-products-scroll::-webkit-scrollbar { display:none; }
+ .order-detail-scrollbar { display:block; position:absolute; top:4px; bottom:4px; right:1px; width:4px; border-radius:8px; background:var(--border); pointer-events:none; }
+ .order-detail-scrollbar > span { display:block; width:100%; border-radius:8px; background:var(--primary); }
+}
