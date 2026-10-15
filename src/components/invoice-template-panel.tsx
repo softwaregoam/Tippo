@@ -1,20 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ImageIcon, ImageOff, Upload, X } from "lucide-react";
+import { ImageIcon, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectOption } from "@/components/ui/select";
 import { InvoiceDocument } from "@/components/invoice-document";
+import { InvoiceLogo } from "./invoice-logo";
 import { prepareInvoiceLogo } from "@/lib/invoice-logo";
 import { validateInvoiceTemplate, type InvoiceTemplate } from "@/lib/invoice-template";
 import type { Batch, Order } from "@/lib/types";
 
 const example:Order={id:"CONTOH-001",batchId:"sample",customerId:"sample",date:"2026-10-14",createdAt:"2026-10-14T00:00:00Z",status:"new",paid:0,shippingCharge:10000,serviceFee:0,notes:"",items:[{id:"sample-1",product:"Roti Susu",variant:"Coklat",color:"",size:"",quantity:2,unitPrice:25000,unitCost:null}]};
 function LogoThumbnail({src}:{src:string}) {
- const [failed,setFailed]=useState(false);
- return <div className="invoice-logo-thumbnail">{src&&!failed ?
-  // eslint-disable-next-line @next/next/no-img-element
-  <img src={src} alt="Logo yang dipilih" onError={()=>setFailed(true)}/>
-  : failed ? <span><ImageOff size={22}/><small>Tidak termuat</small></span> : <ImageIcon size={26} aria-hidden="true"/>}</div>;
+ return <div className="invoice-logo-thumbnail">{src?<InvoiceLogo key={src} src={src} alt="Logo yang dipilih"/>:<ImageIcon size={26} aria-hidden="true"/>}</div>;
 }
 export function InvoiceTemplatePanel({settings,onSave,onNotify,type}:{type:Batch["type"];settings:InvoiceTemplate;onSave:(template:InvoiceTemplate,logo:Blob|null)=>Promise<InvoiceTemplate>;onNotify:(message:string)=>void}) {
  const [template,setTemplate]=useState(settings),[logo,setLogo]=useState<Blob|null>(null),[preview,setPreview]=useState(""),[busy,setBusy]=useState(false),[processing,setProcessing]=useState(false),[error,setError]=useState("");

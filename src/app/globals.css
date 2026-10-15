@@ -1306,3 +1306,6 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .landing-header .tippo-logo-word { display:none; }
  .landing-header .wordmark { justify-content:center; min-width:44px; }
 }
+
+.invoice-logo-thumbnail .invoice-logo { display:grid;place-items:center;width:100%;height:100%; }
+.invoice-logo-thumbnail .invoice-logo-placeholder { padding:4px;border:0;background:#f3f5f3;color:#63706a;font-size:10px;text-align:center; }

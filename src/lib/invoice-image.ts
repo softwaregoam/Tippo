@@ -1,7 +1,14 @@
+import {loadInvoiceLogo} from "./invoice-logo-cache.ts";
 /** Render a standalone invoice at a readable width, independent of the phone viewport. */
 export async function renderInvoiceImage(preview: HTMLElement): Promise<Blob> {
   const invoice=preview.querySelector<HTMLElement>(".invoice-document");
   if(!invoice)throw new Error("Invoice belum siap diunduh.");
+  const copy=invoice.cloneNode(true) as HTMLElement;
+  await Promise.all(Array.from(copy.querySelectorAll<HTMLElement>("[data-invoice-logo-url]")).map(async holder=>{
+    const image=document.createElement("img");image.alt="Logo toko";
+    image.src=await loadInvoiceLogo(holder.dataset.invoiceLogoUrl!);
+    holder.removeAttribute("aria-busy");holder.replaceChildren(image);
+  }));
   const frame=document.createElement("iframe");
   frame.title="Menyiapkan gambar invoice";
   frame.setAttribute("aria-hidden","true");
@@ -12,16 +19,13 @@ export async function renderInvoiceImage(preview: HTMLElement): Promise<Blob> {
     const page=frame.contentDocument;
     if(!page)throw new Error("Gambar invoice belum dapat dibuat.");
     page.open();
-    page.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><style>body{margin:0;background:white}</style></head><body>${invoice.outerHTML}</body></html>`);
+    page.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><style>body{margin:0;background:white}</style></head><body>${copy.outerHTML}</body></html>`);
     page.close();
     const output=page.querySelector<HTMLElement>(".invoice-document");
     if(!output)throw new Error("Invoice belum siap diunduh.");
     await Promise.all(Array.from(output.querySelectorAll("img")).map(async image=>{
       try {
-        const response=await fetch(image.src,{credentials:"omit",signal:AbortSignal.timeout(15000)});
-        if(!response.ok)throw new Error("Logo unavailable");
-        const blob=await response.blob();
-        image.src=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=reject;reader.readAsDataURL(blob);});
+        image.src=await loadInvoiceLogo(image.src);
         await image.decode();
       } catch {throw new Error("Logo invoice belum dapat dimuat. Coba unduh kembali.");}
     }));

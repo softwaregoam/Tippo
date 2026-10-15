@@ -1,4 +1,5 @@
 "use client";
+import {cacheInvoiceLogo,invalidateInvoiceLogo} from "@/lib/invoice-logo-cache";
 
 import { TippoLogo } from "./tippo-logo";
 
@@ -93,10 +94,13 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
         next.appearance.logoUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Logo belum tersimpan."));reader.readAsDataURL(logo);});
       }
     }
+    if(logo)await cacheInvoiceLogo(next.appearance.logoUrl,logo);
     try{
       if(cloud)await cloud.saveInvoiceTemplate(next);
       else{const profile={...demoProfile,invoiceStoreName:next.invoiceStoreName,invoicePrefix:next.invoicePrefix};localStorage.setItem(DEMO_PROFILE_KEY,JSON.stringify({...profile,invoiceTemplate:next.appearance}));setDemoProfile(profile);setDemoAppearance(next.appearance);}
-    }catch(error){if(uploadedPath&&client)await client.storage.from("invoice-logos").remove([uploadedPath]).catch(()=>undefined);throw error;}
+    }catch(error){if(logo)invalidateInvoiceLogo(next.appearance.logoUrl);if(uploadedPath&&client)await client.storage.from("invoice-logos").remove([uploadedPath]).catch(()=>undefined);throw error;}
+    const previousLogo=cloud?.invoiceAppearance.logoUrl??demoAppearance.logoUrl;
+    if(previousLogo!==next.appearance.logoUrl)invalidateInvoiceLogo(previousLogo);
     if(cloud&&client&&cloud.invoiceAppearance.logoUrl!==next.appearance.logoUrl){
       const base=client.storage.from("invoice-logos").getPublicUrl("placeholder").data.publicUrl.replace(/placeholder$/,""),old=cloud.invoiceAppearance.logoUrl;
       if(old.startsWith(base)){const path=old.slice(base.length);if(path.startsWith(`${cloud.ownerId}/`) && /^[^/]+\/[a-zA-Z0-9-]+\.(?:webp|png|jpg)$/.test(path))await client.storage.from("invoice-logos").remove([path]).catch(()=>undefined);}
