@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { formatCurrency } from "../src/lib/finance.ts";
-import { buildInvoice, invoiceWhatsAppUrl } from "../src/lib/invoice.ts";
+import { buildInvoice, invoiceNumber, invoiceWhatsAppUrl } from "../src/lib/invoice.ts";
 import type { Batch, Customer, Order } from "../src/lib/types.ts";
 
 const batch: Batch = { id: "batch-a", name: "Seoul Oktober", type: "jastip", origin: "Seoul", closeDate: "2026-10-20", status: "open", directCosts: 543210 };
@@ -137,4 +137,16 @@ test("invoice remaining balance follows net payment and discount and is hidden w
  assert.ok(buildInvoice({...order,paid:0},batch,customer).includes(`*Sisa tagihan*: ${formatCurrency(390000)}`));
  assert.ok(buildInvoice({...order,discount:{type:"amount",value:90000},paid:100000},batch,customer).includes(`*Sisa tagihan*: ${formatCurrency(200000)}`));
  for(const next of [{...order,paid:390000},{...order,paid:400000},{...order,status:"cancelled" as const,paid:0}])assert.doesNotMatch(buildInvoice(next,batch,customer),/Sisa tagihan/);
+});
+
+
+test("UUID invoice references are compact and stable across customer messages", () => {
+  const uuidOrder = { ...order, id: "7a1d0509-004a-4386-8860-f1be1a5e5c69" };
+  assert.equal(invoiceNumber(uuidOrder), "INV-7A1D0509004A");
+  assert.equal(invoiceNumber(uuidOrder, { invoicePrefix: "tka" }), "TKA-7A1D0509004A");
+  assert.equal(invoiceNumber({ ...uuidOrder, paid: 390000 } as Order), invoiceNumber(uuidOrder));
+  assert.match(buildInvoice(uuidOrder, batch, customer), /No\. invoice: INV-7A1D0509004A\n/);
+  assert.ok(!buildInvoice(uuidOrder).includes(uuidOrder.id.toUpperCase()));
+  assert.notEqual(invoiceNumber(uuidOrder), invoiceNumber({ id: "7a1d0509-004b-4386-8860-f1be1a5e5c69" }));
+  assert.equal(invoiceNumber({ id: "CONTOH-001" }), "INV-CONTOH-001");
 });

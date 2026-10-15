@@ -4,6 +4,15 @@ import { formatCurrency, orderDiscount, orderRevenue, outstanding } from "./fina
 import { readBusinessProfile, type InvoiceSettings } from "./business-profile.ts";
 import type { Batch, Customer, Order, OrderItem } from "./types.ts";
 
+/** Keep existing short references; compact generated UUIDs consistently across invoice outputs. */
+export function invoiceNumber(order: Pick<Order, "id">, settings?: Partial<InvoiceSettings>): string {
+  const id = textLine(order.id).toUpperCase();
+  const reference = /^[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}$/.test(id)
+    ? id.replace(/-/g, "").slice(0, 12)
+    : id;
+  return `${readBusinessProfile(settings).invoicePrefix}-${reference}`;
+}
+
 export function invoiceItemLabel(item: OrderItem): string {
   const name=[item.product,item.variant].map(value=>value.trim()).filter(Boolean).join(" ");
   return [name,item.color.trim(),item.size.trim()].filter(Boolean).join(" · ");
@@ -45,7 +54,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     "",
     divider,
     "*INVOICE*",
-    `No. invoice: ${profile.invoicePrefix}-${textLine(order.id).toUpperCase()}`,
+    `No. invoice: ${invoiceNumber(order, settings)}`,
     `Tanggal: ${invoiceDate(order.date)}`,
     `Nama: ${textLine(customer?.name ?? "Pelanggan")}`,
     ...(customer?.phone ? [`WhatsApp: ${textLine(customer.phone)}`] : []),

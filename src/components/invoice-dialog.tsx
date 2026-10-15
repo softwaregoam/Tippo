@@ -7,7 +7,7 @@ import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDocument, printInvoice } from "@/components/invoice-document";
 import { InvoicePhoto } from "@/components/invoice-photo";
 import { downloadInvoiceImage, prepareInvoiceImage } from "@/lib/invoice-image";
-import { buildInvoice, invoiceWhatsAppUrl } from "@/lib/invoice";
+import { buildInvoice, invoiceNumber, invoiceWhatsAppUrl } from "@/lib/invoice";
 import type { AppData, Order } from "@/lib/types";
 
 const mobileQuery="(max-width:600px)";
@@ -56,7 +56,7 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
     if(downloadingRef.current||!document.current)return;
     downloadingRef.current=true;setDownloading(true);setFeedback("");setManualCopy(false);
     try {
-      const filename=`${settings?.invoicePrefix||"INV"}-${order.id.toUpperCase()}`.replace(/[^A-Za-z0-9_-]/g,"-")+".png";
+      const filename=invoiceNumber(order, settings).replace(/[^A-Za-z0-9_-]/g,"-")+".png";
       await downloadInvoiceImage(document.current,filename);
     } catch(error){setManualCopy(true);setFeedback(error instanceof Error?error.message:"Invoice belum dapat diunduh.");}
     finally{downloadingRef.current=false;setDownloading(false);}
