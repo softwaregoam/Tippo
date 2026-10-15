@@ -47,6 +47,13 @@ function HppOrderDialog({order,batch,data,onSave,onClose}:{order:Order;batch:Bat
 
 export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData; onSave: SaveHpp }) {
   const orders=data.orders.filter(order=>order.batchId===batch.id&&order.status!=="cancelled");
+  const totals=orders.reduce((sum,order)=>{
+    const cost=orderHpp(order,data.orders,data.batches);
+    if(cost===null)sum.incomplete+=1;
+    else{sum.hpp+=cost;sum.margin+=orderRevenue(order)-cost;sum.complete+=1;}
+    return sum;
+  },{hpp:0,margin:0,incomplete:0,complete:0});
+  const totalsKnown=orders.length===0||totals.complete>0;
   const [search,setSearch]=useState("");
   const [status,setStatus]=useState("all");
   const [requestedPage,setPage]=useState(1);
@@ -80,6 +87,10 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
         <div className="mobile-data-list hpp-order-cards">{visible.map(order=><div className="mobile-data-row" key={order.id}><div className="mobile-row-heading"><strong>{customerName(order)}</strong><button type="button" className="icon-button" title={actionLabel(order)} aria-label={`${actionLabel(order)} ${customerName(order)}`} onClick={()=>setEditing(order.id)}><Pencil size={16} aria-hidden="true"/></button></div><span className="mobile-row-subtitle">{formatCalendarDate(order.date)} · {order.items.length} produk · {orderQuantity(order)} unit</span><span className="hpp-card-totals"><span><small>Total HPP</small>{costLabel(order)}</span><span><small>Margin</small>{marginLabel(order)}</span></span></div>)}</div>
       </>}
       {!visible.length&&<div className="empty-state compact"><p>{orders.length?"Tidak ada pesanan yang sesuai.":"Belum ada pesanan aktif."}</p>{orders.length>0&&<Button type="button" className="btn btn-secondary" onClick={()=>{setSearch("");setStatus("all");setPage(1);}}>Reset filter</Button>}</div>}
+      <section className="hpp-batch-totals" aria-label="Total HPP dan margin batch">
+        <div className="hpp-batch-total-heading"><strong>Total batch</strong>{totals.incomplete>0&&<span>{totals.incomplete} pesanan HPP belum lengkap</span>}</div>
+        <dl><div><dt>{totals.incomplete?"HPP diketahui":"Total HPP"}</dt><dd>{totalsKnown?formatCurrency(totals.hpp):"Belum lengkap"}</dd></div><div><dt>{totals.incomplete?"Margin diketahui":"Total margin"}</dt><dd className={totalsKnown&&totals.margin<0?"negative":undefined}>{totalsKnown?formatCurrency(totals.margin):"Belum lengkap"}</dd></div></dl>
+      </section>
       {filtered.length>0&&<div className="table-footer report-pagination"><span>{(page-1)*10+1}–{Math.min(page*10,filtered.length)} dari {filtered.length} pesanan</span>{pageCount>1&&<nav aria-label="Halaman HPP"><span>{page} / {pageCount}</span><Button type="button" className="btn btn-secondary" disabled={page===1} onClick={()=>changePage(page-1)}>Sebelumnya</Button><Button type="button" className="btn btn-secondary" disabled={page===pageCount} onClick={()=>changePage(page+1)}>Berikutnya</Button></nav>}</div>}
     </section>
     {selected&&<HppOrderDialog key={selected.id} order={selected} batch={batch} data={data} onSave={onSave} onClose={()=>setEditing(null)}/>}
