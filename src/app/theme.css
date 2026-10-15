@@ -279,3 +279,22 @@
 .order-status-option input { accent-color:var(--primary); flex-shrink:0; }
 .order-status-option:has(input:focus-visible) { outline:2px solid var(--primary); outline-offset:2px; }
 @media(max-width:360px) { .order-status-options { grid-template-columns:1fr; } }
+
+/* Set the token on ::backdrop as well for browsers that do not inherit its custom properties. */
+:root,::backdrop { --dialog-backdrop:#18312880; }
+:root[data-theme="dark"],:root[data-theme="dark"] ::backdrop { --dialog-backdrop:#081a13b3; }
+:root[data-business-mode="po"],:root[data-business-mode="po"] ::backdrop { --dialog-backdrop:#402b1f80; }
+:root[data-theme="dark"][data-business-mode="po"],:root[data-theme="dark"][data-business-mode="po"] ::backdrop { --dialog-backdrop:#1b120cb3; }
+
+:root .sidebar .subscription-nav { display:grid; grid-template-columns:32px minmax(0,1fr); gap:5px 9px; min-height:76px; padding:12px 10px; border:1px solid var(--border); border-radius:12px; background:var(--tone-surface-fffefa); text-align:left; }
+:root .sidebar .subscription-nav.is-pro { border-color:color-mix(in srgb,var(--primary) 30%,var(--border)); background:linear-gradient(135deg,var(--sidebar-active),var(--tone-surface-fffefa)); }
+.subscription-icon { grid-row:1 / 3; display:grid; place-items:center; width:32px; height:36px; border-radius:9px; color:var(--primary); background:var(--sidebar-active); }
+:root .sidebar .subscription-nav > span { align-self:end; font-size:12px; font-weight:600; line-height:1.4; }
+:root .sidebar .subscription-nav .sidebar-plan-badge { align-self:start; padding:2px 7px; font-size:10px; line-height:1.5; border-radius:20px; }
+:root .sidebar .subscription-nav.is-pro .sidebar-plan-badge { background:#f6e6bd; color:#70501d; border-color:#e5cc91; font-weight:700; }
+:root[data-theme="dark"] .sidebar .subscription-nav.is-pro .sidebar-plan-badge { background:#46361d; color:#f7d485; border-color:#75603a; }
+:root .sidebar .subscription-nav:hover,:root .sidebar .subscription-nav.active { border-color:var(--primary); background:var(--sidebar-active); }
+@media(min-width:761px){
+ :root .sidebar-collapsed .sidebar .subscription-nav { display:flex; min-height:56px; padding:6px; justify-content:center; }
+ .sidebar-collapsed .subscription-icon { width:32px; height:36px; }
+}

@@ -352,7 +352,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
             {supportNavigation.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} title={sidebarCollapsed ? label : undefined} aria-current={page === id ? "page" : undefined} className={`nav-item ${page === id ? "active" : ""}`} onClick={() => go(id)}><Icon size={19} /><span>{label}</span></button>)}
           </div>
         </nav>
-        <div className="sidebar-bottom"><button aria-label="Paket & langganan" title={sidebarCollapsed ? "Paket & langganan" : undefined} className={`nav-item subscription-nav ${page === "subscription" ? "active" : ""}`} aria-current={page === "subscription" ? "page" : undefined} onClick={() => go("subscription")}><Crown size={19} /><span>Paket & langganan</span><small className="sidebar-plan-badge">{isPro ? "Pro" : "Gratis"}</small></button>
+        <div className="sidebar-bottom"><button aria-label="Paket & langganan" title={sidebarCollapsed ? "Paket & langganan" : undefined} className={`nav-item subscription-nav ${isPro ? "is-pro" : "is-free"} ${page === "subscription" ? "active" : ""}`} aria-current={page === "subscription" ? "page" : undefined} onClick={() => go("subscription")}><div className="subscription-icon"><Crown size={20} aria-hidden="true" /></div><span>Paket & langganan</span><small className="sidebar-plan-badge">{isPro ? "Pro aktif" : "Gratis"}</small></button>
         </div>
       </aside>
 
