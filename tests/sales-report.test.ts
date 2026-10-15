@@ -41,8 +41,18 @@ test("Excel export matches the filtered report, preserves numeric amounts and ne
  const report=buildSalesReport(data([known,unknown,make("excluded",{batchId:"p"})]),filter);
  const bytes=await createReportExcel(report),workbook=new ExcelJS.Workbook();await workbook.xlsx.load(new Uint8Array(bytes).buffer);
  assert.deepEqual(workbook.worksheets.map(sheet=>sheet.name),["Ringkasan","Pesanan","Produk terlaris"]);
- const sheet=workbook.getWorksheet("Pesanan")!;assert.equal(sheet.rowCount,3);
- assert.equal(sheet.getCell("C2").value,"=SUM(1,2)");assert.equal(sheet.getCell("I2").value,100);
- assert.equal(sheet.getCell("J3").value,null);assert.equal(sheet.getCell("K3").value,null);
- assert.equal(workbook.getWorksheet("Produk terlaris")!.getCell("C2").value,2);
+ const sheet=workbook.getWorksheet("Pesanan")!;assert.equal(sheet.rowCount,7);
+ assert.equal(sheet.getCell("C5").value,"=SUM(1,2)");assert.equal(sheet.getCell("I5").value,100);
+ assert.equal(sheet.getCell("J6").value,"Belum lengkap");assert.equal(sheet.getCell("K6").value,"Belum lengkap");
+ assert.equal(workbook.getWorksheet("Produk terlaris")!.getCell("D5").value,2);
+ assert.equal(sheet.getCell("I7").value,200);assert.equal(sheet.getCell("J7").value,65);assert.equal(sheet.getCell("K7").value,35);assert.match(String(sheet.getCell("A7").value),/HPP\/margin diketahui/);
+ assert.equal(sheet.getColumn("I").numFmt,'"Rp" #,##0;[Red]-"Rp" #,##0');assert.equal(sheet.autoFilter,"A4:K6");
+ assert.equal(workbook.getWorksheet("Ringkasan")!.getCell("B5").value,200);assert.equal(workbook.getWorksheet("Produk terlaris")!.getCell("D6").value,2);
+});
+
+test("empty and incomplete report workbooks keep unknown costs explicit and grand totals valid",async()=>{
+ for(const empty of [true,false]){
+ const workspace=data(empty?[]:[make("unknown",{items:[{...make("x").items[0],unitCost:null}]})]);const report=buildSalesReport(workspace,filter),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createReportExcel(report)).buffer);const orders=book.getWorksheet("Pesanan")!;
+ assert.equal(orders.getCell(`I${orders.rowCount}`).value,empty?0:100);assert.equal(orders.getCell(`J${orders.rowCount}`).value,empty?0:"Belum lengkap");assert.equal(orders.getCell(`K${orders.rowCount}`).value,empty?0:"Belum lengkap");
+ }
 });
