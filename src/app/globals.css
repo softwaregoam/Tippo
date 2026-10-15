@@ -1284,3 +1284,25 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 @media(max-width:600px) { .shopping-recap-export-tools { flex-basis:100%; margin-left:0; flex-direction:column; align-items:stretch; } .shopping-recap-export-tools .select-trigger { width:100%; } }
 
 .hpp-summary-cards .report-stat-value.negative { color:var(--danger); }
+
+/* Tippo identity: full lockup for spacious areas, symbol for compact navigation. */
+.tippo-logo { display:inline-flex; align-items:center; gap:10px; color:#245c4e; flex-shrink:0; }
+.tippo-logo-symbol { display:block; width:38px; height:40px; flex-shrink:0; }
+.tippo-logo-word { color:inherit; font-size:34px; font-weight:800; letter-spacing:-1.8px; line-height:1; }
+.tippo-logo-accent { color:#b6662b; }
+.brand { padding:0; min-width:0; }
+.brand .tippo-logo { gap:8px; }
+.brand .tippo-logo-symbol { width:32px; height:34px; }
+.brand .tippo-logo-word { font-size:29px; letter-spacing:-1.5px; }
+.brand-caption { margin-left:0; margin-right:0; font-size:10px; }
+[data-theme="dark"] .tippo-logo,.wordmark-light .tippo-logo { color:#f7f4ed; }
+[data-theme="dark"] .tippo-logo-accent,.wordmark-light .tippo-logo-accent { color:#dc9a5c; }
+@media(min-width:761px) {
+ .sidebar-collapsed .sidebar-heading { flex-direction:column; gap:8px; }
+ .sidebar-collapsed .brand { display:flex; justify-content:center; width:44px; }
+ .sidebar-collapsed .brand .tippo-logo-word { display:none; }
+}
+@media(max-width:480px) {
+ .landing-header .tippo-logo-word { display:none; }
+ .landing-header .wordmark { justify-content:center; min-width:44px; }
+}

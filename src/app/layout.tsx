@@ -13,6 +13,7 @@ import "./theme.css";
 
 export const metadata: Metadata = {
   title: "Tippo: Jastip & Open PO",
+  icons: { apple: [{ url: "/brands/tippo-apple.png", sizes: "1254x1254", type: "image/png" }] },
   description: "Titip & Pesan, Beres di Tippo. Kelola jastip dan open PO, catat pesanan, hitung HPP, serta salin invoice.",
 };
 

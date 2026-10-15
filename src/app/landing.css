@@ -1,7 +1,5 @@
 .wordmark { display:inline-flex; align-items:center; min-height:44px; color:var(--tone-text-173f38); font-size:2.2rem; font-weight:800; letter-spacing:-.13rem; line-height:1; text-decoration:none; }
-.wordmark span { color:var(--tone-text-94501f); }
 .wordmark-light { color:var(--tone-text-fff); }
-.wordmark-light span { color:var(--tone-text-fff2de); }
 .landing-button { display:inline-flex; align-items:center; justify-content:center; gap:.65rem; min-height:50px; padding:.8rem 1.25rem; border:1px solid transparent; border-radius:8px; font-size:.875rem; font-weight:700; line-height:1.5; text-align:center; text-decoration:none; transition:background-color .15s; }
 .landing-button.primary { background:var(--tone-surface-245c4e); color:var(--tone-text-fff); }
 .landing-button.primary:hover { background:var(--tone-surface-173f38); }

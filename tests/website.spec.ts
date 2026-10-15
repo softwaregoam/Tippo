@@ -1762,3 +1762,16 @@ for(const width of [320,1440])for(const business of ['Jastip','Open PO'] as cons
  else{await preview.click();await detail.getByRole('button',{name:'Invoice',exact:true}).click();}
  await expect(detail).toHaveCount(0);await expect(page.getByRole('dialog',{name:'Invoice pesanan',exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+
+for(const width of [320,1440])for(const theme of ["light","dark"])test(`Tippo identity stays readable across public pages and workspace ${width} ${theme}`,async({page})=>{
+ await page.setViewportSize({width,height:1000});await page.addInitScript(theme=>localStorage.setItem("tippo.theme.v1",theme),theme);
+ await page.goto("/");const home=page.getByRole("link",{name:"Tippo, halaman utama"}).first();await expect(home.locator(".tippo-logo-symbol")).toBeVisible();
+ if(width===320)await expect(home.locator(".tippo-logo-word")).toBeHidden();else await expect(home.locator(".tippo-logo-word")).toBeVisible();
+ await expect(page.locator("footer .tippo-logo-word")).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:`/tmp/tippo-brand-home-${width}-${theme}.png`});
+ await page.goto("/masuk");await expect(page.locator(".auth-header .tippo-logo-word")).toBeVisible();await expect(page.locator(".auth-header .tippo-logo-symbol")).toBeVisible();
+ const icon=await page.request.get("/icon.svg");expect(icon.ok()).toBe(true);expect(await icon.text()).toContain("#245c4e");const apple=page.locator('link[rel="apple-touch-icon"]');await expect(apple).toHaveAttribute("href","/brands/tippo-apple.png");expect((await page.request.get("/brands/tippo-apple.png")).ok()).toBe(true);
+ await authenticate(page,{workspace:twoBusinessWorkspace()});await page.goto("/app");await openNavigation(page);const brand=page.getByRole("button",{name:"Tippo, halaman ringkasan"});await expect(brand.locator(".tippo-logo-word")).toBeVisible();await expect(brand.locator(".tippo-logo-symbol")).toBeVisible();
+ if(width===1440){await page.getByRole("button",{name:"Minimalkan sidebar"}).click();await expect(brand.locator(".tippo-logo-symbol")).toBeVisible();await expect(brand.locator(".tippo-logo-word")).toBeHidden();await brand.click();await expect(page.getByRole("heading",{level:1})).toHaveText("Ringkasan Jastip.");await page.getByRole("button",{name:"Perluas sidebar"}).click();await expect(brand.locator(".tippo-logo-word")).toBeVisible();}
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`/tmp/tippo-brand-app-${width}-${theme}.png`});
+});

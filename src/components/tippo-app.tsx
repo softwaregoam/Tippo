@@ -1,5 +1,7 @@
 "use client";
 
+import { TippoLogo } from "./tippo-logo";
+
 import { canChangeBatchStatus } from "@/lib/batch-status";
 import { isAppData } from "@/lib/validation";
 import { FeedbackPanel } from "@/components/feedback-panel";
@@ -337,7 +339,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
       {mobileOpen && <button className="sidebar-scrim" aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} />}
       <aside ref={navigationRef} id="workspace-navigation" data-scroll-lock={mobileOpen?"true":undefined} className={`sidebar ${mobileOpen ? "is-open" : ""}`}>
         <button className="icon-button sidebar-close" aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)}><X size={20} /></button>
-        <div className="sidebar-heading"><button className="brand" onClick={() => go("dashboard")} aria-label="Tippo, halaman ringkasan"><span>Tippo<span className="brand-dot">.</span></span></button><button className="icon-button sidebar-toggle" aria-label={sidebarCollapsed ? "Perluas sidebar" : "Minimalkan sidebar"} aria-expanded={!sidebarCollapsed} aria-controls="workspace-navigation" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><Menu size={20} aria-hidden="true" /></button></div>
+        <div className="sidebar-heading"><button className="brand" onClick={() => go("dashboard")} aria-label="Tippo, halaman ringkasan"><TippoLogo /></button><button className="icon-button sidebar-toggle" aria-label={sidebarCollapsed ? "Perluas sidebar" : "Minimalkan sidebar"} aria-expanded={!sidebarCollapsed} aria-controls="workspace-navigation" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><Menu size={20} aria-hidden="true" /></button></div>
         <p className="brand-caption">Titip &amp; Pesan, Beres di Tippo.</p>
         <div className="business-switch" role="group" aria-label="Pilih usaha">
           <button type="button" aria-label="Jastip" title={sidebarCollapsed ? "Jastip" : undefined} aria-pressed={mode === "jastip"} onClick={() => switchMode("jastip")}><ShoppingBag size={18} aria-hidden="true" /><span>Jastip</span></button>
