@@ -108,11 +108,11 @@ test("WhatsApp transfer instructions follow unpaid, paid and cancelled states",(
  const settings={appearance:{logoUrl:"",color:"#245C4E",layout:"classic" as const,footer:"Terima kasih ❤️",bankName:"BCA",bankAccount:"00123456",bankHolder:"Dina"}};
  const unpaid=buildInvoice(order,batch,customer,settings);
  assert.match(unpaid,/\*Pembayaran via transfer\*\nBCA 00123456\na\.n\. Dina/);assert.match(unpaid,/Mohon kirim bukti transfer setelah membayar/);assert.ok(unpaid.endsWith("Terima kasih ❤️"));
- const paid=buildInvoice({...order,paid:390000},batch,customer,settings);assert.match(paid,/\*LUNAS\*/);assert.match(paid,/\*Pembayaran via transfer\*\nBCA 00123456\na\.n\. Dina\n\nTerima kasih/);assert.doesNotMatch(paid,/bukti transfer/);
+ const paid=buildInvoice({...order,paid:390000},batch,customer,settings);assert.match(paid,/\*LUNAS\*/);assert.match(paid,/\*Pembayaran via transfer\*\nBCA 00123456\na\.n\. Dina\n------------------------\n\nTerima kasih/);assert.doesNotMatch(paid,/bukti transfer/);
  assert.doesNotMatch(buildInvoice({...order,status:"cancelled"},batch,customer,settings),/Pembayaran via transfer|00123456|bukti transfer/);
  assert.doesNotMatch(buildInvoice(order,batch,customer),/Pembayaran via transfer|bukti transfer/);
  assert.ok(unpaid.indexOf("*Catatan*")<unpaid.indexOf("*Pembayaran via transfer*"));
- assert.match(buildInvoice({...order,notes:""},batch,customer,settings),/a\.n\. Dina\n\nTerima kasih/);
+ assert.match(buildInvoice({...order,notes:""},batch,customer,settings),/a\.n\. Dina\n------------------------\n\nTerima kasih/);
  assert.equal(unpaid.match(/• Kaos/g)?.length,1);
 });
 

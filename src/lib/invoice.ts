@@ -66,7 +66,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     "",
     ...((shipping.length||customer?.address?.trim()) ? [divider,"*Pengiriman*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[]),""] : []),
     ...(order.notes.trim() ? [divider,"*Catatan*",order.notes.trim(),divider,""] : []),
-    ...(!cancelled&&bank ? [...(!paid?["Mohon kirim bukti transfer setelah membayar.",""]:[]),"*Pembayaran via transfer*",`${bank.name} ${bank.account}`,`a.n. ${bank.holder}`,""] : []),
+    ...(!cancelled&&bank ? [...(!paid?["Mohon kirim bukti transfer setelah membayar.",""]:[]),"*Pembayaran via transfer*",`${bank.name} ${bank.account}`,`a.n. ${bank.holder}`,divider,""] : []),
     ...(cancelled ? ["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."] : footer ? [footer] : []),
   ];
   return lines.join("\n");
