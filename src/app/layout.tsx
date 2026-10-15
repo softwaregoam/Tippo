@@ -13,8 +13,8 @@ import "./theme.css";
 
 export const metadata: Metadata = {
   title: "Tippo: Jastip & Open PO",
-  icons: { apple: [{ url: "/brands/tippo-apple.png", sizes: "1254x1254", type: "image/png" }] },
-  description: "Titip & Pesan, Beres di Tippo. Kelola jastip dan open PO, catat pesanan, hitung HPP, serta salin invoice.",
+  icons: { icon: [{ url: "/icon.svg?v=tippo-2", type: "image/svg+xml", sizes: "any" }], shortcut: "/icon.svg?v=tippo-2", apple: [{ url: "/brands/tippo-apple.png", sizes: "1254x1254", type: "image/png" }] },
+  description: "Titip & Pesan, Beres di Tippo. Kelola Jastip dan Open PO, rekap belanja, hitung HPP dan margin, bagikan invoice, serta unduh laporan.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

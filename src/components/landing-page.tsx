@@ -26,6 +26,8 @@ const exampleOrders: Record<"jastip" | "po", Order> = {
   },
 };
 
+const proBilling = process.env.NEXT_PUBLIC_DOKU_PRO_ENABLED === "true";
+
 const questions = [
   ["Apa bedanya Jastip dan Open PO?", "Jastip cocok untuk produk titipan dengan varian, warna, ukuran, dan fee jasa. Open PO memakai master produk, sehingga kamu cukup memilih produk dan jumlahnya saat mencatat pesanan. Ganti mode melalui switch Jastip / Open PO; masing-masing memiliki menu dan ringkasan sendiri."],
   ["Apakah ringkasan Jastip dan Open PO digabung?", "Tidak. Penjualan, HPP, pembayaran, tagihan, dan grafik bulanan hanya menampilkan usaha yang sedang dipilih. Jastip memakai aksen teal, Open PO memakai jingga hangat. Akun, kontak pelanggan, profil bisnis, cadangan data, dan langganan tetap digunakan bersama."],
@@ -33,8 +35,9 @@ const questions = [
   ["Bagaimana batas paket Gratis dihitung?", "Kamu mendapat 5 pesanan Jastip dan 5 pesanan Open PO secara terpisah setiap bulan, serta maksimal 5 produk Open PO termasuk produk yang diarsipkan. Kuota pesanan kembali tersedia tanggal 1 pukul 00.00 WIB. Pesanan yang dibatalkan tetap terhitung."],
   ["Bisa pindahkan pesanan dari Excel?", "Bisa, dengan paket Pro. Tersedia template produk, pesanan Jastip, dan pesanan Open PO. Pilih mode usaha lalu buka Pesanan untuk import pesanan, atau Produk pada Open PO untuk import katalog. Unduh template, isi data, lalu unggah. Baris dengan nomor pesanan yang sama digabung menjadi satu pesanan. Kamu bisa memeriksa hasilnya sebelum menyimpan."],
   ["Bagaimana status batch atau perjalanan diubah?", "Dari daftar Batch PO atau Perjalanan, gunakan ikon Tutup batch atau Selesaikan batch lalu konfirmasi. Alurnya Dibuka, Ditutup, lalu Selesai. Batch yang ditutup tidak bisa dibuka kembali; status Selesai terkunci. Status pesanan di dalamnya tetap diatur secara terpisah."],
-  ["Apakah invoice langsung terkirim ke WhatsApp?", "Invoice dapat disalin lalu kamu tempel ke chat WhatsApp pelanggan. Pengiriman tetap kamu lakukan sendiri. Harga beli dan HPP tidak ikut dalam invoice. Catatan pesanan ditampilkan jika diisi."],
-  ["Apakah paket Pro sudah bisa dibeli?", "Harga Pro adalah Rp25.000 per bulan. Pembayaran langganan sedang disiapkan. Kamu dapat mulai memakai paket Gratis."],
+  ["Bisa membuat invoice dengan logo toko sendiri?", "Bisa. Atur logo, nama toko, warna, dan catatan penutup di Template invoice. Invoice tersedia sebagai gambar yang bisa diunduh dan teks yang bisa disalin atau dibagikan ke WhatsApp. Alamat, pengiriman, catatan, serta rekening ditampilkan jika diisi. HPP tidak disertakan."],
+  ["Bagaimana rekap belanja dan laporannya?", "Rekap kebutuhan produk menjumlahkan pesanan dalam satu batch atau perjalanan. Unduh Excel per produk atau per pesanan sesuai kebutuhan. Menu Laporan menampilkan penjualan, HPP, margin, dan produk terlaris; paket Pro dapat memilih periode lain serta mengekspor laporan ke Excel."],
+  ["Bagaimana berlangganan Pro?", proBilling ? "Pro Rp25.000 per bulan. Buka Paket & langganan di akunmu, lalu bayar melalui DOKU Checkout. Pro aktif setelah pembayaran terverifikasi. Riwayat pembayaran tersimpan di akunmu." : "Pro Rp25.000 per bulan. Periksa ketersediaan pembayaran di menu Paket & langganan pada akunmu. Sambil menunggu pembayaran tersedia, kamu tetap bisa memakai paket Gratis."],
 ];
 
 const planRows = [
@@ -43,6 +46,10 @@ const planRows = [
   ["Master produk Open PO", "Maksimal 5 produk", "Tanpa batas kuota"],
   ["Template dan import Excel", "Tidak tersedia", "Produk, Jastip, dan Open PO"],
   ["Ringkasan & grafik per usaha", "Bulan berjalan", "Termasuk bulan sebelumnya"],
+  ["HPP & margin per pesanan", "Tersedia", "Tersedia"],
+  ["Invoice gambar & WhatsApp", "Logo dan warna toko", "Logo dan warna toko"],
+  ["Rekap belanja Excel", "Per produk atau pesanan", "Per produk atau pesanan"],
+  ["Laporan penjualan", "Bulan berjalan", "Pilih periode & ekspor Excel"],
 ];
 
 const testimonials = [
@@ -96,7 +103,7 @@ export function LandingPage() {
           <div className="hero-copy">
             <p className="hero-kicker">Untuk usaha jastip & open PO</p>
             <h1 id="hero-title">Titip &amp; Pesan, <br /><span>Beres di Tippo.</span></h1>
-            <p>Pilih Jastip atau Open PO lewat satu switch. Pesanan, HPP, tagihan, dan ringkasan mengikuti usaha yang kamu pilih, dengan catatan masing-masing.</p>
+            <p>Catat pesanan, siapkan rekap belanja, hitung HPP dan margin, lalu bagikan invoice. Jastip dan Open PO tetap punya catatan masing-masing.</p>
             <div className="hero-actions">
               {signedIn !== null && <Link href={signedIn ? "/app" : "/daftar"} className="landing-button primary">{signedIn ? "Buka usaha saya" : "Buat akun gratis"}</Link>}
 
@@ -159,15 +166,16 @@ export function LandingPage() {
           <div className="landing-container working-layout">
             <div className="working-heading">
               <p className="section-label">Saat pesanan mulai ramai</p>
-              <h2 id="working-title">Satu pesanan,<br />semua barangnya.</h2>
+              <h2 id="working-title">Dari pesanan,<br />sampai laporan.</h2>
               <p>Pembayaran, ongkir, dan sisa tagihan mengikuti pesanan. Detail produk tetap bisa kamu periksa satu per satu.</p>
               <Link href="/daftar" className="landing-text-link">Mulai catat pesanan</Link>
             </div>
             <div className="working-list">
-              <article><h3>Isi cepat atau impor Excel</h3><p>Dengan Pro, gunakan template sesuai jenis usaha. Baris dengan nomor pesanan yang sama akan menjadi satu pesanan. Periksa pratinjau sebelum menyimpan.</p></article>
-              <article><h3>Lengkapi modal, cek margin</h3><p>HPP memakai harga beli per produk dan jumlahnya. Tippo menandai biaya yang belum lengkap agar kamu tahu pesanan mana yang perlu diperiksa.</p></article>
-              <article><h3>Periksa ringkasan usaha terpilih</h3><p>Penjualan, HPP, margin, pembayaran, dan tagihan mengikuti mode Jastip atau Open PO yang aktif. Grafik kedua usaha tidak digabung. Paket Gratis menampilkan bulan berjalan.</p></article>
-              <article><h3>Salin invoice ke WhatsApp</h3><p>Invoice memuat produk, total tagihan, dan pengiriman jika diisi. Salin lalu tempel ke chat pelanggan. Harga beli dan HPP tidak disertakan.</p></article>
+              <article><h3>Catat pesanan, temukan produk</h3><p>Cari produk katalog saat membuat pesanan Open PO, atau catat detail titipan Jastip. Paket Pro juga mendukung import produk dan pesanan dari Excel.</p></article>
+              <article><h3>Rekap belanja otomatis</h3><p>Kebutuhan produk dijumlahkan per batch atau perjalanan, lengkap dengan varian, warna, ukuran, dan toko. Unduh Excel per produk atau per pesanan.</p></article>
+              <article><h3>Isi HPP, pantau margin</h3><p>Lengkapi harga beli per produk dalam pesanan. Lihat total HPP, margin, jumlah pesanan, dan HPP belum lengkap sesuai batch yang dipilih.</p></article>
+              <article><h3>Invoice dengan identitas tokomu</h3><p>Atur logo dan warna, unduh invoice gambar, atau bagikan teks ke WhatsApp. Status lunas, sisa tagihan, rekening, dan pengiriman mengikuti data pesanan.</p></article>
+              <article><h3>Laporan yang siap diperiksa</h3><p>Lihat penjualan, HPP, margin, dan produk terlaris. Dengan Pro, pilih periode serta batch, lalu unduh laporan Excel.</p></article>
             </div>
           </div>
         </section>
@@ -185,17 +193,17 @@ export function LandingPage() {
           </div>
           <table className="plan-table">
             <caption>Perbandingan paket Tippo</caption>
-            <thead><tr><td /><th scope="col">Gratis<strong>Rp0<span>/ bulan</span></strong></th><th scope="col">Pro<strong>Rp25.000<span>/ bulan</span></strong></th></tr></thead>
+            <thead><tr><td /><th scope="col">Gratis<strong>Rp0<span>/ bulan</span></strong></th><th scope="col">Pro<s className="plan-original-price">Rp50.000</s><strong>Rp25.000<span>/ bulan</span></strong></th></tr></thead>
             <tbody>{planRows.map(([feature, free, pro]) => <tr key={feature}><th scope="row">{feature}</th><td>{free}</td><td>{pro}</td></tr>)}</tbody>
           </table>
           <div className="plan-notes">
-            <p>Beberapa produk per pesanan, perhitungan HPP, dan invoice tersedia di kedua paket. Template dan import Excel tersedia khusus Pro. Kuota pesanan Gratis reset setiap tanggal 1 pukul 00.00 WIB.</p>
-            <p><strong>Pembayaran Pro sedang disiapkan.</strong> Belum bisa berlangganan. Kamu dapat mulai dengan paket Gratis.</p>
+            <p>HPP, invoice, dan rekap belanja tersedia di kedua paket. Import dan ekspor laporan Excel tersedia di Pro. Kuota Gratis reset setiap tanggal 1 pukul 00.00 WIB.</p>
+            <p>{proBilling ? "Upgrade dari menu Paket & langganan. Pro aktif setelah pembayaran terverifikasi." : "Periksa ketersediaan pembayaran Pro di menu Paket & langganan. Paket Gratis tetap bisa digunakan."}</p>
           </div>
         </section>
 
         <section id="faq" className="faq-section landing-container" aria-labelledby="faq-title">
-          <div className="faq-heading"><h2 id="faq-title">Sebelum mencatat<br />pesanan pertama.</h2><p>Rincian kuota, impor, dan invoice agar kamu tahu cara memakai Tippo.</p></div>
+          <div className="faq-heading"><h2 id="faq-title">Sebelum mencatat<br />pesanan pertama.</h2><p>Tentang kuota, invoice, rekap, dan langganan Tippo.</p></div>
           <div className="faq-list">{questions.map(([question, answer]) => <details key={question}><summary>{question}<span aria-hidden="true" className="faq-marker">+</span></summary><p>{answer}</p></details>)}</div>
         </section>
       </main>

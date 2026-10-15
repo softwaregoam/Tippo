@@ -188,3 +188,5 @@
   .faq-section { grid-template-columns:.85fr 1.2fr; gap:6rem; padding-block:4rem 5rem; }
 }
 @media (prefers-reduced-motion:reduce) { .landing-button { transition:none; } }
+
+.plan-table .plan-original-price { display:block; margin:8px 0 0; font-size:14px; font-weight:400; color:var(--muted); }
