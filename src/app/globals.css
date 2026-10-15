@@ -907,7 +907,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .batch-status-body { display: grid; gap: 20px; }
 .feedback-card { max-width: 800px; }
 .feedback-fields { display: grid; gap: 24px; padding: 24px; }
-.feedback-footer { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 24px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.feedback-footer { display: flex; justify-content: flex-end; align-items: center; gap: 20px; padding: 20px 24px; border-top: 1px solid var(--border); flex-wrap: wrap; }
 .feedback-success { padding: 32px; display: grid; gap: 16px; justify-items: start; max-width: 800px; }
 .feedback-success > svg { color: var(--primary); }
 .feedback-success p { color: var(--muted); line-height: 1.8; }

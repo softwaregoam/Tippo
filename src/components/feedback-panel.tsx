@@ -57,7 +57,7 @@ export function FeedbackPanel({ onNotify }: { onNotify: (message: string) => voi
         <label className="field-hint"><input type="checkbox" checked={publicConsent} disabled={busy} onChange={event => setPublicConsent(event.target.checked)} /> Saya mengizinkan masukan ini tampil di beranda setelah ditinjau, dengan email disamarkan. Jangan sertakan data pribadi dalam pesan.</label>
         {error && <p className="error-message" role="alert">{error}</p>}
       </div>
-      <div className="feedback-footer"><p className="field-hint">Dikirim menggunakan akun Tippo yang sedang masuk.</p><Button type="submit" className="btn btn-primary" disabled={busy}><Send size={16} aria-hidden="true" />{busy ? "Mengirim…" : "Kirim masukan"}</Button></div>
+      <div className="feedback-footer"><Button type="submit" className="btn btn-primary" disabled={busy}><Send size={16} aria-hidden="true" />{busy ? "Mengirim…" : "Kirim masukan"}</Button></div>
     </form>
   </section>;
 }
