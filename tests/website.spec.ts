@@ -1311,12 +1311,15 @@ for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as cons
  const line=group.locator(".shopping-recap-lines > li").filter({has:page.getByText("L",{exact:true})});await expect(line).toContainText("5 unit");
  await line.locator("summary").click();await expect(line).toContainText("Alya");await expect(line).toContainText("Bima");await expect(line).toContainText("3 unit");await expect(dialog).not.toContainText("99 unit");
  expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
- const pending=page.waitForEvent("download");await dialog.getByRole("button",{name:"Unduh Excel",exact:true}).click();const downloaded=await pending;expect(downloaded.suggestedFilename()).toBe(`tippo-rekap-${po?"po":"jastip"}-Batch-Rekap.xlsx`);
- const ExcelJS=(await import("exceljs")).default,fs=await import("node:fs/promises"),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await fs.readFile((await downloaded.path())!)).buffer);expect(book.worksheets.map(sheet=>sheet.name)).toEqual(["Per produk","Per pesanan"]);
- const productSheet=book.getWorksheet("Per produk")!,orderSheet=book.getWorksheet("Per pesanan")!;
- const lastValue=(sheet:typeof productSheet,header:string)=>{let column=0;sheet.getRow(3).eachCell((cell,index)=>{if(cell.value===header)column=index;});return sheet.getCell(sheet.rowCount,column).value;};
- expect(lastValue(productSheet,"Total qty grup")).toBe(6);expect(lastValue(productSheet,"Total harga grup")).toBe(150000);expect(JSON.stringify(productSheet.getSheetValues())).not.toMatch(/HPP|Harga beli|Kategori mengikuti|Nilai jual hanya/);expect(productSheet.getCell("A3").value).toBe(po?"Kategori":"Toko / brand");expect(lastValue(orderSheet,"Qty")).toBe(6);expect(lastValue(orderSheet,"Total pesanan")).toBe(150000);expect(lastValue(orderSheet,"Margin")).toBe(78000);expect(lastValue(orderSheet,"Total HPP")).toBe(72000);
- await downloaded.saveAs(`/tmp/tippo-rekap-${business}-${width}-${theme}.xlsx`);
+ for(const kind of ["products","orders"] as const){
+ await chooseOption(dialog.getByRole("combobox",{name:"Jenis rekap Excel",exact:true}),kind);
+ const pending=page.waitForEvent("download");await dialog.getByRole("button",{name:"Unduh Excel",exact:true}).click();const downloaded=await pending;expect(downloaded.suggestedFilename()).toBe(`tippo-rekap-per-${kind==="products"?"produk":"pesanan"}-${po?"po":"jastip"}-Batch-Rekap.xlsx`);
+ const ExcelJS=(await import("exceljs")).default,fs=await import("node:fs/promises"),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await fs.readFile((await downloaded.path())!)).buffer);expect(book.worksheets.map(sheet=>sheet.name)).toEqual([kind==="products"?"Per produk":"Per pesanan"]);
+ const sheet=book.worksheets[0];const lastValue=(header:string)=>{let column=0;sheet.getRow(3).eachCell((cell,index)=>{if(cell.value===header)column=index;});return sheet.getCell(sheet.rowCount,column).value;};
+ if(kind==="products"){expect(lastValue("Total qty grup")).toBe(6);expect(lastValue("Total harga grup")).toBe(150000);expect(JSON.stringify(sheet.getSheetValues())).not.toMatch(/HPP|Harga beli|Kategori mengikuti|Nilai jual hanya/);expect(sheet.getCell("A3").value).toBe(po?"Kategori":"Toko / brand");}
+ else{expect(lastValue("Qty")).toBe(6);expect(lastValue("Total pesanan")).toBe(150000);expect(lastValue("Margin")).toBe(78000);expect(lastValue("Total HPP")).toBe(72000);}
+ await downloaded.saveAs(`/tmp/tippo-rekap-${kind}-${business}-${width}-${theme}.xlsx`);
+ }
  await dialog.screenshot({path:`/tmp/tippo-shopping-recap-${business}-${width}-${theme}.png`});await dialog.getByRole("button",{name:"Tutup rekap",exact:true}).click();await expect(dialog).toHaveCount(0);
 });
 

@@ -3,7 +3,7 @@ import type { Worksheet } from "exceljs";
 import type { ShoppingReport } from "./shopping-report.ts";
 
 const missing="Belum lengkap";
-export async function createShoppingReportExcel(report:ShoppingReport):Promise<Uint8Array> {
+export async function createShoppingReportExcel(report:ShoppingReport,kind:"products"|"orders"):Promise<Uint8Array> {
  const ExcelJS=(await import("exceljs")).default;
  const book=new ExcelJS.Workbook();book.creator="Tippo";
  const po=report.batch.type==="po",color=po?"FF94501F":"FF245C4E";
@@ -20,6 +20,8 @@ export async function createShoppingReportExcel(report:ShoppingReport):Promise<U
  function subtotal(sheet:Worksheet,values:Record<string,unknown>,grand=false) {
   const row=sheet.addRow(values);row.font={bold:true,color:{argb:grand?"FFFFFFFF":"FF25312E"}};row.fill={type:"pattern",pattern:"solid",fgColor:{argb:grand?color:"FFF1EEE5"}};return row;
  }
+ const palette=["FFFFF2CC","FFD9E2F3","FFF4CCCC","FFD9EAD3","FFD9EAF0"];
+ if(kind==="products"){
  const products=prepare("Per produk",[
   {header:po?"Kategori":"Toko / brand",key:"group",width:25},{header:"Produk",key:"product",width:48},quantity,
   {header:"Harga jual / unit",key:"unitPrice",width:22,money:true},{header:"Total",key:"value",width:22,money:true},
@@ -32,7 +34,6 @@ export async function createShoppingReportExcel(report:ShoppingReport):Promise<U
  const storeGroups=new Map<string,{name:string;items:ShoppingReport["products"]}>();
  if(!po)for(const product of report.products){const key=product.store.normalize("NFKC").toLocaleLowerCase("id-ID");let group=storeGroups.get(key);if(!group){group={name:product.store,items:[]};storeGroups.set(key,group);}group.items.push(product);}
  const groups=po?report.categories:[...storeGroups.values()];
- const palette=["FFFFF2CC","FFD9E2F3","FFF4CCCC","FFD9EAD3","FFD9EAF0"];
  for(const [index,group] of groups.entries()){
   const start=products.rowCount+1,fill=palette[index%palette.length];
   const groupQuantity=group.items.reduce((sum,product)=>sum+product.quantity,0),groupValue=group.items.reduce((sum,product)=>sum+product.value,0);
@@ -51,6 +52,8 @@ export async function createShoppingReportExcel(report:ShoppingReport):Promise<U
  }
  const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:report.totals.quantity,groupValue:report.totals.value},true);
  products.mergeCells(total.number,1,total.number,5);total.height=30;total.alignment={vertical:"middle",horizontal:"right"};total.getCell(6).alignment={vertical:"middle",horizontal:"center"};
+ }
+ if(kind==="orders"){
  const orders=prepare("Per pesanan",[
   {header:"Pemesan",key:"customer",width:30},{header:"Produk",key:"product",width:48},quantity,
   {header:"Harga jual / unit",key:"unitPrice",width:22,money:true},{header:"Subtotal jual produk",key:"value",width:22,money:true},{header:"Total pesanan",key:"orderValue",width:24,money:true},
@@ -79,5 +82,6 @@ export async function createShoppingReportExcel(report:ShoppingReport):Promise<U
  }
  const orderTotal=subtotal(orders,{customer:"TOTAL KESELURUHAN",quantity:report.totals.quantity,orderValue:report.totals.value,cost:report.totals.cost??missing,margin:report.totals.cost===null?missing:report.totals.value-report.totals.cost},true);
  orders.mergeCells(orderTotal.number,1,orderTotal.number,2);orderTotal.height=30;orderTotal.alignment={vertical:"middle",horizontal:"right"};orderTotal.getCell(3).alignment={vertical:"middle",horizontal:"center"};
+ }
  return new Uint8Array(await book.xlsx.writeBuffer());
 }

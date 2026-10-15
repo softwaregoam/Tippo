@@ -23,9 +23,10 @@ test("empty batches export zero totals and unknown batches are rejected",()=>{
  const workspace=data();workspace.orders=[];const report=buildShoppingReport(workspace,"b");assert.equal(report.totals.quantity,0);assert.equal(report.totals.cost,0);assert.equal(report.products.length,0);assert.throws(()=>buildShoppingReport(workspace,"missing"));
 });
 for(const mode of ["po","jastip"] as const)test(`workbook ${mode} uses mode-specific groups and keeps HPP only in order sheet`,async()=>{
- const workspace=data();workspace.batches[0].type=mode;const report=buildShoppingReport(workspace,"b"),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(report)).buffer);
- assert.deepEqual(book.worksheets.map(s=>s.name),["Per produk","Per pesanan"]);
- const products=book.getWorksheet("Per produk")!,orders=book.getWorksheet("Per pesanan")!;
+ const workspace=data();workspace.batches[0].type=mode;const report=buildShoppingReport(workspace,"b"),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(report,"products")).buffer);
+ assert.deepEqual(book.worksheets.map(s=>s.name),["Per produk"]);
+ const orderBook=new ExcelJS.Workbook();await orderBook.xlsx.load(new Uint8Array(await createShoppingReportExcel(report,"orders")).buffer);assert.deepEqual(orderBook.worksheets.map(s=>s.name),["Per pesanan"]);
+ const products=book.getWorksheet("Per produk")!,orders=orderBook.getWorksheet("Per pesanan")!;
  const cell=(sheet:ExcelJS.Worksheet,row:number,header:string)=>{let column=0;sheet.getRow(3).eachCell((cell,index)=>{if(cell.value===header)column=index;});assert.ok(column,header);return sheet.getCell(row,column).value;};
  assert.match(String(cell(products,4,"Produk")),/^Kaos Airism/);assert.equal(cell(products,4,"Qty"),2);assert.equal(cell(products,4,"Harga jual / unit"),100);assert.equal(cell(products,4,"Total"),200);assert.equal(cell(products,4,"Total qty grup"),mode==="po"?5:6);assert.equal(cell(products,4,"Total harga grup"),mode==="po"?530:580);assert.equal(cell(products,products.rowCount,"Total qty grup"),6);assert.equal(cell(products,products.rowCount,"Total harga grup"),580);
  assert.equal(products.getCell(`A${products.rowCount}`).value,"TOTAL KESELURUHAN");
@@ -42,7 +43,7 @@ for(const mode of ["po","jastip"] as const)test(`workbook ${mode} uses mode-spec
 });
 
 test("order workbook margins support zero purchase prices and losses",async()=>{
- const workspace=data();workspace.orders=[order("zero",[item({unitCost:0})]),order("loss",[item({unitCost:150})])];const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(buildShoppingReport(workspace,"b"))).buffer);const sheet=book.getWorksheet("Per pesanan")!;
+ const workspace=data();workspace.orders=[order("zero",[item({unitCost:0})]),order("loss",[item({unitCost:150})])];const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(buildShoppingReport(workspace,"b"),"orders")).buffer);const sheet=book.getWorksheet("Per pesanan")!;
  // Sorted by order id: loss first, then zero.
  assert.equal(sheet.getCell("K4").value,-100);assert.equal(sheet.getCell("K5").value,200);assert.equal(sheet.getCell("F6").value,400);assert.equal(sheet.getCell("J6").value,300);assert.equal(sheet.getCell("K6").value,100);
 });

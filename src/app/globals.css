@@ -1278,5 +1278,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .order-more-products,.row-subtitle.order-more-products { color:var(--primary); font-size:12px; margin-top:5px; }
 
 .shopping-recap-summary { align-items:center; }
-.shopping-recap-export { margin-left:auto; }
-@media(max-width:600px) { .shopping-recap-export { flex-basis:100%; margin-left:0; } }
+.shopping-recap-export-tools { display:flex; align-items:center; gap:8px; margin-left:auto; }
+.shopping-recap-export-tools .select-trigger { width:170px; }
+.shopping-recap-export { white-space:nowrap; }
+@media(max-width:600px) { .shopping-recap-export-tools { flex-basis:100%; margin-left:0; flex-direction:column; align-items:stretch; } .shopping-recap-export-tools .select-trigger { width:100%; } }
