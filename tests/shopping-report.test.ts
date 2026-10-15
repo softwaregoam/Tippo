@@ -6,7 +6,7 @@ import {createShoppingReportExcel} from "../src/lib/shopping-report-excel.ts";
 import type {AppData,Order,OrderItem} from "../src/lib/types.ts";
 const item=(extra:Partial<OrderItem>={}):OrderItem=>({id:"i",productId:"p",product:"Kaos",variant:"Airism",color:"Hitam",size:"L",store:"Toko",quantity:2,unitPrice:100,unitCost:40,...extra});
 const order=(id:string,items:OrderItem[],extra:Partial<Order>={}):Order=>({id,batchId:"b",customerId:"a",date:"2026-10-15",createdAt:"2026-10-15T00:00:00Z",status:"new",paid:0,shippingCharge:9999,serviceFee:9999,discount:{type:"amount",value:2000},notes:"private note",items,...extra});
-function data():AppData{return {batches:[{id:"b",name:"Belanja Oktober",type:"po",origin:"",closeDate:"2026-10-20",status:"closed",directCosts:999}],customers:[{id:"a",name:"=SUM(1,2)",phone:"secret phone"}],products:[{id:"p",name:"Nama master berubah",variant:"",sku:"X",category:"Pakaian",unitPrice:50000,unitCost:80000,active:false}],orders:[order("1",[item(),item({id:"snack",productId:null,product:"Kue",variant:"",size:"",color:"",quantity:1,unitPrice:50,unitCost:null})]),order("2",[item({quantity:3,unitPrice:110,unitCost:50})]),order("cancelled",[item({quantity:999})],{status:"cancelled"}),order("foreign",[item({quantity:999})],{batchId:"other"})]};}
+function data():AppData{return {batches:[{id:"b",name:"Belanja Oktober",type:"po",origin:"",closeDate:"2026-10-20",status:"closed",directCosts:999}],customers:[{id:"a",name:"=SUM(1,2)",phone:"secret phone",address:"Jalan Mawar 10\nBandung"}],products:[{id:"p",name:"Nama master berubah",variant:"",sku:"X",category:"Pakaian",unitPrice:50000,unitCost:80000,active:false}],orders:[order("1",[item(),item({id:"snack",productId:null,product:"Kue",variant:"",size:"",color:"",quantity:1,unitPrice:50,unitCost:null})]),order("2",[item({quantity:3,unitPrice:110,unitCost:50})]),order("cancelled",[item({quantity:999})],{status:"cancelled"}),order("foreign",[item({quantity:999})],{batchId:"other"})]};}
 
 test("purchase report combines quantities but calculates each saved purchase price separately",()=>{
  const report=buildShoppingReport(data(),"b");assert.equal(report.orders.length,2);assert.equal(report.products.length,3);
@@ -33,7 +33,16 @@ for(const mode of ["po","jastip"] as const)test(`workbook ${mode} uses mode-spec
  assert.equal(products.getCell("A4").value,mode==="po"?"Pakaian":"Toko");assert.ok(products.model.merges!.includes(mode==="po"?"A4:A5":"A4:A6"));assert.ok(products.model.merges!.includes(mode==="po"?"G4:G5":"G4:G6"));
  assert.doesNotMatch(JSON.stringify(products.getSheetValues()),/HPP|Harga beli|Bervariasi|Belum lengkap/);
  const text=JSON.stringify(orders.getSheetValues());assert.doesNotMatch(text,/Kategori mengikuti|Nilai jual hanya/);
- assert.equal(orders.getCell("A4").value,"1");assert.equal(cell(orders,4,"Pelanggan"),"=SUM(1,2)");assert.equal(cell(orders,4,"Harga jual / unit"),100);assert.equal(cell(orders,4,"Subtotal jual produk"),200);assert.equal(cell(orders,4,"Harga beli / unit"),40);assert.equal(cell(orders,5,"Total HPP"),"Belum lengkap");assert.equal(orders.getCell("A6").value,"Subtotal 1");assert.equal(cell(orders,6,"Subtotal jual produk"),250);
- assert.equal(cell(orders,orders.rowCount,"Qty"),6);assert.equal(cell(orders,orders.rowCount,"Subtotal jual produk"),580);assert.equal(cell(orders,orders.rowCount,"HPP diketahui"),230);assert.equal(cell(orders,orders.rowCount,"Total HPP"),"Belum lengkap");
- assert.equal((orders.getRow(3).values as string[]).includes("Kategori"),mode==="po");assert.equal(text.includes("secret phone"),false);assert.equal(text.includes("private note"),false);
+ assert.deepEqual(orders.getCell("A4").value,{richText:[{text:"=SUM(1,2)",font:{bold:true,size:11}},{text:"\n1\n15 Okt 2026",font:{size:10,color:{argb:"FF626862"}}}]});
+ assert.equal(cell(orders,4,"Alamat kirim"),"Jalan Mawar 10\nBandung");assert.equal(cell(orders,4,"Harga jual / unit"),100);assert.equal(cell(orders,4,"Subtotal jual produk"),200);assert.equal(cell(orders,4,"Harga beli / unit"),40);assert.equal(cell(orders,4,"Subtotal beli"),80);assert.equal(cell(orders,4,"Total pesanan"),250);assert.equal(cell(orders,5,"Total HPP"),"Belum lengkap");assert.equal(cell(orders,4,"Margin"),"Belum lengkap");
+ for(const merge of ["A4:A5","F4:F5","G4:G5","J4:J5","K4:K5"])assert.ok(orders.model.merges!.includes(merge));
+ assert.equal(cell(orders,6,"Total HPP"),150);assert.equal(cell(orders,6,"Margin"),180);
+ assert.equal(cell(orders,orders.rowCount,"Qty"),6);assert.equal(cell(orders,orders.rowCount,"Total pesanan"),580);assert.equal(cell(orders,orders.rowCount,"Total HPP"),"Belum lengkap");assert.equal(cell(orders,orders.rowCount,"Margin"),"Belum lengkap");
+ assert.equal(String(cell(orders,4,"Produk")).includes("Kategori: Pakaian"),mode==="po");assert.equal(text.includes("secret phone"),false);assert.equal(text.includes("private note"),false);
+});
+
+test("order workbook margins support zero purchase prices and losses",async()=>{
+ const workspace=data();workspace.orders=[order("zero",[item({unitCost:0})]),order("loss",[item({unitCost:150})])];const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(buildShoppingReport(workspace,"b"))).buffer);const sheet=book.getWorksheet("Per pesanan")!;
+ // Sorted by order id: loss first, then zero.
+ assert.equal(sheet.getCell("K4").value,-100);assert.equal(sheet.getCell("K5").value,200);assert.equal(sheet.getCell("F6").value,400);assert.equal(sheet.getCell("J6").value,300);assert.equal(sheet.getCell("K6").value,100);
 });
