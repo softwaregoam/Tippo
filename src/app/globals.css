@@ -1297,11 +1297,6 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .brand-caption { margin-left:0; margin-right:0; font-size:10px; }
 [data-theme="dark"] .tippo-logo,.wordmark-light .tippo-logo { color:#f7f4ed; }
 [data-theme="dark"] .tippo-logo-accent,.wordmark-light .tippo-logo-accent { color:#dc9a5c; }
-@media(min-width:761px) {
- .sidebar-collapsed .sidebar-heading { flex-direction:column; gap:8px; }
- .sidebar-collapsed .brand { display:flex; justify-content:center; width:44px; }
- .sidebar-collapsed .brand .tippo-logo-word { display:none; }
-}
 @media(max-width:480px) {
  .landing-header .tippo-logo-word { display:none; }
  .landing-header .wordmark { justify-content:center; min-width:44px; }
