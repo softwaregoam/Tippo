@@ -1,6 +1,6 @@
 import type { Worksheet, Row } from "exceljs";
 import type { SalesReport } from "./sales-report.ts";
-import { orderDiscount, orderSubtotal } from "./finance.ts";
+import { orderDiscount } from "./finance.ts";
 import { formatCalendarDate } from "./calendar-date.ts";
 
 export async function createReportExcel(report: SalesReport): Promise<Uint8Array> {
@@ -45,27 +45,21 @@ export async function createReportExcel(report: SalesReport): Promise<Uint8Array
  }
  summary.addRow([]);
  for(const note of ["Pesanan dibatalkan tidak disertakan.","HPP dan margin hanya dari pesanan dengan harga beli lengkap."]){const row=summary.addRow([note]);summary.mergeCells(row.number,1,row.number,2);row.height=28;row.font={name:"Arial",size:10,color:{argb:"FF626862"}};row.alignment={wrapText:true,vertical:"middle"};}
- const orders=prepare("Pesanan",[{header:"Nomor pesanan",key:"id",width:38},{header:"Tanggal",key:"date",width:16},{header:"Pelanggan",key:"customer",width:26},{header:po?"Batch PO":"Perjalanan",key:"batch",width:30},{header:"Unit",key:"quantity",width:12},...([['Subtotal termasuk fee','subtotal'],['Diskon','discount'],['Ongkir','shipping'],['Total tagihan','revenue'],['HPP','hpp'],['Margin','margin']] as const).map(([header,key])=>({header,key,width:22,money:true})),{header:"Produk",key:"products",width:22}]);
- const lines=prepare("Rincian produk",[{header:"Nomor pesanan",key:"id",width:38},{header:"Tanggal",key:"date",width:16},{header:"Pelanggan",key:"customer",width:26},{header:po?"Batch PO":"Perjalanan",key:"batch",width:30},{header:"Produk",key:"product",width:36},{header:"Varian",key:"variant",width:22},{header:"Warna",key:"color",width:16},{header:"Ukuran",key:"size",width:14},{header:"Toko / brand",key:"store",width:24},{header:"Qty",key:"quantity",width:12},...([['Harga jual / unit','unitPrice'],['Subtotal produk','value'],['Harga beli / unit','unitCost'],['HPP produk','cost']] as const).map(([header,key])=>({header,key,width:22,money:true}))]);
- const firstProduct=new Map<string,number>();let productValue=0,productCost=0,knownItems=0;
+ const orders=prepare("Pesanan",[{header:"Nomor pesanan",key:"id",width:38},{header:"Tanggal",key:"date",width:16},{header:"Pelanggan",key:"customer",width:26},{header:po?"Batch PO":"Perjalanan",key:"batch",width:30},{header:"Produk & varian",key:"product",width:46},{header:"Qty",key:"quantity",width:12},...([['Harga jual / unit','unitPrice'],['Subtotal produk','value'],['Harga beli / unit','unitCost'],['HPP produk','itemCost'],[po?'Biaya tambahan':'Fee Jastip','fee'],['Diskon','discount'],['Ongkir','shipping'],['Total tagihan','revenue'],['HPP pesanan','hpp'],['Margin','margin']] as const).map(([header,key])=>({header,key,width:22,money:true}))]);
+ let productValue=0,productCost=0,missingProducts=false;
  for(const [index,row] of report.rows.entries()){
-  firstProduct.set(row.order.id,lines.rowCount+1);
-  for(const item of row.order.items){
-   const value=item.quantity*item.unitPrice,cost=item.unitCost===null?null:item.quantity*item.unitCost;productValue+=value;productCost+=cost??0;if(cost!==null)knownItems++;
-   const line=lines.addRow({id:row.order.id,date:formatCalendarDate(row.order.date),customer:row.customer,batch:row.batch,product:item.product,variant:item.variant,color:item.color,size:item.size,store:item.store||"",quantity:item.quantity,unitPrice:item.unitPrice,value,unitCost:item.unitCost??"Belum lengkap",cost:cost??"Belum lengkap"});decorate(line,index);
-   line.height=Math.max(36,Math.max(Math.ceil(row.customer.length/26),Math.ceil(item.product.length/36),Math.ceil(item.variant.length/22),Math.ceil((item.store||"").length/24))*14+8);
-   for(let column=10;column<=14;column++)line.getCell(column).alignment={horizontal:"right",vertical:"middle",wrapText:true};
+  const start=orders.rowCount+1;
+  for(const [itemIndex,item] of row.order.items.entries()){
+   const value=item.quantity*item.unitPrice,cost=item.unitCost===null?null:item.quantity*item.unitCost;productValue+=value;productCost+=cost??0;if(cost===null)missingProducts=true;
+   const label=[[item.product,item.variant].filter(Boolean).join(" "),[item.color,item.size,item.store].filter(Boolean).join(" · ")].filter(Boolean).join("\n");
+   const line=orders.addRow({id:itemIndex===0?row.order.id:undefined,date:itemIndex===0?formatCalendarDate(row.order.date):undefined,customer:itemIndex===0?row.customer:undefined,batch:itemIndex===0?row.batch:undefined,product:label,quantity:item.quantity,unitPrice:item.unitPrice,value,unitCost:item.unitCost??"Belum lengkap",itemCost:cost??"Belum lengkap",...(itemIndex===0?{fee:row.order.serviceFee,discount:orderDiscount(row.order),shipping:row.order.shippingCharge,revenue:row.revenue,hpp:row.hpp??"Belum lengkap",margin:row.margin??"Belum lengkap"}:{})});decorate(line,index);
+   line.height=Math.max(36,label.split("\n").reduce((sum,text)=>sum+Math.ceil(text.length/46),0)*14+8,Math.ceil(Math.max(Math.ceil(row.customer.length/26),Math.ceil(row.batch.length/30))*14/row.order.items.length)+8);
+   for(let column=6;column<=16;column++)line.getCell(column).alignment={horizontal:"right",vertical:"middle",wrapText:true};line.getCell(1).font={name:"Arial",size:10,color:{argb:"FF626862"}};
   }
+  const end=orders.rowCount;if(end>start)for(const column of [1,2,3,4,11,12,13,14,15,16])orders.mergeCells(start,column,end,column);
  }
- lines.autoFilter={from:{row:4,column:1},to:{row:lines.rowCount,column:14}};
- total(lines,{id:`TOTAL${s.unknownCosts?" · HPP produk diketahui":""}`,quantity:s.quantity,value:productValue,cost:report.rows.length&&!knownItems?"Belum lengkap":productCost},9);
-
- for(const [index,row] of report.rows.entries()){
-  const line=orders.addRow({id:row.order.id,date:formatCalendarDate(row.order.date),customer:row.customer,batch:row.batch,quantity:row.quantity,subtotal:orderSubtotal(row.order),discount:orderDiscount(row.order),shipping:row.order.shippingCharge,revenue:row.revenue,hpp:row.hpp??"Belum lengkap",margin:row.margin??"Belum lengkap",products:{text:`Lihat ${row.order.items.length} produk`,hyperlink:`#'Rincian produk'!A${firstProduct.get(row.order.id)}`,tooltip:"Lihat produk pada pesanan ini"}});decorate(line,index);line.getCell(12).font={name:"Arial",size:11,color:{argb:color},underline:true};for(let column=5;column<=11;column++)line.getCell(column).alignment={horizontal:"right",vertical:"middle",wrapText:true};line.height=Math.max(36,Math.max(Math.ceil(row.customer.length/26),Math.ceil(row.batch.length/30),Math.ceil(row.order.id.length/38))*14+8);line.getCell(1).font={name:"Arial",size:10,color:{argb:"FF626862"}};
- }
- const lastOrder=orders.rowCount;orders.autoFilter={from:{row:4,column:1},to:{row:lastOrder,column:orders.columnCount}};
- for(let column=5;column<=11;column++)orders.getRow(4).getCell(column).alignment={horizontal:"right",vertical:"middle",wrapText:true};
- total(orders,{id:`TOTAL · ${s.orders} pesanan${s.unknownCosts?" · HPP/margin diketahui":""}`,quantity:s.quantity,subtotal:report.rows.reduce((sum,row)=>sum+orderSubtotal(row.order),0),discount:report.rows.reduce((sum,row)=>sum+orderDiscount(row.order),0),shipping:report.rows.reduce((sum,row)=>sum+row.order.shippingCharge,0),revenue:s.revenue,hpp:unknown?"Belum lengkap":s.hpp,margin:unknown?"Belum lengkap":s.margin},4);
+ for(let column=6;column<=16;column++)orders.getRow(4).getCell(column).alignment={horizontal:"right",vertical:"middle",wrapText:true};
+ total(orders,{id:`TOTAL · ${s.orders} pesanan${s.unknownCosts?" · HPP/margin pesanan diketahui":""}`,quantity:s.quantity,value:productValue,itemCost:missingProducts?"Belum lengkap":productCost,fee:report.rows.reduce((sum,row)=>sum+row.order.serviceFee,0),discount:report.rows.reduce((sum,row)=>sum+orderDiscount(row.order),0),shipping:report.rows.reduce((sum,row)=>sum+row.order.shippingCharge,0),revenue:s.revenue,hpp:unknown?"Belum lengkap":s.hpp,margin:unknown?"Belum lengkap":s.margin},5);
  const products=prepare("Produk terlaris",[{header:"No.",key:"rank",width:8},{header:"Produk",key:"name",width:36},{header:"Varian / toko",key:"detail",width:46},{header:"Unit terjual",key:"quantity",width:18}]);
  for(const [index,product] of report.products.entries()){
   const row=products.addRow({rank:index+1,name:product.name,detail:product.detail,quantity:product.quantity});decorate(row,index);row.height=Math.max(32,Math.max(Math.ceil(product.name.length/36),Math.ceil(product.detail.length/46))*14+8);row.getCell(1).alignment={vertical:"middle",horizontal:"center"};row.getCell(4).alignment={vertical:"middle",horizontal:"right"};if(index<3){row.getCell(4).font={name:"Arial",size:12,bold:true,color:{argb:color}};row.getCell(4).fill={type:"pattern",pattern:"solid",fgColor:{argb:soft}};}
