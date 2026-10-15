@@ -7,6 +7,7 @@ import { ArrowDownLeft, Check, Search, ShoppingBag, TrendingUp } from "lucide-re
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { allocatedBatchCosts, formatCurrency, itemLabel, orderHpp, orderQuantity, orderRevenue } from "@/lib/finance";
+import { formatCalendarDate } from "@/lib/calendar-date";
 import { isAppData } from "@/lib/validation";
 import type { AppData, Batch, OrderItem } from "@/lib/types";
 
@@ -96,8 +97,9 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
         {visibleOrders.map((order) => {
           const preview = previewOrders.find((entry) => entry.id === order.id)!;
           const cost = orderHpp(preview, previewOrders, data.batches);
-          return <tbody key={order.id}>{order.items.map((item, index) => <tr key={fieldKey(order.id, item.id)}>
-            <td className="hpp-product-cell"><div className="row-title">{itemLabel(item)}</div><div className="row-subtitle">{data.customers.find((customer) => customer.id === order.customerId)?.name}{order.items.length > 1 ? ` · Produk ${index + 1}/${order.items.length}` : ""}</div></td>
+          const customerName = data.customers.find((customer) => customer.id === order.customerId)?.name || "Pelanggan";
+          return <tbody key={order.id} aria-label={`Pesanan ${customerName}`}><tr className="hpp-order-header"><th scope="rowgroup" colSpan={hasLegacyCosts ? 6 : 5}><div className="hpp-order-heading"><strong>{customerName}</strong><span>{formatCalendarDate(order.date)} · {order.items.length} produk</span></div></th></tr>{order.items.map((item, index) => <tr key={fieldKey(order.id, item.id)}>
+            <td className="hpp-product-cell"><div className="row-title">{itemLabel(item)}</div></td>
             <td className="numeric-cell center-cell hpp-quantity-cell">{item.quantity} unit</td>
             <td className="hpp-input-cell" data-label="Harga beli / unit"><div className="cost-input small"><span>Rp</span><NumberInput className="input" aria-label={inputLabel(order.id, item, order.items.length)} min="0" step="1" placeholder="Belum diisi" value={costs[fieldKey(order.id, item.id)] ?? ""} onValueChange={(value) => setCosts({ ...costs, [fieldKey(order.id, item.id)]: value })} /></div></td>
             {index === 0 && <>{hasLegacyCosts && <td className="numeric-cell hpp-legacy-cell" data-label="Biaya lama" rowSpan={order.items.length}>{formatCurrency(allocated[order.id] ?? 0)}</td>}<td className="numeric-cell hpp-total-cell" data-label="HPP pesanan" rowSpan={order.items.length}>{cost === null ? <span className="status-tag status-new">Belum lengkap</span> : formatCurrency(cost)}</td><td rowSpan={order.items.length} data-label="Margin pesanan" className={`numeric-cell hpp-total-cell ${cost !== null && orderRevenue(order) - cost < 0 ? "negative" : "positive"}`}>{cost === null ? "Belum lengkap" : formatCurrency(orderRevenue(order) - cost)}</td></>}
