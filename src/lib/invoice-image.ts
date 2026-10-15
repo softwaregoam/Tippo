@@ -39,3 +39,15 @@ export async function downloadInvoiceImage(preview: HTMLElement, filename: strin
   document.body.append(link);link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),30000);
 }
+
+export type InvoicePrintImage = { src:string; width:number; height:number };
+/** Prepare in the active tab, before a phone browser suspends it for a print popup. */
+export async function prepareInvoiceImage(preview:HTMLElement):Promise<InvoicePrintImage> {
+  const blob=await renderInvoiceImage(preview);
+  const [buffer,src]=await Promise.all([blob.arrayBuffer(),new Promise<string>((resolve,reject)=>{
+    const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Gambar invoice belum dapat dimuat."));reader.readAsDataURL(blob);
+  })]);
+  const header=new DataView(buffer),width=header.getUint32(16),height=header.getUint32(20);
+  if(!width||!height)throw new Error("Gambar invoice belum dapat dimuat.");
+  return {src,width,height};
+}

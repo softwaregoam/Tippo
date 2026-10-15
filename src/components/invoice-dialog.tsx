@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDocument, printInvoice } from "@/components/invoice-document";
 import { InvoicePhoto } from "@/components/invoice-photo";
-import { downloadInvoiceImage, renderInvoiceImage } from "@/lib/invoice-image";
+import { downloadInvoiceImage, prepareInvoiceImage } from "@/lib/invoice-image";
 import { buildInvoice, invoiceWhatsAppUrl } from "@/lib/invoice";
 import type { AppData, Order } from "@/lib/types";
 
@@ -18,7 +18,7 @@ const serverSnapshot=()=>false;
 export function InvoiceDialog({ order, data, settings, onClose }: { order: Order; data: AppData; settings?: InvoiceSettings; onClose: () => void }) {
   const id = useId();
   const mobile=useSyncExternalStore(subscribeMobile,mobileSnapshot,serverSnapshot);
-  const [photo,setPhoto]=useState<{key:string;url:string;error:string}|null>(null);
+  const [photo,setPhoto]=useState<{key:string;url:string;error:string;width:number;height:number}|null>(null);
   const [previewAttempt,retryPreview]=useState(0);
   const [tab, setTab] = useState<"image" | "whatsapp">("image");
   function selectTab(next: "image" | "whatsapp") { setTab(next); setFeedback(""); }
@@ -30,21 +30,20 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
   const [manualCopy, setManualCopy] = useState(false);
   const [copying, setCopying] = useState(false);
   const [downloading,setDownloading]=useState(false);
-  const [printing,setPrinting]=useState(false);
-  const printingRef=useRef(false);
   const downloadingRef=useRef(false);
   const customer=data.customers.find(customer=>customer.id===order.customerId);
   const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings);
 
   const photoKey=JSON.stringify([order,data.batches.find(batch=>batch.id===order.batchId),customer,settings]);
   useEffect(()=>{
-    if(!mobile||!document.current)return;
+    if(tab!=="image"||!document.current)return;
     let active=true;
-    void renderInvoiceImage(document.current).then(blob=>{if(active)setPhoto({key:photoKey,url:URL.createObjectURL(blob),error:""});}).catch(error=>{if(active)setPhoto({key:photoKey,url:"",error:error instanceof Error?error.message:"Pratinjau belum dapat dimuat."});});
+    void prepareInvoiceImage(document.current).then(image=>{if(active)setPhoto({key:photoKey,url:image.src,width:image.width,height:image.height,error:""});}).catch(error=>{if(active)setPhoto({key:photoKey,url:"",width:0,height:0,error:error instanceof Error?error.message:"Pratinjau belum dapat dimuat."});});
     return()=>{active=false;};
-  },[mobile,photoKey,previewAttempt]);
+  },[photoKey,previewAttempt,tab]);
 
-  useEffect(()=>()=>{if(photo?.url)URL.revokeObjectURL(photo.url);},[photo]);
+  const readyPhoto=photo?.key===photoKey&&photo.url?photo:null;
+  const printError=photo?.key===photoKey?photo.error:"";
 
   useLayoutEffect(()=>{
     // Reset after the new panel is mounted, before the browser paints it.
@@ -63,12 +62,11 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
     finally{downloadingRef.current=false;setDownloading(false);}
   }
 
-  async function printDocument() {
-    if(printingRef.current||!document.current)return;
-    printingRef.current=true;setPrinting(true);setFeedback("");
-    try {await printInvoice(document.current);}
+  function printDocument() {
+    setFeedback("");
+    if(!readyPhoto){setPhoto(null);retryPreview(value=>value+1);return;}
+    try {printInvoice({src:readyPhoto.url,width:readyPhoto.width,height:readyPhoto.height});}
     catch(error){setFeedback(error instanceof Error?error.message:"Invoice belum dapat dicetak.");}
-    finally{printingRef.current=false;setPrinting(false);}
   }
 
   async function copyInvoice() {
@@ -127,11 +125,12 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
           spellCheck={false}
         />
         </div>
+        {!mobile&&printError&&<p role="alert">{printError}</p>}
         {feedback && <p role="status" style={{ color: manualCopy ? "var(--warning, #aa762c)" : "var(--primary, #24756b)" }}>{feedback}</p>}
       </div>
       <div className="modal-footer">
         {tab==="image"?<>
-          <Button type="button" className="btn btn-secondary" disabled={printing} onClick={()=>void printDocument()}><Printer size={16}/>{printing?"Menyiapkan PDF…":"Cetak / PDF"}</Button>
+          <Button type="button" className="btn btn-secondary" disabled={!readyPhoto&&!printError} onClick={printDocument}><Printer size={16}/>{printError?"Coba siapkan PDF":!readyPhoto?"Menyiapkan PDF…":"Cetak / PDF"}</Button>
           <Button type="button" className="btn btn-primary" disabled={downloading} onClick={downloadImage}><Download size={16}/>{downloading?"Menyiapkan gambar…":"Unduh gambar"}</Button>
         </>:<>
           <Button type="button" className="btn btn-secondary" disabled={copying} onClick={copyInvoice}><Copy size={16} />{copying ? "Menyalin..." : "Salin invoice WhatsApp"}</Button>
