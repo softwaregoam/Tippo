@@ -21,10 +21,10 @@ test("WhatsApp invoice includes every item and option, one order fee, and total 
   assert.ok(invoice.includes("No. invoice: INV-ORDER-FIXED"));
   assert.ok(invoice.includes("Tanggal: 8 Oktober 2026"));
   assert.ok(!invoice.includes("Jenis:"));
-  assert.ok(!invoice.includes("Status:"));
+  assert.ok(invoice.includes("Status: *BELUM LUNAS*"));
   assert.ok(!invoice.includes("Batch:"));
   assert.ok(invoice.startsWith("Halo, Dina!\n"));
-  assert.ok(invoice.includes("WhatsApp: 081234567890"));
+  assert.ok(invoice.includes("Nama: Dina\nWhatsApp: 081234567890"));
   assert.ok(invoice.includes("• Kaos Oversize · Biru · L"));
   assert.ok(invoice.includes("• Kimbap Tuna"));
   assert.ok(invoice.includes(`2 × ${formatCurrency(100000)} = ${formatCurrency(200000)}`));
@@ -122,4 +122,12 @@ test("WhatsApp share links preserve invoice text and normalize customer numbers"
  for(const phone of ["0812 3456 7890","+62 812-3456-7890","81234567890"]){const url=new URL(invoiceWhatsAppUrl(message,phone));assert.equal(url.origin,"https://wa.me");assert.equal(url.pathname,"/6281234567890");assert.equal(url.searchParams.get("text"),message);}
  for(const phone of ["","08xxx","123"]){assert.equal(new URL(invoiceWhatsAppUrl(message,phone)).pathname,"/");}
  assert.equal(new URL(invoiceWhatsAppUrl(message,"+65 8123 4567")).pathname,"/6581234567");
+});
+
+
+test("payment labels distinguish unpaid, partial, paid, zero and cancelled invoices",()=>{
+ for(const paid of [0,100000])assert.match(buildInvoice({...order,paid},batch,customer),/Status: \*BELUM LUNAS\*/);
+ for(const next of [{...order,paid:390000},{...order,status:"cancelled" as const}, {...order,items:order.items.map(item=>({...item,unitPrice:0})),serviceFee:0,shippingCharge:0,paid:0}])assert.doesNotMatch(buildInvoice(next,batch,customer),/BELUM LUNAS/);
+ assert.match(buildInvoice(order,batch,{...customer,name:"Dina\nBaru"}),/Nama: Dina Baru\nWhatsApp:/);
+ assert.match(buildInvoice(order,batch,{...customer,phone:""}),/Nama: Dina/);
 });

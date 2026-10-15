@@ -1439,7 +1439,7 @@ for (const width of [320, 1440]) for (const business of ["Jastip", "Open PO"] as
   let dialog = await invoice();
   const message = () => dialog.getByLabel("Isi invoice untuk WhatsApp");
   await expect(message()).toHaveValue(/\*INVOICE\*\nNo\. invoice: INV-INVOICE-ORDER/);
-  expect(await message().inputValue()).not.toMatch(/Status:|Batch:|Jenis:|Titipan Naya|DO NOT USE/);
+  expect(await message().inputValue()).not.toMatch(/Status: (?:Tercatat|Selesai|Dikirim)|Batch:|Jenis:|Titipan Naya|DO NOT USE/);
   await dialog.getByRole("button", { name: "Tutup invoice", exact: true }).click();
   await profile();
   await expect(page.getByLabel("Nama toko (opsional)")).toHaveValue("");
@@ -1732,4 +1732,12 @@ test("HPP dialog keeps entered prices when saving fails",async({page})=>{
 
 test("HPP allows partial and zero prices and preserves other orders in the same batch",async({page})=>{
  const data=twoBusinessWorkspace(),source=data.orders.find(order=>order.batchId==='trip')!;source.items.push({...source.items[0],id:'partial-cost',product:'Produk kedua',unitCost:null});const other={...structuredClone(source),id:'same-batch-other',items:source.items.map(item=>({...item,id:`other-${item.id}`}))};data.orders.push(other);const requests=await authenticate(page,{workspace:data});await page.goto('/app');await openSection(page,'HPP & Margin');await page.getByRole('button',{name:'Isi HPP Alya',exact:true}).first().click();const dialog=page.getByRole('dialog',{name:'HPP pesanan Alya',exact:true});await dialog.getByRole('textbox').first().fill('0');await expect(dialog.locator('.hpp-dialog-summary')).toContainText('Belum lengkap');await dialog.getByRole('button',{name:'Simpan HPP',exact:true}).click();await expect(dialog).toHaveCount(0);await expect.poll(()=>requests.length).toBe(1);const changed=requests[0].p_data.orders.find(order=>order.id===source.id)!;expect(changed.items[0].unitCost).toBe(0);expect(changed.items[1].unitCost).toBeNull();expect(requests[0].p_data.orders.find(order=>order.id===other.id)).toEqual(other);
+});
+
+for(const width of [320,1440])for(const business of ['Jastip','Open PO'] as const)test(`unpaid invoice stamp and WhatsApp customer identity ${business} ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:950});const data=twoBusinessWorkspace(),order=data.orders.find(order=>order.batchId===(business==='Jastip'?'trip':'po-business'))!,customer=data.customers.find(customer=>customer.id===order.customerId)!;customer.phone='081234567890';await authenticate(page,{workspace:data});await page.goto('/app');await openBusiness(page,business);await openSection(page,'Pesanan');
+ if(width<600){await page.getByRole('button',{name:`Detail ${customer.name}`,exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Invoice',exact:true}).click();}else await page.getByRole('button',{name:/^Invoice /}).click();
+ const dialog=page.getByRole('dialog',{name:'Invoice pesanan',exact:true}),stamp=dialog.locator('.invoice-unpaid-stamp');await expect(stamp).toHaveText('BELUM LUNAS');await expect(dialog.locator('.invoice-paid-stamp')).toHaveCount(0);
+ if(width<600)await expect(dialog.getByRole('img',{name:'Invoice pesanan',exact:true})).toBeVisible();else{await expect(stamp).toBeVisible();expect(await stamp.evaluate(el=>getComputedStyle(el).color)).toBe('rgb(167, 91, 30)');}
+ await dialog.screenshot({path:`/tmp/tippo-unpaid-invoice-${business}-${width}.png`});await dialog.getByRole('tab',{name:'Teks WhatsApp',exact:true}).click();const text=await dialog.getByLabel('Isi invoice untuk WhatsApp').inputValue();expect(text).toContain(`Nama: ${customer.name}\nWhatsApp: ${customer.phone}`);expect(text).toContain('Status: *BELUM LUNAS*');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
