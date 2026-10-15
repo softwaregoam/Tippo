@@ -2,7 +2,7 @@
 
 Buka rekap pada Batch PO atau Perjalanan, lalu pilih **Unduh Excel**. Satu file berisi:
 
-- **Per produk:** nama, varian, warna, ukuran, dan qty, tanpa harga beli atau HPP. Open PO memakai kategori katalog serta subtotal kategori; Jastip memakai toko/brand serta subtotal toko. Keduanya memiliki total qty keseluruhan.
+- **Per produk:** grup, produk beserta varian/warna/ukuran, qty, harga jual/unit, total baris, total qty grup, dan total harga grup. Open PO memakai kategori katalog; Jastip memakai toko/brand. Nama dan total grup memakai sel gabungan dengan warna latar bergantian. Total keseluruhan di bagian bawah. Harga beli dan HPP tidak disertakan. Produk dengan harga jual berbeda dipisah per baris.
 - **Per pesanan:** nomor pesanan, pelanggan, tanggal, produk, qty, harga jual/unit, subtotal jual, harga beli/unit, HPP; subtotal pesanan dan total batch.
 
 Produk, harga, dan jumlah berasal dari snapshot pesanan. Kategori Open PO mengikuti master produk yang terhubung saat ekspor; tanpa tautan/kategori masuk **Tanpa kategori**. Produk arsip tetap dapat menjadi sumber kategori. Perubahan master tidak mengganti nama atau harga pada laporan.

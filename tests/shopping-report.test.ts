@@ -9,8 +9,8 @@ const order=(id:string,items:OrderItem[],extra:Partial<Order>={}):Order=>({id,ba
 function data():AppData{return {batches:[{id:"b",name:"Belanja Oktober",type:"po",origin:"",closeDate:"2026-10-20",status:"closed",directCosts:999}],customers:[{id:"a",name:"=SUM(1,2)",phone:"secret phone"}],products:[{id:"p",name:"Nama master berubah",variant:"",sku:"X",category:"Pakaian",unitPrice:50000,unitCost:80000,active:false}],orders:[order("1",[item(),item({id:"snack",productId:null,product:"Kue",variant:"",size:"",color:"",quantity:1,unitPrice:50,unitCost:null})]),order("2",[item({quantity:3,unitPrice:110,unitCost:50})]),order("cancelled",[item({quantity:999})],{status:"cancelled"}),order("foreign",[item({quantity:999})],{batchId:"other"})]};}
 
 test("purchase report combines quantities but calculates each saved purchase price separately",()=>{
- const report=buildShoppingReport(data(),"b");assert.equal(report.orders.length,2);assert.equal(report.products.length,2);
- const product=report.products.find(p=>p.product==="Kaos")!;assert.equal(product.quantity,5);assert.equal(product.knownCost,230);assert.equal(product.cost,230);assert.equal(product.unitCost,"Bervariasi");assert.equal(product.category,"Pakaian");
+ const report=buildShoppingReport(data(),"b");assert.equal(report.orders.length,2);assert.equal(report.products.length,3);
+ const product=report.products.find(p=>p.product==="Kaos")!;assert.equal(product.quantity,2);assert.equal(product.knownCost,80);assert.equal(product.cost,80);assert.equal(product.unitCost,40);assert.equal(report.products.filter(product=>product.product==="Kaos").length,2);assert.equal(product.category,"Pakaian");
  assert.deepEqual(report.totals,{quantity:6,value:580,knownCost:230,missingQuantity:1,cost:null});
  assert.equal(report.categories.find(c=>c.name==="Pakaian")!.totals.quantity,5);assert.equal(report.categories.find(c=>c.name==="Tanpa kategori")!.totals.cost,null);
  assert.equal(report.orders[0].totals.value,250);assert.equal(report.orders[1].totals.cost,150);assert.equal(report.products.some(p=>p.product==="Nama master berubah"),false);
@@ -27,10 +27,10 @@ for(const mode of ["po","jastip"] as const)test(`workbook ${mode} uses mode-spec
  assert.deepEqual(book.worksheets.map(s=>s.name),["Per produk","Per pesanan"]);
  const products=book.getWorksheet("Per produk")!,orders=book.getWorksheet("Per pesanan")!;
  const cell=(sheet:ExcelJS.Worksheet,row:number,header:string)=>{let column=0;sheet.getRow(3).eachCell((cell,index)=>{if(cell.value===header)column=index;});assert.ok(column,header);return sheet.getCell(row,column).value;};
- assert.equal(cell(products,4,"Produk"),"Kaos");assert.equal(cell(products,4,"Qty"),5);assert.equal(cell(products,products.rowCount,"Qty"),6);
- assert.equal(products.getCell(`A${products.rowCount}`).value,mode==="po"?"TOTAL BATCH":"TOTAL PERJALANAN");
+ assert.match(String(cell(products,4,"Produk")),/^Kaos Airism/);assert.equal(cell(products,4,"Qty"),2);assert.equal(cell(products,4,"Harga jual / unit"),100);assert.equal(cell(products,4,"Total"),200);assert.equal(cell(products,4,"Total qty grup"),mode==="po"?5:6);assert.equal(cell(products,4,"Total harga grup"),mode==="po"?530:580);assert.equal(cell(products,products.rowCount,"Total qty grup"),6);assert.equal(cell(products,products.rowCount,"Total harga grup"),580);
+ assert.equal(products.getCell(`A${products.rowCount}`).value,"TOTAL KESELURUHAN");
  assert.equal(products.getCell("A3").value,mode==="po"?"Kategori":"Toko / brand");
- assert.equal(products.getCell(mode==="po"?"A5":"A6").value,mode==="po"?"Subtotal Pakaian":"Subtotal Toko");
+ assert.equal(products.getCell("A4").value,mode==="po"?"Pakaian":"Toko");assert.ok(products.model.merges!.includes(mode==="po"?"A4:A5":"A4:A6"));assert.ok(products.model.merges!.includes(mode==="po"?"G4:G5":"G4:G6"));
  assert.doesNotMatch(JSON.stringify(products.getSheetValues()),/HPP|Harga beli|Bervariasi|Belum lengkap/);
  const text=JSON.stringify(orders.getSheetValues());assert.doesNotMatch(text,/Kategori mengikuti|Nilai jual hanya/);
  assert.equal(orders.getCell("A4").value,"1");assert.equal(cell(orders,4,"Pelanggan"),"=SUM(1,2)");assert.equal(cell(orders,4,"Harga jual / unit"),100);assert.equal(cell(orders,4,"Subtotal jual produk"),200);assert.equal(cell(orders,4,"Harga beli / unit"),40);assert.equal(cell(orders,5,"Total HPP"),"Belum lengkap");assert.equal(orders.getCell("A6").value,"Subtotal 1");assert.equal(cell(orders,6,"Subtotal jual produk"),250);
