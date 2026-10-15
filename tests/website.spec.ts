@@ -151,7 +151,7 @@ test(`homepage interactions and mobile navigation lead to real routes ${width} $
   const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
   await page.goto("/"); await expect(page.locator(".wordmark").first()).toHaveText("Tippo."); await expect(page).toHaveTitle("Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{level:1})).toHaveText("Titip & Pesan, Beres di Tippo.");
   await expect(page.getByText("Contoh pesanan fiktif",{exact:true})).toBeVisible();await expect(page.getByRole("heading",{name:"Rekap belanja otomatis",exact:true})).toBeVisible();await expect(page.getByRole("heading",{name:"Invoice dengan identitas tokomu",exact:true})).toBeVisible();await expect(page.getByRole("heading",{name:"Laporan yang siap diperiksa",exact:true})).toBeVisible();await expect(page.locator(".plan-table")).toContainText("Rekap belanja Excel");await expect(page.locator(".plan-table")).toContainText("Rp50.000");await expect(page.locator("#harga")).not.toContainText("Belum bisa berlangganan");
-  await expect(page.locator(".ledger-product")).toHaveCount(2);await expect(page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Jastip",exact:true})).toHaveCSS("background-color","rgb(36, 92, 78)");
+  await expect(page.locator(".ledger-product")).toHaveCount(2);expect(await page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Jastip",exact:true}).evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(await page.locator(".ledger-payment").evaluate(el=>getComputedStyle(el).backgroundColor));await expect(page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Jastip",exact:true})).toHaveCSS("background-color",theme==="dark"?"rgb(36, 60, 50)":"rgb(237, 245, 241)");
   await expect(page.locator(".ledger-total")).toContainText(/Rp\s*1\.638\.000/);
   await expect(page.locator(".ledger-mode-context")).toContainText("Ringkasan · Perjalanan · Pesanan · HPP & Margin");
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
@@ -159,10 +159,10 @@ test(`homepage interactions and mobile navigation lead to real routes ${width} $
   await page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Open PO"}).click();
   await expect(page.getByText("Produk siap, pesanan lebih ringkas.",{exact:true})).toBeVisible();
   await expect(page.locator(".ledger-total")).toContainText(/Rp\s*533\.000/);
-  await expect(page.locator(".ledger-payment")).toContainText(/Rp\s*383\.000/);
+  await expect(page.locator(".ledger-payment")).toContainText(/Rp\s*383\.000/);const poTab=page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Open PO",exact:true});expect(await poTab.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(await page.locator(".ledger-payment").evaluate(el=>getComputedStyle(el).backgroundColor));
   await expect(page.locator(".ledger-mode-context")).toContainText("Ringkasan · Produk · Batch PO · Pesanan · HPP & Margin");
   await expect(page.locator(".order-ledger")).toHaveClass(/ledger-po/);
-  await page.screenshot({path:`docs/preview-landing-po-${width}-${theme}.png`});await page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Jastip",exact:true}).click();await expect(page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Jastip",exact:true})).toHaveCSS("background-color","rgb(36, 92, 78)");
+  await page.screenshot({path:`docs/preview-landing-po-${width}-${theme}.png`});await page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Jastip",exact:true}).click();await expect(page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Jastip",exact:true})).toHaveCSS("background-color",theme==="dark"?"rgb(36, 60, 50)":"rgb(237, 245, 241)");
   await page.locator("summary").filter({hasText:"Apakah ringkasan Jastip dan Open PO digabung?"}).click();
   await expect(page.locator("details[open]")).toContainText("Tidak. Penjualan, HPP, pembayaran, tagihan, dan grafik bulanan hanya menampilkan usaha yang sedang dipilih.");
   await expect(page.locator('[aria-labelledby="testimonials-title"]')).toContainText("Belum merupakan ulasan pelanggan asli.");
