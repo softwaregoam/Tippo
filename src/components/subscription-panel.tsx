@@ -69,7 +69,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
       </section>
       <section id="tippo-pro-plan" tabIndex={-1} className="card subscription-plan pro-plan" aria-label="Paket Pro">
         <div className="subscription-plan-title"><Crown size={23} /><h2>Pro</h2></div>
-        <p className="subscription-price">Rp{PRO_MONTHLY_PRICE.toLocaleString("id-ID")}<span> / bulan</span></p>
+        <p className="subscription-price"><s className="subscription-original-price" aria-label="Harga sebelumnya Rp50.000">Rp50.000</s>Rp{PRO_MONTHLY_PRICE.toLocaleString("id-ID")}<span> / bulan</span></p>
         <ul className="subscription-features">
           <li><Check size={16} /><span>Pesanan Jastip dan PO tanpa batas kuota</span></li>
           <li><Check size={16} /><span>Produk master Open PO tanpa batas kuota</span></li>
