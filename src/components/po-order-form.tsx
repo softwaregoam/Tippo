@@ -1,4 +1,5 @@
 "use client";
+import { CustomerPicker } from "./customer-picker";
 
 import { ProductPicker, type ProductChoice } from "@/components/product-picker";
 import { NumberInput } from "@/components/ui/number-input";
@@ -93,7 +94,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     document.body.style.overflow = "hidden";
     modalRef.current?.querySelector<HTMLButtonElement>(".modal-header button")?.focus({ preventScroll: true });
     function handleKey(event: KeyboardEvent) {
-      if (event.defaultPrevented || document.querySelector(".select-content, [data-product-picker]")) return;
+      if (event.defaultPrevented || document.querySelector(".select-content, .product-picker")) return;
       if (event.key === "Escape") { event.preventDefault(); closeRef.current(); }
       if (event.key !== "Tab" || !modalRef.current) return;
       const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(
@@ -265,9 +266,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
             </div>
             <div className="field">
               <label className="field-label" htmlFor="po-order-customerId">Pelanggan<span className="required-mark" aria-hidden="true"> *</span></label>
-              <Select placeholder="Pilih pelanggan" aria-label="Pelanggan" aria-required="true" id="po-order-customerId" name="customerId" className="input" value={fields.customerId} onValueChange={(value) => update("customerId", value)} aria-invalid={Boolean(errors.customerId)} aria-describedby={errors.customerId ? "po-error-customerId" : undefined}>
-                {data.customers.map((customer) => <SelectOption key={customer.id} value={customer.id}>{customer.name}</SelectOption>)}<SelectOption value="new">+ Pelanggan baru</SelectOption>
-              </Select>
+              <CustomerPicker customers={data.customers} aria-label="Pelanggan" aria-required="true" id="po-order-customerId" name="customerId" className="input" value={fields.customerId} onValueChange={(value) => update("customerId", value)} aria-invalid={Boolean(errors.customerId)} aria-describedby={errors.customerId ? "po-error-customerId" : undefined}/>
               {errors.customerId && <span id="po-error-customerId" className="error-message">{errors.customerId}</span>}
             </div>
             <div className="field"><label className="field-label" htmlFor="po-order-date">Tanggal pesanan<span className="required-mark" aria-hidden="true"> *</span></label><DatePicker aria-label="Tanggal pesanan" required id="po-order-date" name="date" value={fields.date} onValueChange={value => update("date", value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? "po-error-date" : undefined} />{errors.date && <span id="po-error-date" className="error-message">{errors.date}</span>}</div>

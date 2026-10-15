@@ -1,6 +1,6 @@
 import type { Batch } from "@/lib/types";
 
-type HelpDestination = "products" | "batches" | "orders" | "hpp" | "settings" | "feedback";
+type HelpDestination = "products" | "batches" | "orders" | "hpp" | "settings" | "feedback" | "reports" | "invoice-template" | "subscription";
 
 export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigate: (page: HelpDestination) => void }) {
   const po = mode === "po";
@@ -21,9 +21,9 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
     {
       id: "pesanan", title: "Isi pesanan dan pembayaran",
       steps: [
-        "Pilih batch yang masih dibuka. Jika hanya ada satu batch aktif, Tippo memilihnya otomatis. Pilih pelanggan yang sudah ada atau + Pelanggan baru; alamat dan WhatsApp boleh kosong.",
+        "Pilih batch yang masih dibuka. Jika hanya ada satu batch aktif, Tippo memilihnya otomatis. Cari pelanggan lewat nama atau WhatsApp, lalu pilih kontaknya. Gunakan + Pelanggan baru jika belum ada.",
         "Pilih tanggal lewat kalender, lalu isi produk dan jumlahnya. Field bertanda bintang merah wajib diisi.",
-        "Tambahkan diskon, ongkir yang ditagihkan, dan catatan jika diperlukan. Periksa total tagihan sebelum mengisi pembayaran.",
+        "Buka bagian tambahan untuk mengisi diskon, ongkir, catatan, tanggal kirim, jam 24 jam, dan metode kirim jika diperlukan.",
         "Gunakan Lunas untuk mengisi seluruh total tagihan atau Bayar sebagian untuk menulis nominal yang sudah diterima. Klik Simpan pesanan setelah datanya lengkap.",
         "Untuk mengubah status pesanan, klik ikon panah dua arah pada kolom Aksi atau Ubah status pada detail ponsel. Pilih status baru, lalu klik Simpan status. Pesanan yang sudah dibayar perlu refund seluruh pembayaran sebelum dibatalkan.",
       ], destination: "orders", action: "Buka Pesanan",
@@ -31,10 +31,34 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
     {
       id: "hpp", title: "Periksa HPP dan margin",
       steps: [
-        "Buka HPP & Margin dan pilih batch. Klik ikon pensil pada pesanan, isi harga beli per produk dalam dialog, lalu klik Simpan HPP.",
+        "Buka HPP & Margin dan pilih batch. Klik ikon pensil pada pesanan, isi harga beli per produk dalam dialog, lalu klik Simpan HPP. Card menampilkan total HPP, margin, jumlah pesanan, dan HPP belum lengkap untuk batch yang dipilih.",
         "HPP produk dihitung dari harga beli dikalikan jumlah produk. Jika ongkir supplier atau kemasan ingin masuk HPP, sertakan dalam harga beli per produk.",
         "Ringkasan menampilkan penjualan, estimasi margin, pembayaran, dan sisa tagihan untuk usaha serta bulan yang dipilih. Periksa HPP yang belum lengkap sebelum menilai margin.",
       ], destination: "hpp", action: "Buka HPP & Margin",
+    },
+    {
+      id: "rekap", title: "Siapkan rekap belanja",
+      steps: [
+        "Buka Batch PO atau Perjalanan, lalu pilih ikon rekap pada kolom Aksi. Di ponsel, buka detail batch untuk melihat tombol rekap.",
+        "Rekap menjumlahkan kebutuhan produk dari pesanan aktif, beserta varian, warna, ukuran, dan toko. Buka Lihat pelanggan untuk melihat pembagiannya.",
+        "Pilih Per produk atau Per pesanan sebelum Unduh Excel. Rekap per produk tanpa HPP; rekap per pesanan memuat harga jual, HPP, dan margin jika lengkap.",
+      ], destination: "batches", action: "Buka rekap batch",
+    },
+    {
+      id: "invoice", title: "Atur dan bagikan invoice",
+      steps: [
+        "Isi rekening bank di Profil bisnis. Di Template invoice, atur nama toko, awalan nomor invoice, logo, warna per usaha, dan catatan penutup.",
+        "Buka Invoice dari pesanan. Tab Invoice gambar menyediakan Unduh gambar dan Cetak / PDF; tab Teks WhatsApp menyediakan salin dan bagikan ke WhatsApp.",
+        "Invoice menampilkan status pembayaran dan sisa tagihan jika belum lunas. Alamat, pengiriman, catatan, serta rekening muncul jika diisi. Harga beli dan HPP tidak ikut ditampilkan.",
+      ], destination: "invoice-template", action: "Buka Template invoice",
+    },
+    {
+      id: "laporan", title: "Periksa laporan penjualan",
+      steps: [
+        "Buka Laporan untuk melihat penjualan, HPP, margin, jumlah pesanan, dan produk terlaris. Gunakan pencarian pada filter batch untuk membatasi laporan.",
+        "Paket Gratis menampilkan bulan berjalan. Dengan Pro, pilih periode lain dan ekspor Excel berisi Ringkasan, Pesanan, serta Produk terlaris. Sheet Pesanan berisi satu baris per pesanan.",
+        "HPP dan margin yang belum lengkap tidak dianggap nol. Periksa jumlah pesanan dengan harga beli belum lengkap sebelum menilai hasil usaha.",
+      ], destination: "reports", action: "Buka Laporan",
     },
     {
       id: "status", title: "Kelola status dan refund",
@@ -48,7 +72,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
       id: "data", title: "Import Excel dan cadangkan data",
       steps: [
         "Pelanggan Pro bisa mengunduh template produk, pesanan Jastip, atau pesanan Open PO melalui tombol import pada halaman terkait.",
-        "Pindahkan data Excel ke template Tippo, lalu unggah kembali. Periksa hasil pratinjau dan perbaiki baris yang bermasalah sebelum menyimpan import.",
+        "Pindahkan data Excel ke template Tippo, lalu unggah kembali. Baris dengan nomor pesanan yang sama menjadi satu pesanan. Periksa pratinjau sebelum menyimpan import.",
         "Buka Pengaturan data untuk mengekspor cadangan. Simpan salinan secara rutin, terutama sebelum mengganti atau memulihkan data.",
       ], destination: "settings", action: "Buka Pengaturan data",
     },
@@ -56,14 +80,15 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
   const questions = [
     ["Apakah data Jastip dan Open PO digabung?", "Ringkasan, pesanan, batch, dan HPP mengikuti usaha yang sedang dipilih. Kontak pelanggan, profil bisnis, pengaturan data, dan langganan dipakai bersama dalam akun."],
     ["Mengapa batch tidak muncul pada pilihan pesanan baru?", "Hanya batch atau perjalanan yang masih dibuka yang bisa dipilih untuk pesanan baru. Batch PO yang sudah ditutup atau selesai tidak ditampilkan. Pada Jastip, perjalanan yang sudah ditutup atau selesai tidak bisa dipilih untuk pesanan baru."],
+    ["Bagaimana menyalin atau mengarsipkan produk?", "Gunakan Duplikat produk untuk menyalin produk menjadi entri baru. Produk yang diarsipkan tidak tersedia untuk pesanan baru; aktifkan kembali melalui halaman Produk."],
     ["Apakah perubahan harga produk mengubah pesanan lama?", "Tidak. Harga produk disalin saat pesanan dibuat dan tersimpan pada pesanan tersebut. Perubahan master produk digunakan untuk pesanan berikutnya."],
     ["Di mana melihat rekap belanja?", "Buka Perjalanan untuk Jastip atau Batch PO untuk Open PO, lalu pilih Rekap belanja atau Rekap kebutuhan produk. Produk digabung menurut toko/brand, nama, varian, warna, dan ukuran. Klik Lihat pelanggan untuk memeriksa pembagian jumlahnya. Pesanan yang dibatalkan tidak disertakan. Isi Toko / brand pada tiap produk Jastip atau pada master produk PO; pesanan lama tetap memakai informasi saat dibuat."],
     ["Bagaimana batas diskon dihitung?", "Diskon persen maksimal 100% dari subtotal produk dan fee, tidak termasuk ongkir. Diskon rupiah maksimal total tagihan sebelum diskon, termasuk ongkir. Nominal input otomatis dibatasi sesuai batas tersebut."],
     ["Apa yang berubah setelah refund dicatat?", "Pembayaran yang masih diterima berkurang dan riwayat refund tersimpan. Pada pesanan aktif, total tagihan tetap sehingga sisa tagihan bisa bertambah. Pilihan refund seluruh pembayaran dan batalkan pesanan juga mengubah status menjadi Dibatalkan."],
     ["Mengapa saya tidak bisa memakai import Excel?", "Import template tersedia pada paket Pro. Paket Gratis tetap bisa mencatat produk dan pesanan secara manual."],
     ["Apa batas paket Gratis?", "Kamu bisa mencatat 5 pesanan Jastip dan 5 pesanan Open PO per bulan, serta menyimpan maksimal 5 produk Open PO termasuk produk yang diarsipkan. Kuota pesanan dihitung berdasarkan bulan pencatatan dan tidak kembali karena pesanan dibatalkan."],
-    ["Apakah membuat invoice Pro langsung mengaktifkan langganan?", "Belum. Draf invoice adalah rincian tagihan, bukan bukti pembayaran atau tanda bahwa Pro sudah aktif. Periksa status paket pada halaman Paket & langganan."],
-    ["Bagaimana melihat atau mengedit pesanan di ponsel?", "Ketuk baris pesanan untuk membuka detail. Dari halaman Pesanan, detail menyediakan aksi yang tersedia seperti Edit, Invoice, dan Refund. Detail pesanan pada Ringkasan hanya untuk dilihat."],
+    ["Kapan langganan Pro aktif?", "Pro aktif setelah pembayaran terverifikasi. Membuat invoice pembayaran saja belum mengaktifkan Pro. Cek status dan Riwayat langganan pada menu Paket & langganan; perpanjangan ditambahkan dari akhir masa Pro yang masih aktif."],
+    ["Bagaimana melihat atau mengedit detail pesanan?", "Klik baris pesanan di desktop atau ketuk kartu di ponsel untuk membuka detail. Daftar menampilkan maksimal dua produk; detail menampilkan semuanya. Dari halaman Pesanan, detail menyediakan aksi yang tersedia seperti Edit, Invoice, dan Refund. Detail pesanan pada Ringkasan hanya untuk dilihat."],
     ["Apakah data langsung tersimpan saat saya mengetik?", "Perubahan dalam form disimpan setelah kamu menekan tombol simpan. Tunggu pemberitahuan berhasil. Jika penyimpanan gagal, periksa koneksi dan coba lagi sebelum menutup form."],
     ["Bagaimana mengirim ide atau melaporkan kendala?", "Buka Kritik & saran, pilih jenis masukan dan bagian Tippo, lalu isi judul serta pesan. Sertakan langkah yang kamu lakukan agar kendalanya lebih mudah ditelusuri."],
   ];

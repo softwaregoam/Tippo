@@ -47,10 +47,12 @@ export function InvoiceDocument({order,batch,customer,settings,logoPreviewUrl}:{
 }
 
 export async function printInvoice(element: HTMLElement) {
+ const invoice=element.querySelector<HTMLElement>(".invoice-document");
+ if(!invoice)throw new Error("Invoice belum siap dicetak.");
  const popup=window.open("","_blank");
  if(!popup)throw new Error("Izinkan pop-up untuk mencetak invoice.");
  popup.opener=null;
- popup.document.open();popup.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice</title><style>body{margin:0;background:white}</style></head><body>${element.innerHTML}</body></html>`);popup.document.close();
+ popup.document.open();popup.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice</title><style>body{margin:0;background:white}</style></head><body>${invoice.outerHTML}</body></html>`);popup.document.close();
  await Promise.all(Array.from(popup.document.images).map(image=>image.decode().catch(()=>undefined)));
  if(!popup.closed){popup.focus();popup.print();}
 }

@@ -61,8 +61,10 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
         <ul className="subscription-features">
           <li><Check size={16} /><span>{FREE_ORDER_LIMIT} pesanan Jastip dan {FREE_ORDER_LIMIT} pesanan Open PO per bulan</span></li>
           <li><Check size={16} /><span>Maksimal {FREE_PRODUCT_LIMIT} produk master Open PO</span></li>
-          <li><Check size={16} /><span>Ringkasan bulan berjalan</span></li>
-          <li><Check size={16} /><span>Banyak produk per pesanan dan invoice WhatsApp</span></li>
+          <li><Check size={16} /><span>Ringkasan dan laporan bulan berjalan</span></li>
+          <li><Check size={16} /><span>HPP dan margin per pesanan</span></li>
+          <li><Check size={16} /><span>Rekap belanja Excel per produk atau pesanan</span></li>
+          <li><Check size={16} /><span>Invoice gambar dan WhatsApp dengan logo, warna, serta rekening toko</span></li>
         </ul>
         <p className="field-hint">Kuota pesanan kembali tersedia setiap tanggal 1 pukul 00.00 WIB. Pesanan yang dibatalkan tetap terhitung.</p>
         {plan === "pro" && !live ? <Button className="btn btn-secondary" onClick={returnToFree}>Kembali ke Gratis</Button> : plan === "free" ? <span className="status-tag">Paket aktif</span> : null}
@@ -74,6 +76,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
           <li><Check size={16} /><span>Pesanan Jastip dan PO tanpa batas kuota</span></li>
           <li><Check size={16} /><span>Produk master Open PO tanpa batas kuota</span></li>
           <li><Check size={16} /><span>Ringkasan dan grafik bulan sebelumnya</span></li>
+          <li><Check size={16} /><span>Laporan dengan pilihan periode dan ekspor Excel</span></li>
           <li><Check size={16} /><span>Template dan import Excel produk, Jastip, dan Open PO</span></li>
           <li><Check size={16} /><span>Semua fitur paket Gratis</span></li>
         </ul>
