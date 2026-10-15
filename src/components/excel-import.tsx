@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Download, FileSpreadsheet, LoaderCircle, X } from "lucide-react";
+import { Check, Download, LoaderCircle, X } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/finance";
@@ -148,16 +148,14 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
   >
     <div className="modal-header">
       <div>
-        <span className="eyebrow">INPUT PESANAN SEKALIGUS</span>
         <h2 id="excel-import-title">Import Excel {modeLabel}</h2>
-        <p id="excel-import-description">Unduh template, isi pesanan, lalu periksa pratinjau sebelum menyimpan.</p>
+        <p id="excel-import-description">Unggah pesanan dari template Excel.</p>
       </div>
       <button className="icon-button" type="button" onClick={onClose} aria-label="Tutup import Excel"><X size={20} /></button>
     </div>
     <form onSubmit={submit} noValidate aria-busy={Boolean(busy)}>
       <div className="modal-body">
-        {!importAllowed && <p className="error-message" role="alert">Import template Excel hanya tersedia untuk paket Pro. Pratinjau tetap tersimpan selama form ini terbuka.</p>}
-        <ol className="import-steps" aria-label="Langkah import"><li>Unduh template</li><li>Isi data</li><li>Unggah</li><li>Periksa</li><li>Import</li></ol>
+        {!importAllowed && <p className="error-message" role="alert">Import Excel tersedia di paket Pro.</p>}
         <div className="form-grid">
           <div className="field">
             <label className="field-label" htmlFor="excel-import-batch">Batch tujuan<span className="required-mark" aria-hidden="true"> *</span></label>
@@ -165,28 +163,17 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
               {!hasBatch && <SelectOption value="">Pilih batch aktif</SelectOption>}
               {batches.map((batch) => <SelectOption key={batch.id} value={batch.id}>{batch.name}</SelectOption>)}
             </Select>
-            <span className="field-hint">Seluruh baris dalam file masuk ke batch ini.</span>
           </div>
           <div className="field">
-            <span className="field-label">Mulai dari template</span>
+            <span className="field-label">Template pesanan</span>
             <Button type="button" className="btn btn-secondary" onClick={downloadTemplate} disabled={Boolean(busy) || !importAllowed}>
               {busy === "template" ? <LoaderCircle size={16} className="animate-spin" /> : <Download size={16} />}
               Template Excel
             </Button>
-            <span className="field-hint">Salin listing pesanan ke template ini. Ganti atau hapus baris contoh, simpan .xlsx, lalu unggah.</span>
+            <span className="field-hint">Ganti atau hapus baris contoh sebelum diunggah.</span>
           </div>
         </div>
         {!batches.length && <p className="error-message" role="status">Belum ada batch {modeLabel} aktif. Buat atau buka batch terlebih dahulu.</p>}
-        <div className="hpp-notice" style={{ padding: 14, marginTop: 4, marginBottom: 18 }}>
-          <FileSpreadsheet size={22} className="notice-icon" style={{ flexShrink: 0 }} />
-          <div>
-            <strong>Satu baris untuk satu produk</strong>
-            <p>Isi nomor_pesanan yang sama untuk menggabungkan produk menjadi satu pesanan. Pelanggan, tanggal, fee, ongkir, dan DP pada baris lanjutan boleh kosong untuk mengikuti pesanan yang sama.</p>
-            <p>{type === "po"
-              ? "Isi SKU produk, atau nama dan varian yang cocok dengan master. Harga jual dan harga beli otomatis dari master saat impor."
-              : "Isi produk, jumlah, harga jual, serta varian, warna, atau ukuran jika ada. Harga beli boleh kosong jika belum diketahui."}</p>
-          </div>
-        </div>
         <div className="field">
           <label className="field-label" htmlFor="excel-import-file">File Excel<span className="required-mark" aria-hidden="true"> *</span></label>
           <input
@@ -200,8 +187,19 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
             onChange={(event) => { void chooseFile(event.target.files?.[0]); }}
             aria-describedby="excel-import-file-hint"
           />
-          <span className="field-hint" id="excel-import-file-hint">Format .xlsx, maksimal 5 MB dan 1.000 baris produk; 100 produk per pesanan. Nomor pesanan kosong membuat pesanan tersendiri. Impor menambahkan pesanan baru.</span>
+          <span className="field-hint" id="excel-import-file-hint">.xlsx · Maks. 5 MB · 1.000 baris. Impor menambah pesanan baru.</span>
         </div>
+        <details className="form-section">
+          <summary>Panduan pengisian</summary>
+          <ul className="field-hint" style={{ paddingLeft: 18, lineHeight: 1.8, marginTop: 8 }}>
+            <li>Satu baris per produk, maksimal 100 produk per pesanan. Semua pesanan masuk ke batch tujuan.</li>
+            <li>Gunakan nomor_pesanan yang sama untuk beberapa produk dalam satu pesanan. Jika kosong, dibuat pesanan terpisah.</li>
+            <li>Untuk pesanan yang sama, pelanggan, tanggal, fee, ongkir, dan DP cukup diisi sekali.</li>
+            <li>{type === "po"
+              ? "Cocokkan SKU atau nama dan varian dengan katalog. Harga otomatis dari katalog."
+              : "Isi nama produk, jumlah, dan harga jual. Varian dan harga beli opsional."}</li>
+          </ul>
+        </details>
         {busy === "reading" && <p role="status">Membaca dan memeriksa file Excel…</p>}
         {error && <p className="error-message" role="alert">{error}</p>}
         {preview && <section aria-labelledby="excel-preview-title" style={{ marginTop: 20 }}>
@@ -209,9 +207,8 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
             <div><h3 id="excel-preview-title">Pratinjau pesanan</h3><p style={{ overflowWrap: "anywhere" }}>{fileName}</p></div>
           </div>
           <p role="status" className="field-hint" style={{ marginBottom: 12 }}>
-            {preview.rowCount} pesanan · {preview.validCount} valid · {problemRows} perlu diperbaiki
+            {preview.sourceRowCount} baris produk · {preview.rowCount} pesanan · {preview.validCount} valid · {problemRows} perlu diperbaiki
           </p>
-          <p className="field-hint" style={{ marginBottom: 12 }}>{preview.sourceRowCount} baris produk dikelompokkan berdasarkan nomor_pesanan. Fee, ongkir, dan DP dihitung sekali per pesanan.</p>
           {preview.errors.length > 0 && <div className="error-message" role="alert">
             {preview.errors.map((message, index) => <p key={`${index}-${message}`}>{message}</p>)}
           </div>}
@@ -235,7 +232,7 @@ export function ExcelImportDialog({ type, data, importAllowed, defaultBatchId, o
               </table>
             </div>
           </div>}
-          {(problemRows > 0 || preview.errors.length > 0) && <p className="field-hint" style={{ marginTop: 12 }}>Perbaiki semua baris bermasalah di Excel, lalu unggah ulang. Belum ada data yang disimpan.</p>}
+          {(problemRows > 0 || preview.errors.length > 0) && <p className="field-hint" style={{ marginTop: 12 }}>Perbaiki baris bermasalah, lalu unggah ulang.</p>}
         </section>}
       </div>
       <div className="modal-footer" style={{ flexWrap: "wrap" }}>
