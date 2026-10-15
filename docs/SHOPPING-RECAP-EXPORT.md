@@ -16,3 +16,7 @@ Dua teks penjelasan panjang tidak ditampilkan dalam workbook.
 Total dan subtotal merupakan angka siap baca, bukan formula Excel. Nama pelanggan dan teks produk disimpan sebagai teks biasa. Alamat pelanggan dicantumkan sebagai alamat kirim bila terisi. Nomor telepon dan catatan pelanggan tidak disertakan.
 
 Tidak memerlukan migrasi database.
+
+## Kompatibilitas Microsoft Excel
+
+Jangan mengaktifkan `outlineProperties` pada ekspor ini. ExcelJS menulis `outlinePr` setelah `pageSetUpPr`, berlawanan dengan urutan `CT_SheetPr` pada ECMA-376, dan Microsoft Excel dapat meminta pemulihan file. Tampilan grup memakai merged cells, bukan outline baris, sehingga pengaturan outline tidak diperlukan. Pemeriksaan ZIP dan urutan elemen sheet dijalankan di tes ekspor.

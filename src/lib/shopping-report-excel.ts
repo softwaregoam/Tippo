@@ -13,7 +13,8 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
   const sheet=book.addWorksheet(name);sheet.columns=columns.map(({key,width,money})=>({key,width,style:{numFmt:money?'#,##0;[Red]-#,##0':'General'}}));
   for(const text of [`Rekap ${po?"Open PO":"Jastip"} · ${name}`,report.batch.name]){const row=sheet.addRow([text]);sheet.mergeCells(row.number,1,row.number,columns.length);row.alignment={vertical:"middle",wrapText:true};row.height=26;}
   const header=sheet.addRow(columns.map(column=>column.header));header.font={bold:true,color:{argb:"FFFFFFFF"}};header.fill={type:"pattern",pattern:"solid",fgColor:{argb:color}};header.alignment={wrapText:true,vertical:"middle"};header.height=32;
-  sheet.views=[{state:"frozen",ySplit:3}];sheet.properties.outlineProperties={summaryBelow:true,summaryRight:true};
+  // ExcelJS emits outlinePr after pageSetUpPr when outlineProperties is set; that order is invalid in XLSX.
+  sheet.views=[{state:"frozen",ySplit:3,activeCell:"A4"}];
   sheet.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0};sheet.pageSetup.printTitlesRow="1:3";
   return sheet;
  }
@@ -29,7 +30,7 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  ]);
  products.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}};
  products.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
- products.views=[{state:"frozen",ySplit:3,xSplit:2,showGridLines:false}];
+ products.views=[{state:"frozen",ySplit:3,xSplit:2,activeCell:"C4",showGridLines:false}];
  for(const index of [4,5,7])products.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
  const storeGroups=new Map<string,{name:string;items:ShoppingReport["products"]}>();
  if(!po)for(const product of report.products){const key=product.store.normalize("NFKC").toLocaleLowerCase("id-ID");let group=storeGroups.get(key);if(!group){group={name:product.store,items:[]};storeGroups.set(key,group);}group.items.push(product);}
@@ -60,7 +61,7 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
   {header:"Alamat kirim",key:"address",width:38},{header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"itemCost",width:22,money:true},{header:"Total HPP",key:"cost",width:22,money:true},{header:"Margin",key:"margin",width:22,money:true},
  ]);
  orders.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}};orders.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
- orders.views=[{state:"frozen",ySplit:3,xSplit:3,showGridLines:false}];
+ orders.views=[{state:"frozen",ySplit:3,xSplit:3,activeCell:"D4",showGridLines:false}];
  for(const index of [4,5,6,8,9,10,11])orders.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
  for(const [index,order] of report.orders.entries()){
   const start=orders.rowCount+1,fill=palette[index%palette.length];

@@ -1,4 +1,5 @@
 import test from "node:test";
+import {assertXlsxSheetProperties} from "./xlsx-structure.ts";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
 import {buildSalesReport,monthBounds} from "../src/lib/sales-report.ts";
@@ -39,7 +40,7 @@ test("range validation and calendar months handle invalid and leap dates",()=>{
 test("Excel export matches the filtered report, preserves numeric amounts and never turns customer names into formulas",async()=>{
  const known=make("a"),unknown=make("b");unknown.items[0].unitCost=null;
  const report=buildSalesReport(data([known,unknown,make("excluded",{batchId:"p"})]),filter);
- const bytes=await createReportExcel(report),workbook=new ExcelJS.Workbook();await workbook.xlsx.load(new Uint8Array(bytes).buffer);
+ const bytes=await createReportExcel(report);await assertXlsxSheetProperties(bytes);const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(new Uint8Array(bytes).buffer);
  assert.deepEqual(workbook.worksheets.map(sheet=>sheet.name),["Ringkasan","Pesanan","Produk terlaris"]);
  const sheet=workbook.getWorksheet("Pesanan")!;assert.equal(sheet.rowCount,7);
  assert.equal(sheet.getCell("C5").value,"=SUM(1,2)");assert.equal(sheet.getCell("N5").value,100);

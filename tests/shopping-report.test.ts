@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {assertXlsxSheetProperties} from "./xlsx-structure.ts";
 import {test} from "node:test";
 import ExcelJS from "exceljs";
 import {buildShoppingReport} from "../src/lib/shopping-report.ts";
@@ -46,4 +47,11 @@ test("order workbook margins support zero purchase prices and losses",async()=>{
  const workspace=data();workspace.orders=[order("zero",[item({unitCost:0})]),order("loss",[item({unitCost:150})])];const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(buildShoppingReport(workspace,"b"),"orders")).buffer);const sheet=book.getWorksheet("Per pesanan")!;
  // Sorted by order id: loss first, then zero.
  assert.equal(sheet.getCell("K4").value,-100);assert.equal(sheet.getCell("K5").value,200);assert.equal(sheet.getCell("F6").value,400);assert.equal(sheet.getCell("J6").value,300);assert.equal(sheet.getCell("K6").value,100);
+});
+
+test("all recap export modes retain valid Excel sheet-property order and ZIP contents",async()=>{
+ for(const type of ["po","jastip"] as const)for(const kind of ["products","orders"] as const){
+  const workspace=data();workspace.batches[0].type=type;const bytes=await createShoppingReportExcel(buildShoppingReport(workspace,"b"),kind);await assertXlsxSheetProperties(bytes);
+  const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(bytes).buffer);assert.equal(book.worksheets[0].views[0].activeCell,kind==="products"?"C4":"D4");
+ }
 });
