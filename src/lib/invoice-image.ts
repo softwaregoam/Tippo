@@ -29,8 +29,27 @@ export async function renderInvoiceImage(preview: HTMLElement): Promise<Blob> {
         await image.decode();
       } catch {throw new Error("Logo invoice belum dapat dimuat. Coba unduh kembali.");}
     }));
-    const {toBlob}=await import("html-to-image");
-    const blob=await toBlob(output,{pixelRatio:2,backgroundColor:"#ffffff",skipFonts:true});
+    // WebKit can omit decoded images nested inside SVG foreignObject on the first
+    // render. Rasterize the document without its logo, then draw the decoded logo
+    // directly on the final canvas so previews, downloads and print share it.
+    const logos=Array.from(output.querySelectorAll<HTMLImageElement>("[data-invoice-logo-url] img"));
+    const bounds=output.getBoundingClientRect();
+    const placements=logos.map(image=>({image,bounds:image.getBoundingClientRect()}));
+    const {toCanvas}=await import("html-to-image");
+    const canvas=await toCanvas(output,{
+      pixelRatio:2,backgroundColor:"#ffffff",skipFonts:true,
+      filter:node=>!(node.nodeType===1&&(node as Element).matches("[data-invoice-logo-url] img")),
+    });
+    const context=canvas.getContext("2d");
+    if(!context)throw new Error("Gambar invoice belum dapat dibuat. Coba kembali.");
+    const scaleX=canvas.width/bounds.width,scaleY=canvas.height/bounds.height;
+    for(const {image,bounds:box} of placements){
+      if(!image.naturalWidth||!image.naturalHeight)throw new Error("Logo invoice belum dapat dimuat. Coba kembali.");
+      const fit=Math.min(box.width/image.naturalWidth,box.height/image.naturalHeight);
+      const width=image.naturalWidth*fit,height=image.naturalHeight*fit;
+      context.drawImage(image,(box.left-bounds.left+(box.width-width)/2)*scaleX,(box.top-bounds.top+(box.height-height)/2)*scaleY,width*scaleX,height*scaleY);
+    }
+    const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,"image/png"));
     if(!blob)throw new Error("Gambar invoice belum dapat dibuat. Coba kembali.");
     return blob;
   } finally {frame.remove();}

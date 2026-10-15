@@ -1843,3 +1843,24 @@ for(const count of [5,6])for(const business of ["Jastip","Open PO"] as const)tes
  if(count===5)await expect(bar).toHaveCount(0);
  else{await expect(bar).toBeVisible();await expect(bar).toHaveCSS("opacity","1");const list=detail.getByRole("region",{name:"Daftar produk pesanan",exact:true});await list.evaluate(el=>{el.scrollTop=el.scrollHeight;});await expect.poll(()=>bar.locator("span").evaluate(el=>el.getBoundingClientRect().top)).toBeGreaterThan((await bar.boundingBox())!.y);await expect(bar).toBeVisible();await detail.getByRole("textbox",{name:"Cari produk di detail pesanan",exact:true}).fill("Produk 6");await expect(bar).toHaveCount(0);await detail.getByRole("textbox",{name:"Cari produk di detail pesanan",exact:true}).fill("");await expect(bar).toBeVisible();await detail.screenshot({path:`/tmp/tippo-mobile-scrollbar-${business}.png`});}
 });
+
+
+for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as const)test(`invoice raster includes logo pixels on first cold render ${business} ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:950});
+ const logo=await page.evaluate(()=>{const canvas=document.createElement("canvas");canvas.width=160;canvas.height=80;const context=canvas.getContext("2d")!;context.fillStyle="#ed1234";context.fillRect(0,0,80,80);context.fillStyle="#1234ed";context.fillRect(80,0,80,80);return canvas.toDataURL("image/png").split(",")[1];});
+ const logoUrl=`${endpoint}/storage/v1/object/public/invoice-logos/${owner}/cold.png`;
+ await authenticate(page,{workspace:twoBusinessWorkspace(),metadata:{invoice_template:{logoUrl}}});
+ let requests=0,release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
+ await page.route(logoUrl,async route=>{requests++;await gate;await route.fulfill({contentType:"image/png",body:Buffer.from(logo,"base64")});});
+ await page.goto("/app");await openBusiness(page,business);await openSection(page,"Pesanan");
+ async function open(){if(width<600){await page.getByRole("button",{name:`Detail ${business==="Jastip"?"Alya":"Bima PO"}`,exact:true}).click();await page.getByRole("dialog").getByRole("button",{name:"Invoice",exact:true}).click();}else await page.getByRole("button",{name:/^Invoice /}).click();return page.getByRole("dialog",{name:"Invoice pesanan",exact:true});}
+ let dialog=await open();await expect.poll(()=>requests).toBe(1);await expect(dialog.getByRole("button",{name:"Menyiapkan PDF…",exact:true})).toBeDisabled();if(width<600)await expect(dialog.locator(".invoice-photo img")).toHaveCount(0);release();
+ async function pixels(src:string){return page.evaluate(async src=>{const image=new Image();image.src=src;await image.decode();const canvas=document.createElement("canvas");canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;const context=canvas.getContext("2d")!;context.drawImage(image,0,0);return [[40,70],[110,70],[40,50]].map(([x,y])=>Array.from(context.getImageData(x*2,y*2,1,1).data));},src);}
+ const expected=[[237,18,52,255],[18,52,237,255],[255,255,255,255]];
+ for(let attempt=0;attempt<2;attempt++){
+  await expect(dialog.getByRole("button",{name:"Cetak / PDF",exact:true})).toBeEnabled();
+  if(width<600){const preview=dialog.locator(".invoice-photo img");await expect(preview).toBeVisible();expect(await pixels((await preview.getAttribute("src"))!)).toEqual(expected);}
+  const downloadEvent=page.waitForEvent("download");await dialog.getByRole("button",{name:"Unduh gambar",exact:true}).click();const download=await downloadEvent;const fs=await import("node:fs/promises"),bytes=await fs.readFile((await download.path())!);expect(await pixels(`data:image/png;base64,${bytes.toString("base64")}`)).toEqual(expected);
+  expect(requests).toBe(1);await dialog.getByRole("button",{name:"Tutup invoice"}).click();if(attempt===0)dialog=await open();
+ }
+});
