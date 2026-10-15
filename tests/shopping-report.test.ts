@@ -22,13 +22,18 @@ test("purchase grouping separates options, categories and stores and never treat
 test("empty batches export zero totals and unknown batches are rejected",()=>{
  const workspace=data();workspace.orders=[];const report=buildShoppingReport(workspace,"b");assert.equal(report.totals.quantity,0);assert.equal(report.totals.cost,0);assert.equal(report.products.length,0);assert.throws(()=>buildShoppingReport(workspace,"missing"));
 });
-test("workbook has category and order subtotals, exact grand totals, numeric prices and literal customer text",async()=>{
- const report=buildShoppingReport(data(),"b"),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(report)).buffer);
+for(const mode of ["po","jastip"] as const)test(`workbook ${mode} uses mode-specific groups and keeps HPP only in order sheet`,async()=>{
+ const workspace=data();workspace.batches[0].type=mode;const report=buildShoppingReport(workspace,"b"),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(report)).buffer);
  assert.deepEqual(book.worksheets.map(s=>s.name),["Per produk","Per pesanan"]);
  const products=book.getWorksheet("Per produk")!,orders=book.getWorksheet("Per pesanan")!;
- assert.equal(products.getCell("C6").value,"Kaos");assert.equal(products.getCell("G6").value,5);assert.equal(products.getCell("H6").value,"Bervariasi");assert.equal(products.getCell("J6").value,230);
- assert.equal(products.getCell("A7").value,"Subtotal Pakaian");assert.equal(products.getCell("G7").value,5);assert.equal(products.getCell(`A${products.rowCount}`).value,"TOTAL BATCH / PERJALANAN");assert.equal(products.getCell(`G${products.rowCount}`).value,6);assert.equal(products.getCell(`I${products.rowCount}`).value,230);assert.equal(products.getCell(`J${products.rowCount}`).value,"Belum lengkap");
- assert.equal(orders.getCell("A6").value,"1");assert.equal(orders.getCell("B6").value,"=SUM(1,2)");assert.equal(orders.getCell("K6").value,100);assert.equal(orders.getCell("L6").value,200);assert.equal(orders.getCell("M6").value,40);assert.equal(orders.getCell("O7").value,"Belum lengkap");assert.equal(orders.getCell("A8").value,"Subtotal 1");assert.equal(orders.getCell("L8").value,250);
- assert.equal(orders.getCell(`J${orders.rowCount}`).value,6);assert.equal(orders.getCell(`L${orders.rowCount}`).value,580);assert.equal(orders.getCell(`N${orders.rowCount}`).value,230);assert.equal(orders.getCell(`O${orders.rowCount}`).value,"Belum lengkap");
- assert.equal(JSON.stringify(orders.getSheetValues()).includes("secret phone"),false);assert.equal(JSON.stringify(orders.getSheetValues()).includes("private note"),false);
+ const cell=(sheet:ExcelJS.Worksheet,row:number,header:string)=>{let column=0;sheet.getRow(3).eachCell((cell,index)=>{if(cell.value===header)column=index;});assert.ok(column,header);return sheet.getCell(row,column).value;};
+ assert.equal(cell(products,4,"Produk"),"Kaos");assert.equal(cell(products,4,"Qty"),5);assert.equal(cell(products,products.rowCount,"Qty"),6);
+ assert.equal(products.getCell(`A${products.rowCount}`).value,mode==="po"?"TOTAL BATCH":"TOTAL PERJALANAN");
+ assert.equal(products.getCell("A3").value,mode==="po"?"Kategori":"Toko / brand");
+ assert.equal(products.getCell(mode==="po"?"A5":"A6").value,mode==="po"?"Subtotal Pakaian":"Subtotal Toko");
+ assert.doesNotMatch(JSON.stringify(products.getSheetValues()),/HPP|Harga beli|Bervariasi|Belum lengkap/);
+ const text=JSON.stringify(orders.getSheetValues());assert.doesNotMatch(text,/Kategori mengikuti|Nilai jual hanya/);
+ assert.equal(orders.getCell("A4").value,"1");assert.equal(cell(orders,4,"Pelanggan"),"=SUM(1,2)");assert.equal(cell(orders,4,"Harga jual / unit"),100);assert.equal(cell(orders,4,"Subtotal jual produk"),200);assert.equal(cell(orders,4,"Harga beli / unit"),40);assert.equal(cell(orders,5,"Total HPP"),"Belum lengkap");assert.equal(orders.getCell("A6").value,"Subtotal 1");assert.equal(cell(orders,6,"Subtotal jual produk"),250);
+ assert.equal(cell(orders,orders.rowCount,"Qty"),6);assert.equal(cell(orders,orders.rowCount,"Subtotal jual produk"),580);assert.equal(cell(orders,orders.rowCount,"HPP diketahui"),230);assert.equal(cell(orders,orders.rowCount,"Total HPP"),"Belum lengkap");
+ assert.equal((orders.getRow(3).values as string[]).includes("Kategori"),mode==="po");assert.equal(text.includes("secret phone"),false);assert.equal(text.includes("private note"),false);
 });

@@ -16,7 +16,7 @@ export function buildShoppingReport(data:AppData,batchId:string) {
  if(!batch)throw new Error("Batch tidak ditemukan.");
  const categories=new Map(data.products.map(product=>[product.id,clean(product.category)]));
  const names=new Map(data.customers.map(customer=>[customer.id,customer.name]));
- const orders:PurchaseOrder[]=data.orders.filter(order=>order.batchId===batchId&&order.status!=="cancelled").sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).map(order=>({id:order.id,customer:names.get(order.customerId)||"Pelanggan",date:order.date,items:order.items.map(item=>({...item,category:categories.get(item.productId??"")||"Tanpa kategori"})),totals:purchaseTotals(order.items)}));
+ const orders:PurchaseOrder[]=data.orders.filter(order=>order.batchId===batchId&&order.status!=="cancelled").sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).map(order=>({id:order.id,customer:names.get(order.customerId)||"Pelanggan",date:order.date,items:order.items.map(item=>({...item,category:batch.type==="po"?(categories.get(item.productId??"")||"Tanpa kategori"):"Tanpa kategori"})),totals:purchaseTotals(order.items)}));
  const groups=new Map<string,{labels:string[];items:OrderItem[]}>();
  for(const order of orders)for(const item of order.items){
   const labels=[item.category,clean(item.store)||"Tanpa toko / brand",clean(item.product),clean(item.variant),clean(item.color),clean(item.size)];
