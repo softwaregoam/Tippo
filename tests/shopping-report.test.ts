@@ -33,7 +33,7 @@ for(const mode of ["po","jastip"] as const)test(`workbook ${mode} uses mode-spec
  assert.equal(products.getCell("A4").value,mode==="po"?"Pakaian":"Toko");assert.ok(products.model.merges!.includes(mode==="po"?"A4:A5":"A4:A6"));assert.ok(products.model.merges!.includes(mode==="po"?"G4:G5":"G4:G6"));
  assert.doesNotMatch(JSON.stringify(products.getSheetValues()),/HPP|Harga beli|Bervariasi|Belum lengkap/);
  const text=JSON.stringify(orders.getSheetValues());assert.doesNotMatch(text,/Kategori mengikuti|Nilai jual hanya/);
- assert.deepEqual(orders.getCell("A4").value,{richText:[{text:"=SUM(1,2)",font:{bold:true,size:11}},{text:"\n1\n15 Okt 2026",font:{size:10,color:{argb:"FF626862"}}}]});
+ assert.deepEqual(orders.getCell("A4").value,{richText:[{text:"=SUM(1,2)",font:{bold:true,size:11}},{text:"\n15 Okt 2026",font:{size:10,color:{argb:"FF626862"}}}]});
  assert.equal(cell(orders,4,"Alamat kirim"),"Jalan Mawar 10\nBandung");assert.equal(cell(orders,4,"Harga jual / unit"),100);assert.equal(cell(orders,4,"Subtotal jual produk"),200);assert.equal(cell(orders,4,"Harga beli / unit"),40);assert.equal(cell(orders,4,"Subtotal beli"),80);assert.equal(cell(orders,4,"Total pesanan"),250);assert.equal(cell(orders,5,"Total HPP"),"Belum lengkap");assert.equal(cell(orders,4,"Margin"),"Belum lengkap");
  for(const merge of ["A4:A5","F4:F5","G4:G5","J4:J5","K4:K5"])assert.ok(orders.model.merges!.includes(merge));
  assert.equal(cell(orders,6,"Total HPP"),150);assert.equal(cell(orders,6,"Margin"),180);
