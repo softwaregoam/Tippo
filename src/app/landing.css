@@ -47,6 +47,7 @@
 .ledger-tabs button { flex:1; min-height:44px; padding:.6rem .75rem; border:1px solid transparent; border-radius:5px; color:var(--tone-text-d8e8df); background:transparent; font-size:.875rem; font-weight:600; }
 .ledger-tabs button:hover { background:var(--tone-surface-245c4e); color:var(--tone-text-fff); }
 .ledger-tabs button[aria-pressed="true"] { background:var(--tone-surface-f7f4ed); color:var(--tone-text-173f38); }
+.order-ledger:not(.ledger-po) .ledger-tabs button[aria-pressed="true"] { background:#245c4e; color:#fff; }
 .ledger-po .ledger-tabs button[aria-pressed="true"] { background:var(--tone-surface-fff2de); color:var(--tone-text-94501f); }
 .order-ledger.ledger-po { background: #402b1f; }
 .ledger-po .ledger-tabs { background: #241e18; }
