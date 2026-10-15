@@ -75,7 +75,13 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
   const marginLabel=(order:Order)=>{const cost=orderHpp(order,data.orders,data.batches);return cost===null?<span className="muted">—</span>:<span className={orderRevenue(order)-cost<0?"negative":"positive"}>{formatCurrency(orderRevenue(order)-cost)}</span>;};
   const actionLabel=(order:Order)=>orderHpp(order,data.orders,data.batches)===null?"Isi HPP":"Edit HPP";
   function changePage(next:number){setPage(next);details.current?.scrollIntoView({block:"start"});}
-  return <div>
+  return <div className="reports-layout">
+    <section className="report-stats hpp-summary-cards" aria-label="Total HPP dan margin batch">{[
+      [totals.incomplete?"HPP diketahui":"Total HPP",totalsKnown?formatCurrency(totals.hpp):"Belum lengkap",`${totals.complete} dari ${orders.length} pesanan lengkap`],
+      [totals.incomplete?"Margin diketahui":"Total margin",totalsKnown?formatCurrency(totals.margin):"Belum lengkap","Laba kotor sebelum biaya umum"],
+      ["Total pesanan",String(orders.length),`${orders.reduce((sum,order)=>sum+orderQuantity(order),0)} unit produk`],
+      ["HPP belum lengkap",String(totals.incomplete),totals.incomplete?"Pesanan perlu dilengkapi":"Semua HPP lengkap"],
+    ].map(([label,value,note],index)=><div className="card stat-card" key={index}><p className="muted">{label}</p><strong className={`report-stat-value${index===1&&totalsKnown&&totals.margin<0?" negative":""}`}>{value}</strong><p className="field-hint">{note}</p></div>)}</section>
     <section ref={details} className="card hpp-detail-card" aria-label="HPP per pesanan">
       <div className="card-header"><h2>HPP per pesanan</h2><span className="type-badge">{orders.length} PESANAN</span></div>
       <div className="list-toolbar hpp-list-toolbar" role="group" aria-label="Pencarian dan filter HPP">
@@ -87,10 +93,6 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
         <div className="mobile-data-list hpp-order-cards">{visible.map(order=><div className="mobile-data-row" key={order.id}><div className="mobile-row-heading"><strong>{customerName(order)}</strong><button type="button" className="icon-button" title={actionLabel(order)} aria-label={`${actionLabel(order)} ${customerName(order)}`} onClick={()=>setEditing(order.id)}><Pencil size={16} aria-hidden="true"/></button></div><span className="mobile-row-subtitle">{formatCalendarDate(order.date)} · {order.items.length} produk · {orderQuantity(order)} unit</span><span className="hpp-card-totals"><span><small>Total HPP</small>{costLabel(order)}</span><span><small>Margin</small>{marginLabel(order)}</span></span></div>)}</div>
       </>}
       {!visible.length&&<div className="empty-state compact"><p>{orders.length?"Tidak ada pesanan yang sesuai.":"Belum ada pesanan aktif."}</p>{orders.length>0&&<Button type="button" className="btn btn-secondary" onClick={()=>{setSearch("");setStatus("all");setPage(1);}}>Reset filter</Button>}</div>}
-      <section className="hpp-batch-totals" aria-label="Total HPP dan margin batch">
-        <div className="hpp-batch-total-heading"><strong>Total batch</strong>{totals.incomplete>0&&<span>{totals.incomplete} pesanan HPP belum lengkap</span>}</div>
-        <dl><div><dt>{totals.incomplete?"HPP diketahui":"Total HPP"}</dt><dd>{totalsKnown?formatCurrency(totals.hpp):"Belum lengkap"}</dd></div><div><dt>{totals.incomplete?"Margin diketahui":"Total margin"}</dt><dd className={totalsKnown&&totals.margin<0?"negative":undefined}>{totalsKnown?formatCurrency(totals.margin):"Belum lengkap"}</dd></div></dl>
-      </section>
       {filtered.length>0&&<div className="table-footer report-pagination"><span>{(page-1)*10+1}–{Math.min(page*10,filtered.length)} dari {filtered.length} pesanan</span>{pageCount>1&&<nav aria-label="Halaman HPP"><span>{page} / {pageCount}</span><Button type="button" className="btn btn-secondary" disabled={page===1} onClick={()=>changePage(page-1)}>Sebelumnya</Button><Button type="button" className="btn btn-secondary" disabled={page===pageCount} onClick={()=>changePage(page+1)}>Berikutnya</Button></nav>}</div>}
     </section>
     {selected&&<HppOrderDialog key={selected.id} order={selected} batch={batch} data={data} onSave={onSave} onClose={()=>setEditing(null)}/>}

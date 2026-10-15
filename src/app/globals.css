@@ -1283,14 +1283,4 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .shopping-recap-export { white-space:nowrap; }
 @media(max-width:600px) { .shopping-recap-export-tools { flex-basis:100%; margin-left:0; flex-direction:column; align-items:stretch; } .shopping-recap-export-tools .select-trigger { width:100%; } }
 
-.hpp-batch-totals { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 24px; border-top:1px solid var(--border); background:var(--tone-surface-f7f4ed); }
-.hpp-batch-total-heading { display:grid; gap:4px; }
-.hpp-batch-total-heading > span,.hpp-batch-totals dt { color:var(--muted); font-size:12px; }
-.hpp-batch-totals dl { display:flex; gap:36px; margin:0; }
-.hpp-batch-totals dl > div { display:grid; gap:4px; text-align:right; }
-.hpp-batch-totals dd { margin:0; font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
-@media(max-width:600px) {
- .hpp-batch-totals { flex-direction:column; align-items:stretch; gap:12px; padding:16px; }
- .hpp-batch-totals dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
- .hpp-batch-totals dl > div { text-align:left; min-width:0; }
-}
+.hpp-summary-cards .report-stat-value.negative { color:var(--danger); }
