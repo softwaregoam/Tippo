@@ -18,6 +18,7 @@
 :root {
   --ink: #233d35;
   --muted: #53675f;
+  --placeholder: #858d85;
   --primary: #245c4e;
   --warning: #94501f;
   --danger: #a2392e;
@@ -261,7 +262,7 @@ svg { flex-shrink: 0; }
 .list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px; }
 .search-field { display: flex; align-items: center; gap: 10px; border: 1px solid var(--control-border); background: var(--paper); border-radius: 7px; color: var(--muted); padding: 0 13px; min-height: 44px; width: 320px; }
 .search-field input { flex: 1; border: none; background: none; font-size: 16px; min-height: 44px; min-width: 0; color: var(--ink); }
-.search-field input::placeholder { color: var(--muted); opacity: 1; }
+.search-field input::placeholder { color: var(--placeholder); opacity: 1; }
 .search-field:focus-within { outline: 2px solid var(--primary); outline-offset: 3px; }
 .search-field input:focus-visible { outline: none; }
 .toolbar-filters { display: flex; align-items: center; gap: 10px; }
@@ -358,7 +359,7 @@ svg { flex-shrink: 0; }
 .date-picker-display { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .date-picker-display > span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .date-picker-display svg { flex-shrink:0; }
-.date-picker-empty { color:var(--muted); }
+.date-picker-empty { color:var(--placeholder); }
 .date-picker[data-disabled] .date-picker-display { background:var(--tone-surface-e9eae7); color:var(--tone-text-626762); border-color:var(--tone-line-7d817d); }
 .date-picker[data-disabled] .date-picker-input { cursor:not-allowed; }
 .date-picker .date-picker-input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; min-width:0; }
@@ -379,7 +380,7 @@ svg { flex-shrink: 0; }
 .field-label { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
 .field-label>span { font-weight: 400; color: var(--muted); }
 .input { width: 100%; min-height: 44px; height: 44px; border: 1px solid var(--control-border); border-radius: 6px; padding: 0 12px; background: var(--paper); color: var(--ink); font-size: 16px; outline-color: var(--primary); }
-.input::placeholder { color: var(--muted); opacity: 1; }
+input::placeholder, textarea::placeholder, .input::placeholder { color: var(--placeholder); opacity: 1; }
 .input:focus { border-color: var(--primary); }
 .field-hint { font-size: 13px; line-height: 1.7; color: var(--muted); }
 .form-section { margin-top: 16px; padding-top: 18px; border-top: 1px solid var(--border); }
@@ -832,7 +833,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 @media(max-width:600px) {
  .order-dialog .order-context .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 12px; }
  .order-dialog .order-context .select-trigger[name="customerId"] { padding-inline:8px; font-size:14px; gap:4px; }
- .order-dialog .order-context .select-trigger[name="customerId"][data-placeholder] > span:first-child { white-space:normal; line-height:1.15; color:var(--muted); }
+ .order-dialog .order-context .select-trigger[name="customerId"][data-placeholder] > span:first-child { white-space:normal; line-height:1.15; color:var(--placeholder); }
 }
 .order-dialog .add-order-item { width:100%; justify-content:center; }
 .order-dialog .payment-field { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; grid-column:1 / -1; align-items:start; }
@@ -1251,3 +1252,6 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .invoice-photo-viewport img { display:block; max-width:none; height:auto; margin:0; }
  .invoice-photo-placeholder { display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:20px; text-align:center; color:var(--muted); font-size:13px; }
 }
+
+.select-trigger[data-placeholder] > span:first-child,
+.select-trigger[data-value=""] > span:first-child { color: var(--placeholder); }

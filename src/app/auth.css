@@ -123,7 +123,7 @@
   scroll-margin-block: 24px;
 }
 
-.auth-field input::placeholder { color: var(--tone-text-53675f); opacity: 1; }
+.auth-field input::placeholder { color: var(--placeholder); opacity: 1; }
 .auth-input-wrap { display: flex; align-items: center; }
 
 .auth-input-wrap input {
