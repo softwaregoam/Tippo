@@ -1,3 +1,4 @@
+import { CUSTOMER_SERVICE_PHONE, CUSTOMER_SERVICE_WHATSAPP_URL } from "@/lib/support";
 import type { Batch } from "@/lib/types";
 
 type HelpDestination = "products" | "batches" | "orders" | "hpp" | "settings" | "feedback" | "reports" | "invoice-template" | "subscription";
@@ -111,7 +112,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
         <h2 id="help-faq-title">Pertanyaan umum</h2>
         {questions.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}
       </section>
-      <div className="help-contact"><p>Masih ada yang ingin ditanyakan?</p><button className="btn btn-secondary" onClick={() => onNavigate("feedback")}>Buka Kritik & saran</button></div>
+      <div className="help-contact"><div><strong>Butuh bantuan?</strong><p>WhatsApp CS: {CUSTOMER_SERVICE_PHONE}</p></div><div className="help-contact-actions"><button className="btn btn-secondary" onClick={() => onNavigate("feedback")}>Kritik & saran</button><a className="btn btn-primary" href={CUSTOMER_SERVICE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer">Hubungi CS via WhatsApp</a></div></div>
     </div>
   </div>;
 }

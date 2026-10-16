@@ -1,5 +1,6 @@
 "use client";
 
+import { CUSTOMER_SERVICE_WHATSAPP_URL } from "@/lib/support";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PublicFeedback } from "@/components/public-feedback";
 import { useAccountSession } from "@/lib/use-account-session";
@@ -210,7 +211,7 @@ export function LandingPage() {
 
       <footer className="landing-footer landing-container">
         <div><Wordmark /><p>Titip &amp; Pesan, Beres di Tippo.</p></div>
-        <nav aria-label="Tautan footer">{signedIn !== null && <Link href={signedIn ? "/app" : "/masuk"}>{signedIn ? "Buka usaha saya" : "Masuk"}</Link>}<Link href="/privasi">Privasi</Link><Link href="/ketentuan">Ketentuan</Link></nav>
+        <nav aria-label="Tautan footer">{signedIn !== null && <Link href={signedIn ? "/app" : "/masuk"}>{signedIn ? "Buka usaha saya" : "Masuk"}</Link>}<Link href="/privasi">Privasi</Link><Link href="/ketentuan">Ketentuan</Link><a href={CUSTOMER_SERVICE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer">Customer service</a></nav>
       </footer>
     </div>
   );

@@ -7,6 +7,7 @@ import { canChangeBatchStatus } from "@/lib/batch-status";
 import { isAppData } from "@/lib/validation";
 import { FeedbackPanel } from "@/components/feedback-panel";
 import { HelpPanel } from "@/components/help-panel";
+import { CUSTOMER_SERVICE_WHATSAPP_URL } from "@/lib/support";
 import { applyRefund, refundedTotal } from "@/lib/refund";
 import { DEMO_PROFILE_KEY, readBusinessProfile } from "@/lib/business-profile";
 import { InvoiceTemplatePanel } from "@/components/invoice-template-panel";
@@ -18,7 +19,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   ArrowRight, ArrowUpRight, CalendarDays, Crown,
-  Check, ChevronDown, CircleHelp, Download, FileJson, Layers3,
+  Check, ChevronDown, CircleHelp, Download, FileJson, Headset, Layers3,
   FileBarChart2, LayoutDashboard, LogOut, MapPin, Menu, MessageSquare, Package, Palette, Pencil, Plus, ReceiptText, Search, Settings2,
   ShoppingBag, Trash2, Upload, UsersRound, Wallet, X,
 } from "lucide-react";
@@ -357,6 +358,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
           <div className="sidebar-menu-group sidebar-support" role="group" aria-label="Menu pendukung">
             <div className="workspace-label">Bantuan & pengaturan</div>
             {supportNavigation.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} title={sidebarCollapsed ? label : undefined} aria-current={page === id ? "page" : undefined} className={`nav-item ${page === id ? "active" : ""}`} onClick={() => go(id)}><Icon size={19} /><span>{label}</span></button>)}
+            <a className="nav-item" href={CUSTOMER_SERVICE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="Customer service" title={sidebarCollapsed ? "Customer service" : undefined} onClick={() => setMobileOpen(false)}><Headset size={19} aria-hidden="true" /><span>Customer service</span></a>
           </div>
         </nav>
         <div className="sidebar-bottom"><button aria-label="Paket & langganan" title={sidebarCollapsed ? "Paket & langganan" : undefined} className={`nav-item subscription-nav ${isPro ? "is-pro" : "is-free"} ${page === "subscription" ? "active" : ""}`} aria-current={page === "subscription" ? "page" : undefined} onClick={() => go("subscription")}><div className="subscription-icon"><Crown size={20} aria-hidden="true" /></div><span>Paket & langganan</span><small className="sidebar-plan-badge">{isPro ? "Pro" : "Gratis"}</small></button>

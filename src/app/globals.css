@@ -1351,3 +1351,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .order-detail-scrollbar { display:block; position:absolute; top:4px; bottom:4px; right:1px; width:4px; border-radius:8px; background:var(--border); pointer-events:none; }
  .order-detail-scrollbar > span { display:block; width:100%; border-radius:8px; background:var(--primary); }
 }
+
+.nav-item { text-decoration:none; }
+.help-contact-actions { display:flex; flex-wrap:wrap; gap:8px; }
+@media(max-width:600px) { .help-contact-actions { flex-direction:column; align-items:stretch; } }
