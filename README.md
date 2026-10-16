@@ -228,3 +228,7 @@ Profil bisnis: **Akun → Profil bisnis** untuk mengubah nama usaha, nomor Whats
 ### Kategori produk dan refund
 
 Kategori opsional tersedia pada master produk Open PO, pencarian/filter katalog, dan template Excel produk (import khusus Pro). Refund dicatat dari tindakan pada tabel pesanan: sebagian atau seluruh pembayaran yang tersisa, dengan opsi membatalkan pesanan. Ini pencatatan pengembalian manual, bukan transfer dana. Refund sebagian tidak mengurangi tagihan; edit pesanan jika harga/jumlah berubah. Riwayat tersimpan bersama workspace dan muncul dalam invoice. Tidak diperlukan migrasi Supabase tambahan untuk kedua fitur.
+
+### Router callback pembayaran
+
+Paket [payment-router](payment-router/README.md) menyiapkan router callback DOKU untuk Helipod/container atau VPS: antrean SQLite persisten, verifikasi DOKU, signature internal per aplikasi, retry, backup lokal, dan receiver Supabase Tippo. Checkout baru baru dialihkan jika secret `TIPPO_DOKU_ROUTER_URL` diaktifkan; webhook invoice lama tetap tersedia. Bukucatering belum dihubungkan. Kode dan pengujian lokal tidak berarti layanan remote sudah dipasang atau pembayaran produksi sudah dialihkan.

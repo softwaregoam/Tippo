@@ -1,6 +1,6 @@
 import { CheckoutResponseInvalid, CheckoutRejected, createDokuCheckout, cancelDokuTestCheckout, digest, verifyDoku, type DokuInvoice, type DokuMode } from "./doku.ts";
 
-export interface BillingConfig { environment: string; clientId: string; secretKey: string; siteUrl: string; notificationUrl: string; }
+export interface BillingConfig { environment: string; clientId: string; secretKey: string; siteUrl: string; notificationUrl: string; checkoutNotificationUrl?: string; }
 export interface BillingPorts {
   authenticate(token: string): Promise<string | null>;
   rpc(name: string, parameters: Record<string, unknown>): Promise<unknown>;
@@ -21,6 +21,8 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
   const prices=mode==="production-test"?[10,1000,10000]:[25000];
   const numberPattern=mode==="sandbox"?/^TSBX-[A-F0-9]{32}$/:mode==="production-test"?/^(TPT-[A-F0-9]{32}|TPT[A-F0-9]{24})$/:/^TPR[A-F0-9]{24}$/;
   const target = new URL(config.notificationUrl).pathname;
+  const checkoutNotification = config.checkoutNotificationUrl ? new URL(config.checkoutNotificationUrl) : new URL(config.notificationUrl);
+  if (checkoutNotification.protocol !== "https:" || checkoutNotification.username || checkoutNotification.password || checkoutNotification.hash || checkoutNotification.search || (checkoutNotification.port && checkoutNotification.port !== "443")) throw new Error("INVALID_NOTIFICATION_URL");
   const json = (data: unknown, status = 200, cors = false) => new Response(JSON.stringify(data), { status, headers: {
     "Content-Type":"application/json", "Cache-Control":"no-store", ...(cors ? {"Access-Control-Allow-Origin":site.origin,"Vary":"Origin"} : {}),
   }});
@@ -79,7 +81,7 @@ function handler(config: BillingConfig, ports: BillingPorts, mode:DokuMode, allo
       }
       if (action==="checkout") {
         // No owner, amount, duration, URL or environment is accepted from the browser.
-        const invoice=await ports.rpc(`tippo_begin_${prefix}_checkout`,{p_owner:owner,p_client_id:config.clientId,p_callback:`${site.origin}/app?billing=${mode}`,p_notification:config.notificationUrl}) as DokuInvoice;
+        const invoice=await ports.rpc(`tippo_begin_${prefix}_checkout`,{p_owner:owner,p_client_id:config.clientId,p_callback:`${site.origin}/app?billing=${mode}`,p_notification:checkoutNotification.href}) as DokuInvoice;
         if (!invoice.checkout_url && invoice.status==="creating") {
           if(mode!=="sandbox" && await ports.rpc(`tippo_claim_${prefix}_checkout`,{p_id:invoice.id,p_owner:owner})!==true)return json(await ports.rpc(`tippo_get_${prefix}_billing`,{p_owner:owner}),200,true);
           let checkout;

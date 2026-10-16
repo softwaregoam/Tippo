@@ -15,7 +15,8 @@ try{
   rpc:async(name:string,args:Record<string,unknown>)=>{const {data,error}=await service.rpc(name,args);if(error)throw new Error("DATABASE_UNAVAILABLE");return data;},
  };
  const test=runtime.env.get("DOKU_PRODUCTION_TEST_ENABLED")==="true"?productionTestHandler({...config,allowedUsers:required("DOKU_PRODUCTION_TEST_USER_IDS").split(",").map(v=>v.trim())},ports):null;
- handler=productionNotifications(productionBillingHandler(config,ports),test);
+ const checkoutNotificationUrl=runtime.env.get("TIPPO_DOKU_ROUTER_URL");
+ handler=productionNotifications(productionBillingHandler({...config,...(checkoutNotificationUrl?{checkoutNotificationUrl}:{})},ports),test);
 }catch{
  let origin="";try{origin=new URL(runtime.env.get("TIPPO_SITE_URL")??"").origin;}catch{}
  handler=async()=>new Response(JSON.stringify({error:"PRO_BILLING_NOT_CONFIGURED"}),{status:503,headers:{"Content-Type":"application/json","Cache-Control":"no-store",...(origin?{"Access-Control-Allow-Origin":origin}:{}),"Access-Control-Allow-Headers":"authorization,apikey,content-type,x-client-info","Access-Control-Allow-Methods":"GET,POST,OPTIONS"}});

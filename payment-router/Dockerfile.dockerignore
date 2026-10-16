@@ -1,0 +1,8 @@
+**
+!payment-router/
+!payment-router/*.mjs
+!supabase/
+!supabase/functions/
+!supabase/functions/_shared/
+!supabase/functions/_shared/doku.ts
+!supabase/functions/_shared/gateway-protocol.ts

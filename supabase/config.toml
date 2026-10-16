@@ -16,3 +16,7 @@ verify_jwt = false
 [functions.tippo-doku-snap-test]
 # User JWT + tester allowlist for checkout/status. SNAP HMAC for webhook.
 verify_jwt = false
+
+[functions.tippo-payment-events]
+# Internal HMAC-authenticated receiver; no browser or Supabase user JWT access.
+verify_jwt = false
