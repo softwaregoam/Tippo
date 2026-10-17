@@ -20,7 +20,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   const production=mode!=="sandbox",livePro=mode==="production",testing=mode==="production-test";
   const parse=livePro?parseProductionBilling:testing?parseProductionTestBilling:parseSandboxBilling;
   const failure="Pembayaran belum dapat dimuat. Coba lagi sebentar.";
-  const [billing,setBilling]=useState<SandboxBilling|null>(null),[busy,setBusy]=useState(true),[error,setError]=useState("");
+  const [billing,setBilling]=useState<SandboxBilling|null>(null),[busy,setBusy]=useState(!livePro),[error,setError]=useState("");
   const [clock,setClock]=useState(()=>Date.now());
   const [cancelId,setCancelId]=useState<string|null>(null);
   const [testAllowed,setTestAllowed]=useState(false);
@@ -44,13 +44,17 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
     return parse(await response.json());
   }
   useEffect(()=>{
-    alive.current=true;lock.current=true;const controller=new AbortController();
+    alive.current=true;lock.current=!livePro;const controller=new AbortController();
     const client=getSupabaseClient();
     const channel=livePro && client?client.channel(`pro-invoices:${account.id}`).on("postgres_changes",{event:"UPDATE",schema:"public",table:"tippo_pro_invoices",filter:`owner_id=eq.${account.id}`},payload=>{
-      if(payload.new.owner_id===account.id && payload.new.status==="paid" && watchedInvoices.current.has(payload.new.id))queuePaymentSync();
-    }).subscribe(status=>{if(status==="SUBSCRIBED")queuePaymentSync();}):null;
+      if(payload.new.owner_id===account.id && payload.new.status==="paid"){
+        watchedInvoices.current.add(payload.new.id);queuePaymentSync();
+      }
+    }).subscribe(status=>{if(status==="SUBSCRIBED" && watchedInvoices.current.size>0)queuePaymentSync();}):null;
     const timer=setInterval(()=>setClock(Date.now()),30000);
-    request("status",controller.signal).then(async value=>{if(alive.current){await applyBilling(value);if(testing)setTestAllowed(true);}}).catch(reason=>{if(alive.current && !controller.signal.aborted){if(reason instanceof CheckoutFailure && reason.testDenied)setTestAllowed(false);setError(reason instanceof Error?reason.message:failure);}}).finally(()=>{lock.current=false;if(alive.current){setBusy(false);flushPaymentSync();}});
+    // Live Pro already has the account subscription. Fetch invoices on demand;
+    // owned payment events still trigger a server-verified status refresh.
+    if(!livePro)request("status",controller.signal).then(async value=>{if(alive.current){await applyBilling(value);if(testing)setTestAllowed(true);}}).catch(reason=>{if(alive.current && !controller.signal.aborted){if(reason instanceof CheckoutFailure && reason.testDenied)setTestAllowed(false);setError(reason instanceof Error?reason.message:failure);}}).finally(()=>{lock.current=false;if(alive.current){setBusy(false);flushPaymentSync();}});
     return()=>{alive.current=false;controller.abort();clearInterval(timer);realtimePending.current=false;if(channel && client)void client.removeChannel(channel);if(reloadTimer.current)clearTimeout(reloadTimer.current);reloadTimer.current=null;popupCleanup.current?.();popupCleanup.current=null;};
     // The component is keyed by account ID; never reuses another owner's state.
     // eslint-disable-next-line react-hooks/exhaustive-deps

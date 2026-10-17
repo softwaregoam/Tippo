@@ -25,7 +25,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
   const sandbox = process.env.NEXT_PUBLIC_DOKU_SANDBOX_ENABLED === "true";
   const proBilling=process.env.NEXT_PUBLIC_DOKU_PRO_ENABLED==="true";
   const paymentRef=useRef<ProPaymentControls|null>(null);
-  const [paymentBusy,setPaymentBusy]=useState(true);
+  const [paymentBusy,setPaymentBusy]=useState(false);
   const [checkoutBusy,setCheckoutBusy]=useState(false);
   const jastipUsed = monthlyOrderUsage(data, new Date(), "jastip");
   const poUsed = monthlyOrderUsage(data, new Date(), "po");

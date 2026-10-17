@@ -1138,8 +1138,7 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
  test.skip(process.env.PLAYWRIGHT_DOKU_PRO_ENABLED!=="true","Requires real Pro billing build");
  await page.setViewportSize({width,height:900});await authenticate(page);await mockDokuPopup(page);const realtime=await mockProRealtime(page);
  let created=0,verified=false,cancelled=false,checks=0;
- let releaseInitial!:()=>void,releaseCheckout!:()=>void,initial=true;
- const initialStatus=new Promise<void>(resolve=>{releaseInitial=resolve;});
+ let releaseCheckout!:()=>void;
  const firstCheckout=new Promise<void>(resolve=>{releaseCheckout=resolve;});
  const expiry="2099-01-01T00:00:00Z";
  const invoice=(renewal=false)=>({id:renewal?"22222222-2222-4222-8222-222222222222":"11111111-1111-4111-8111-111111111111",number:"TPR"+(renewal?"B":"A").repeat(24),amount:25000,currency:"IDR",status:renewal?(cancelled?"cancelled":"pending"):verified?"paid":"pending",checkoutUrl:cancelled&&renewal?null:"https://checkout.doku.com/checkout/link/test",createdAt:"2026-10-12T00:00:00Z",expiresAt:"2050-10-12T00:00:00Z",paidAt:!renewal&&verified?"2026-10-12T01:00:00Z":null,customerName:"Titipan Naya",customerEmail:"naya@example.test",periodStart:!renewal&&verified?"2098-12-01T00:00:00Z":null,periodEnd:!renewal&&verified?expiry:null});
@@ -1147,15 +1146,15 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
  await page.route(endpoint+"/functions/v1/tippo-doku-pro/**",async route=>{
   if(route.request().url().endsWith("/checkout")){expect(route.request().postDataJSON()).toEqual({});created++;if(created===1)await firstCheckout;}
   if(route.request().url().endsWith("/cancel")){expect(route.request().postDataJSON()).toEqual({invoiceId:"22222222-2222-4222-8222-222222222222"});cancelled=true;}
-  if(route.request().url().endsWith("/status")){checks++;if(initial){initial=false;await initialStatus;}}
+  if(route.request().url().endsWith("/status"))checks++;
   const rows=created===0?[]:created===1?[invoice()]:[invoice(true),invoice()];
   await route.fulfill({json:{environment:"production",proUntil:verified?expiry:null,invoice:rows[0]??null,invoices:rows}});
  });
  await page.goto("/app?billing=production");
  const upgrade=page.getByRole("button",{name:"Upgrade ke Pro · Rp25.000",exact:true});
- await expect(upgrade).toBeVisible();await expect(upgrade).toBeDisabled();
+ await expect(upgrade).toBeEnabled();await expect.poll(()=>realtime.ready()).toBe(true);
+ expect(checks).toBe(0);
  await expect(page.getByRole("button",{name:"Memuat pembayaran…",exact:true})).toHaveCount(0);
- releaseInitial();await expect(upgrade).toBeEnabled();
  await page.locator(".quota-banner").getByRole("button",{name:"Upgrade Pro",exact:true}).click();await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toBeFocused();expect(created).toBe(0);
  const panel=page.getByRole("dialog",{name:"Riwayat langganan",exact:true});
  const historyButton=page.getByRole("button",{name:"Riwayat langganan",exact:true});await expect(historyButton).toBeVisible();await historyButton.click();await expect(panel).toBeVisible();
