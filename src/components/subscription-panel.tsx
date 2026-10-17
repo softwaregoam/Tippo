@@ -26,6 +26,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
   const proBilling=process.env.NEXT_PUBLIC_DOKU_PRO_ENABLED==="true";
   const paymentRef=useRef<ProPaymentControls|null>(null);
   const [paymentBusy,setPaymentBusy]=useState(true);
+  const [checkoutBusy,setCheckoutBusy]=useState(false);
   const jastipUsed = monthlyOrderUsage(data, new Date(), "jastip");
   const poUsed = monthlyOrderUsage(data, new Date(), "po");
   const currentMonth = new Date(`${jakartaMonth()}-01T00:00:00+07:00`).toLocaleDateString("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
@@ -81,10 +82,10 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
           <li><Check size={16} /><span>Semua fitur paket Gratis</span></li>
         </ul>
         <p className="field-hint">{live ? proBilling?"Bayar melalui DOKU Checkout. Pro aktif setelah pembayaran terverifikasi; riwayat invoice tersimpan di akunmu.":sandbox ? "Pembayaran DOKU tersedia untuk pengujian sandbox. Paket akun produksi tidak berubah setelah simulasi." : "Pembayaran Pro sedang disiapkan. Paket Gratis tetap bisa digunakan; kami belum menerima pembayaran langganan." : "Pembayaran langganan belum tersedia pada prototipe ini. Tombol di bawah mengaktifkan demo lokal selama satu bulan tanpa biaya."}</p>
-        {live?<Button className="btn btn-primary subscription-upgrade" disabled={!proBilling || !account || paymentBusy} onClick={()=>void paymentRef.current?.upgrade()}><Crown size={16}/>{proBilling && paymentBusy?"Memuat pembayaran…":plan==="pro"?"Perpanjang Pro · Rp25.000":"Upgrade ke Pro · Rp25.000"}</Button>:plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
+        {live?<Button className="btn btn-primary subscription-upgrade" disabled={!proBilling || !account || paymentBusy} onClick={()=>void paymentRef.current?.upgrade()}><Crown size={16}/>{checkoutBusy?"Menyiapkan pembayaran…":plan==="pro"?"Perpanjang Pro · Rp25.000":"Upgrade ke Pro · Rp25.000"}</Button>:plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
       </section>
     </div>
     {live && account && process.env.NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED==="true" && <DokuSandboxPanel key={account.id+"-production-test"} account={account} mode="production-test"/>}
-    {live && account && (proBilling?<DokuSandboxPanel key={account.id+"-pro"} account={account} mode="production" onSubscriptionChanged={onSubscriptionChanged} paymentRef={paymentRef} onBusyChange={setPaymentBusy}/>:sandbox?<DokuSandboxPanel key={account.id} account={account}/>:null)}
+    {live && account && (proBilling?<DokuSandboxPanel key={account.id+"-pro"} account={account} mode="production" onSubscriptionChanged={onSubscriptionChanged} paymentRef={paymentRef} onBusyChange={setPaymentBusy} onCheckoutBusyChange={setCheckoutBusy}/>:sandbox?<DokuSandboxPanel key={account.id} account={account}/>:null)}
   </div>;
 }

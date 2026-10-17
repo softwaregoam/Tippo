@@ -16,7 +16,7 @@ class CheckoutFailure extends Error {
 }
 
 export interface ProPaymentControls { upgrade:()=>Promise<void>; showHistory:()=>void; }
-export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,paymentRef,onBusyChange}:{account:{id:string;email?:string},mode?:SandboxBilling["environment"],onSubscriptionChanged?:()=>Promise<void>,paymentRef?:Ref<ProPaymentControls>,onBusyChange?:(busy:boolean)=>void}) {
+export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,paymentRef,onBusyChange,onCheckoutBusyChange}:{account:{id:string;email?:string},mode?:SandboxBilling["environment"],onSubscriptionChanged?:()=>Promise<void>,paymentRef?:Ref<ProPaymentControls>,onBusyChange?:(busy:boolean)=>void,onCheckoutBusyChange?:(busy:boolean)=>void}) {
   const production=mode!=="sandbox",livePro=mode==="production",testing=mode==="production-test";
   const parse=livePro?parseProductionBilling:testing?parseProductionTestBilling:parseSandboxBilling;
   const failure="Pembayaran belum dapat dimuat. Coba lagi sebentar.";
@@ -26,6 +26,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   const [testAllowed,setTestAllowed]=useState(false);
   const [historyOpen,setHistoryOpen]=useState(false);
   const [refreshPending,setRefreshPending]=useState(false);
+  const [checkoutBusy,setCheckoutBusy]=useState(false);
   const reloadTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const [historyOpener,setHistoryOpener]=useState<HTMLElement|null>(null);
   const alive=useRef(false),lock=useRef(false);
@@ -33,6 +34,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   const watchedInvoices=useRef(new Set<string>());
   const realtimePending=useRef(false);
   useEffect(()=>{onBusyChange?.(busy || refreshPending);},[busy,refreshPending,onBusyChange]);
+  useEffect(()=>{onCheckoutBusyChange?.(checkoutBusy);},[checkoutBusy,onCheckoutBusyChange]);
   useImperativeHandle(paymentRef,()=>({upgrade:()=>openPayment(true),showHistory:()=>{setHistoryOpener(document.activeElement instanceof HTMLElement?document.activeElement:null);setHistoryOpen(true);if(!lock.current)void load("status");}}));
   async function request(action:"checkout"|"status"|"cancel",signal?:AbortSignal,invoiceId?:string) {
     const client=getSupabaseClient();const session=await client?.auth.getSession();
@@ -83,7 +85,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
       if(!alive.current)return;
       const url=new URL(window.location.href);url.searchParams.set("billing","production");
       window.history.replaceState(window.history.state,"",url);window.location.reload();
-    },2000);
+    },6000);
   }
   async function handlePaymentClose() {await load("status");}
   const invoice=billing?.invoice;
@@ -94,7 +96,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   async function openPayment(create=false){
     if(lock.current || reloadTimer.current || !create && (!payable || !invoice?.checkoutUrl))return;
     const opener=document.activeElement instanceof HTMLElement?document.activeElement:null;
-    lock.current=true;setBusy(true);setError("");
+    lock.current=true;setBusy(true);setCheckoutBusy(true);setError("");
     try{
       let current=invoice;
       if(create){
@@ -110,7 +112,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
         popupCleanup.current=null;if(alive.current)return handlePaymentClose();
       },opener);
     }catch(reason){if(alive.current){if(reason instanceof CheckoutFailure && reason.billing)setBilling(reason.billing);setError(reason instanceof Error?reason.message:failure);document.getElementById(livePro?"invoice-pro":"production-test-payment")?.scrollIntoView({behavior:"smooth",block:"start"});}}
-    finally{lock.current=false;if(alive.current){setBusy(false);flushPaymentSync();}}
+    finally{lock.current=false;if(alive.current){setBusy(false);setCheckoutBusy(false);flushPaymentSync();}}
   }
   if(testing && !testAllowed)return null;
   if(livePro)return <>
