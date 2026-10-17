@@ -976,7 +976,11 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .pro-history-mobile-price { display:flex; flex-direction:column; gap:4px; min-width:0; }
  .pro-history-mobile-price>strong { font-size:17px; font-variant-numeric:tabular-nums; }
  .pro-history-mobile-price>.field-hint { font-size:12px; }
- .pro-history-mobile-header>.pro-history-actions { flex-shrink:0; }
+ .pro-history-mobile-header>.pro-history-actions { flex-shrink:0; gap:8px; }
+ .pro-history-mobile-header .pro-history-actions .icon-button { color:var(--primary); border-color:color-mix(in srgb,currentColor 32%,var(--paper)); background:color-mix(in srgb,currentColor 9%,var(--paper)); border-radius:10px; }
+ .pro-history-mobile-header .pro-history-actions .pro-history-cancel { color:var(--danger); }
+ .pro-history-mobile-header .pro-history-actions .icon-button:active { background:color-mix(in srgb,currentColor 18%,var(--paper)); }
+ .pro-history-mobile-header .pro-history-actions .icon-button svg { width:20px; height:20px; stroke-width:2.2; }
  .pro-history-mobile summary { display:flex; align-items:center; gap:12px; padding:10px 0 0; cursor:pointer; list-style:none; }
  .pro-history-mobile summary::-webkit-details-marker { display:none; }
  .pro-history-mobile summary > svg { flex-shrink:0; transition:transform .15s; }

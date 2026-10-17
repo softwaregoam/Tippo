@@ -36,7 +36,7 @@ export function SubscriptionHistory({invoices,livePro,email,busy,clock,cancelId,
  const shortDateTime=(value:string)=>`${shortDate(value)} · ${new Date(value).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jakarta"})}`;
  const hasDetails=(item:SandboxInvoice)=>Boolean(item.paidAt || item.periodStart && item.periodEnd || canCancel(item));
  const mobileSummary=(item:SandboxInvoice)=><span className="pro-history-summary">{badge(item)}<span className="pro-history-number">{item.number}</span></span>;
- const actions=(item:SandboxInvoice)=>canCancel(item)?<div className="pro-invoice-actions pro-history-actions">{livePro && <Button size="icon" className="icon-button" aria-label="Cek status" title="Cek status" disabled={busy} onClick={onCheck}><RefreshCw size={17} aria-hidden="true"/></Button>}<Button size="icon" className="icon-button" aria-label="Batalkan" title="Batalkan" disabled={busy} onClick={()=>onCancel(item.id)}><CircleX size={17} aria-hidden="true"/></Button></div>:"—";
+ const actions=(item:SandboxInvoice)=>canCancel(item)?<div className="pro-invoice-actions pro-history-actions">{livePro && <Button size="icon" className="icon-button" aria-label="Cek status" title="Cek status" disabled={busy} onClick={onCheck}><RefreshCw size={17} aria-hidden="true"/></Button>}<Button size="icon" className="icon-button pro-history-cancel" aria-label="Batalkan" title="Batalkan" disabled={busy} onClick={()=>onCancel(item.id)}><CircleX size={17} aria-hidden="true"/></Button></div>:"—";
  const selected=invoices.find(item=>item.id===cancelId);
  return <section aria-label={livePro?"Riwayat berlangganan":"Daftar pembayaran uji"} style={{marginTop:livePro?0:24}}>
   {!livePro && <h3>Daftar pembayaran uji</h3>}
