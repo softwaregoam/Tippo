@@ -1178,13 +1178,24 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
  await page.getByRole("region",{name:"Paket Pro",exact:true}).getByRole("button",{name:"Perpanjang Pro · Rp25.000",exact:true}).click();await expect(popup).toBeVisible();await popup.getByRole("button",{name:"Tutup pembayaran DOKU"}).click();await expect(popup).toHaveCount(0);
  await historyButton.click();await expect(panel).toBeVisible();expect(await page.evaluate(()=>document.body.style.position)).toBe("fixed");
  const history=panel.getByRole("region",{name:"Riwayat berlangganan",exact:true});
- await expect(history).toContainText("Riwayat akun naya@example.test");
+ await expect(history).toContainText("naya@example.test");
+ await expect(history).not.toContainText("20 invoice terbaru");
  const rows=width<=600?history.locator(".pro-history-mobile > li"):history.locator("tbody tr");await expect(rows).toHaveCount(2);
- if(width<=600){await expect(history.getByRole("region",{name:"Invoice berlangganan",exact:true})).toHaveCount(0);await rows.first().locator("summary").click();await expect(rows.first().getByText("Batas bayar",{exact:true})).toBeVisible();}
+ if(width<=600){
+  await expect(history.getByRole("region",{name:"Invoice berlangganan",exact:true})).toHaveCount(0);
+  await expect(rows.first().locator("details")).toHaveJSProperty("open",false);
+  const footer=await panel.locator(".modal-footer").boundingBox();
+  expect(footer!.y+footer!.height).toBeCloseTo(page.viewportSize()!.height,0);
+  await expect(rows.first().getByRole("button",{name:"Cek status",exact:true})).toBeInViewport();
+  await expect(rows.first().getByRole("button",{name:"Batalkan",exact:true})).toBeInViewport();
+  await rows.first().locator("summary").click();await expect(rows.first().getByText("Batas bayar",{exact:true})).toBeVisible();
+  await rows.first().locator("summary").click();await expect(rows.first().locator("details")).toHaveJSProperty("open",false);
+ }
  const checkAction=history.getByRole("button",{name:"Cek status",exact:true}),cancelAction=history.getByRole("button",{name:"Batalkan",exact:true});
  await expect(checkAction).toHaveText("");await expect(cancelAction).toHaveText("");
  const checkBounds=await checkAction.boundingBox(),cancelBounds=await cancelAction.boundingBox();
  expect(checkBounds!.y).toBe(cancelBounds!.y);
+ await panel.screenshot({path:`/tmp/tippo-history-redesign-${width}.png`});
  await checkAction.click();await cancelAction.click();
  const confirmation=page.getByRole("dialog",{name:"Batalkan pembayaran?",exact:true});
  const confirmButton=confirmation.getByRole("button",{name:"Ya, batalkan pembayaran"});
