@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Check, Crown, History } from "lucide-react";
+import { BarChart3, Check, Crown, FileSpreadsheet, History, Package, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokuSandboxPanel, type ProPaymentControls } from "@/components/doku-sandbox-panel";
 import {
@@ -30,7 +30,7 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
   const jastipUsed = monthlyOrderUsage(data, new Date(), "jastip");
   const poUsed = monthlyOrderUsage(data, new Date(), "po");
   const currentMonth = new Date(`${jakartaMonth()}-01T00:00:00+07:00`).toLocaleDateString("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
-  const expiresLabel = subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }) : null;
+  const expiresLabel = subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }) : null;
 
   function activateDemo() {
     const saved = startProDemo();
@@ -42,47 +42,58 @@ export function SubscriptionPanel({ data, subscription, account, onNotify, onSub
     onNotify?.(saved ? "Paket Gratis aktif. Semua data lama tetap tersedia." : "Paket Gratis aktif sementara. Pengaturan browser belum tersimpan.");
   }
 
+  const benefits = [
+    { icon: ShoppingBag, title: "Pesanan tanpa batas", detail: "Jastip & Open PO" },
+    { icon: Package, title: "Produk tanpa batas", detail: "Katalog Open PO" },
+    { icon: BarChart3, title: "Laporan lengkap", detail: "Semua periode & ekspor Excel" },
+    { icon: FileSpreadsheet, title: "Impor Excel", detail: "Produk & pesanan sekaligus" },
+  ];
+  const paymentHint = live
+    ? proBilling ? plan === "pro" ? "Perpanjangan menambah masa Pro." : "Aktif otomatis setelah pembayaran."
+      : sandbox ? "Pembayaran dalam mode uji." : "Pembayaran Pro belum tersedia."
+    : "Demo lokal tanpa pembayaran.";
+
   return <div className="subscription-layout">
-    {live && account && <div className="subscription-tools"><Button className="btn btn-secondary" disabled={!proBilling} onClick={()=>paymentRef.current?.showHistory()}><History size={17}/>Riwayat langganan</Button></div>}
     <section className="card subscription-status" aria-label="Paket aktif">
-      <div className="card-header"><div><h2>Paketmu: {plan === "pro" ? (live ? "Pro" : "Pro (demo)") : "Gratis"}</h2><p>Periode kuota {currentMonth} · waktu Jakarta</p></div><span className="type-badge">{plan === "pro" ? (live ? "PRO" : "PRO DEMO") : "GRATIS"}</span></div>
-      <div className="subscription-usage">
-        <div><strong>{jastipUsed}{plan === "free" ? ` / ${FREE_ORDER_LIMIT}` : ""}</strong><span>Pesanan Jastip bulan ini</span><small>Satu pesanan boleh berisi banyak produk.</small></div>
-        <div><strong>{poUsed}{plan === "free" ? ` / ${FREE_ORDER_LIMIT}` : ""}</strong><span>Pesanan Open PO bulan ini</span><small>Kuota PO terpisah dari kuota Jastip.</small></div>
-        <div><strong>{data.products.length}{plan === "free" ? ` / ${FREE_PRODUCT_LIMIT}` : ""}</strong><span>Produk master PO</span><small>Produk yang diarsipkan tetap termasuk batas produk.</small></div>
+      <div className="subscription-account-row">
+        <div><h2>Paketmu: {plan === "pro" ? (live ? "Pro" : "Pro (demo)") : "Gratis"}</h2>
+          <p>{plan === "pro" && expiresLabel ? `Aktif sampai ${expiresLabel} WIB` : `Kuota ${currentMonth}`}</p>
+        </div>
+        {live && account && <div className="subscription-tools"><Button className="btn btn-secondary" aria-label="Riwayat langganan" disabled={!proBilling} onClick={()=>paymentRef.current?.showHistory()}><History size={16} aria-hidden="true"/>Riwayat</Button></div>}
       </div>
-      {plan === "pro" && expiresLabel && <p className="subscription-expiry">{live ? "Pro" : "Demo Pro"} aktif sampai {expiresLabel} WIB.</p>}
-      {plan === "free" && subscription.tier === "pro" && <p className="subscription-expiry">Masa {live ? "Pro" : "demo Pro"} berakhir. Paket Gratis berlaku kembali dan data lama tersimpan.</p>}
+      <div className="subscription-usage">
+        <div><strong>{jastipUsed}{plan === "free" && <span> / {FREE_ORDER_LIMIT}</span>}</strong><span>Jastip</span></div>
+        <div><strong>{poUsed}{plan === "free" && <span> / {FREE_ORDER_LIMIT}</span>}</strong><span>Open PO</span></div>
+        <div><strong>{data.products.length}{plan === "free" && <span> / {FREE_PRODUCT_LIMIT}</span>}</strong><span>Produk PO</span></div>
+      </div>
+      {plan === "free" && subscription.tier === "pro" && <p className="subscription-expiry">Masa Pro berakhir. Paket Gratis aktif.</p>}
     </section>
 
     <div className="subscription-plans">
-      <section className="card subscription-plan" aria-label="Paket Gratis">
-        <div className="subscription-plan-title"><h2>Gratis</h2></div>
+      <section id="tippo-pro-plan" tabIndex={-1} className="card subscription-plan pro-plan" aria-label="Paket Pro">
+        <div className="subscription-pro-heading"><div className="subscription-plan-title"><Crown size={23} aria-hidden="true"/><h2>Pro</h2></div><span className="subscription-saving">Hemat 50%</span></div>
+        <h3 className="subscription-pro-headline">Lebih leluasa, usaha makin ramai.</h3>
+        <div className="subscription-pro-offer">
+          <div><s className="subscription-original-price" aria-label="Harga sebelumnya Rp50.000">Rp50.000</s><p className="subscription-price">Rp{PRO_MONTHLY_PRICE.toLocaleString("id-ID")}<span> / bulan</span></p></div>
+          <div className="subscription-cta">
+            {live?<Button className="btn btn-primary subscription-upgrade" disabled={!proBilling || !account || paymentBusy} onClick={()=>void paymentRef.current?.upgrade()}><Crown size={16} aria-hidden="true"/>{checkoutBusy?"Menyiapkan pembayaran…":plan==="pro"?"Perpanjang Pro · Rp25.000":"Upgrade ke Pro · Rp25.000"}</Button>:plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} aria-hidden="true"/>Coba Pro (demo)</Button>}
+            <p className="field-hint">{paymentHint}</p>
+          </div>
+        </div>
+        <ul className="subscription-pro-benefits">{benefits.map(({icon:Icon,title,detail})=><li key={title}><span className="subscription-benefit-icon"><Icon size={20} aria-hidden="true"/></span><div><strong>{title}</strong><span>{detail}</span></div></li>)}</ul>
+        <p className="subscription-included"><Check size={15} aria-hidden="true"/>Semua fitur Gratis sudah termasuk.</p>
+      </section>
+      <section className="card subscription-plan free-plan" aria-label="Paket Gratis">
+        <div className="subscription-free-heading"><h2>Gratis</h2>{plan === "free" && <span className="status-tag">Paket aktif</span>}</div>
         <p className="subscription-price">Rp0<span> / bulan</span></p>
         <ul className="subscription-features">
-          <li><Check size={16} /><span>{FREE_ORDER_LIMIT} pesanan Jastip dan {FREE_ORDER_LIMIT} pesanan Open PO per bulan</span></li>
-          <li><Check size={16} /><span>Maksimal {FREE_PRODUCT_LIMIT} produk master Open PO</span></li>
-          <li><Check size={16} /><span>Ringkasan dan laporan bulan berjalan</span></li>
-          <li><Check size={16} /><span>HPP dan margin per pesanan</span></li>
-          <li><Check size={16} /><span>Rekap belanja Excel per produk atau pesanan</span></li>
-          <li><Check size={16} /><span>Invoice gambar dan WhatsApp dengan logo, warna, serta rekening toko</span></li>
+          <li><Check size={16} aria-hidden="true"/><span>{FREE_ORDER_LIMIT} pesanan per usaha / bulan</span></li>
+          <li><Check size={16} aria-hidden="true"/><span>{FREE_PRODUCT_LIMIT} produk Open PO</span></li>
+          <li><Check size={16} aria-hidden="true"/><span>Invoice gambar & WhatsApp</span></li>
+          <li><Check size={16} aria-hidden="true"/><span>HPP, margin & rekap Excel</span></li>
         </ul>
-        <p className="field-hint">Kuota pesanan kembali tersedia setiap tanggal 1 pukul 00.00 WIB. Pesanan yang dibatalkan tetap terhitung.</p>
-        {plan === "pro" && !live ? <Button className="btn btn-secondary" onClick={returnToFree}>Kembali ke Gratis</Button> : plan === "free" ? <span className="status-tag">Paket aktif</span> : null}
-      </section>
-      <section id="tippo-pro-plan" tabIndex={-1} className="card subscription-plan pro-plan" aria-label="Paket Pro">
-        <div className="subscription-plan-title"><Crown size={23} /><h2>Pro</h2></div>
-        <p className="subscription-price"><s className="subscription-original-price" aria-label="Harga sebelumnya Rp50.000">Rp50.000</s>Rp{PRO_MONTHLY_PRICE.toLocaleString("id-ID")}<span> / bulan</span></p>
-        <ul className="subscription-features">
-          <li><Check size={16} /><span>Pesanan Jastip dan PO tanpa batas kuota</span></li>
-          <li><Check size={16} /><span>Produk master Open PO tanpa batas kuota</span></li>
-          <li><Check size={16} /><span>Ringkasan dan grafik bulan sebelumnya</span></li>
-          <li><Check size={16} /><span>Laporan dengan pilihan periode dan ekspor Excel</span></li>
-          <li><Check size={16} /><span>Template dan import Excel produk, Jastip, dan Open PO</span></li>
-          <li><Check size={16} /><span>Semua fitur paket Gratis</span></li>
-        </ul>
-        <p className="field-hint">{live ? proBilling?"Bayar melalui DOKU Checkout. Pro aktif setelah pembayaran terverifikasi; riwayat invoice tersimpan di akunmu.":sandbox ? "Pembayaran DOKU tersedia untuk pengujian sandbox. Paket akun produksi tidak berubah setelah simulasi." : "Pembayaran Pro sedang disiapkan. Paket Gratis tetap bisa digunakan; kami belum menerima pembayaran langganan." : "Pembayaran langganan belum tersedia pada prototipe ini. Tombol di bawah mengaktifkan demo lokal selama satu bulan tanpa biaya."}</p>
-        {live?<Button className="btn btn-primary subscription-upgrade" disabled={!proBilling || !account || paymentBusy} onClick={()=>void paymentRef.current?.upgrade()}><Crown size={16}/>{checkoutBusy?"Menyiapkan pembayaran…":plan==="pro"?"Perpanjang Pro · Rp25.000":"Upgrade ke Pro · Rp25.000"}</Button>:plan === "pro" ? <span className="status-tag">Demo Pro aktif</span> : <Button className="btn btn-primary" onClick={activateDemo}><Crown size={16} />Coba Pro (demo)</Button>}
+        <p className="field-hint">Kuota pesanan diperbarui tiap bulan.</p>
+        {plan === "pro" && !live && <Button className="btn btn-secondary" onClick={returnToFree}>Kembali ke Gratis</Button>}
       </section>
     </div>
     {live && account && process.env.NEXT_PUBLIC_DOKU_PRODUCTION_TEST_ENABLED==="true" && <DokuSandboxPanel key={account.id+"-production-test"} account={account} mode="production-test"/>}

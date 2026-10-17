@@ -1154,11 +1154,17 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
   await route.fulfill({json:{environment:"production",proUntil:verified?expiry:null,invoice:rows[0]??null,invoices:rows}});
  });
  await page.goto("/app?billing=production");
+ await expect(page.getByRole("heading",{name:"Lebih leluasa, usaha makin ramai.",exact:true})).toBeVisible();
+ await expect(page.locator(".subscription-pro-benefits>li")).toHaveCount(4);
+ await expect(page.locator(".quota-banner")).toHaveCount(0);
+ await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toContainText("Hemat 50%");
+ await page.screenshot({path:`/tmp/tippo-subscription-redesign-${width}.png`,fullPage:true});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  const upgrade=page.getByRole("button",{name:"Upgrade ke Pro · Rp25.000",exact:true});
  await expect(upgrade).toBeEnabled();await expect.poll(()=>realtime.ready()).toBe(true);
  expect(checks).toBe(0);
  await expect(page.getByRole("button",{name:"Memuat pembayaran…",exact:true})).toHaveCount(0);
- await page.locator(".quota-banner").getByRole("button",{name:"Upgrade Pro",exact:true}).click();await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toBeFocused();expect(created).toBe(0);
+ await openSection(page,"Ringkasan");await page.locator(".quota-banner").getByRole("button",{name:"Upgrade Pro",exact:true}).click();await expect(page.getByRole("region",{name:"Paket Pro",exact:true})).toBeFocused();expect(created).toBe(0);
  const panel=page.getByRole("dialog",{name:"Riwayat langganan",exact:true});
  const historyButton=page.getByRole("button",{name:"Riwayat langganan",exact:true});await expect(historyButton).toBeEnabled();await historyButton.click();await expect(panel).toBeVisible();
  await expect(panel.getByRole("status")).toHaveText("Memuat riwayat langganan…");
@@ -1825,7 +1831,7 @@ for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as cons
  await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();const form=page.locator(".order-dialog");const customer=form.getByRole("combobox",{name:"Pelanggan",exact:true});await customer.click();const picker=page.getByRole("dialog",{name:"Pilih pelanggan pesanan",exact:true});await expect(picker.getByRole("button",{name:"Tutup pilihan pelanggan"})).toBeFocused();await picker.getByRole("textbox").fill("pelanggan 34");await expect(picker.getByRole("option")).toHaveCount(2);await picker.getByRole("option",{name:"Pelanggan 34",exact:true}).click();await expect(customer).toContainText("Pelanggan 34");await expect(customer).toBeFocused();
  await customer.click();await picker.getByRole("textbox").fill("081299000003");await expect(picker.getByRole("option",{name:"Pelanggan 03",exact:true})).toBeVisible();await picker.getByRole("textbox").press("ArrowDown");await page.keyboard.press("Enter");await expect(customer).toContainText("Pelanggan 03");
  await customer.click();await picker.getByRole("textbox").fill("Tidak ditemukan");await expect(picker.getByRole("status")).toContainText("Pelanggan tidak ditemukan");await page.keyboard.press("Escape");await expect(form).toBeVisible();await expect(customer).toBeFocused();await customer.click();await expect(picker.getByRole("textbox")).toHaveValue("");await picker.getByRole("textbox").fill("Nama baru");await picker.getByRole("option",{name:"+ Pelanggan baru",exact:true}).click();await expect(form.getByLabel("Nama pelanggan",{exact:true})).toBeVisible();await expect(form.getByRole("combobox",{name:"Pelanggan",exact:true})).toContainText("Pelanggan baru");expect(saves).toHaveLength(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await form.getByRole("button",{name:/Tutup formulir pesanan/}).click();
- await openSection(page,"Paket & langganan");const free=page.getByRole("region",{name:"Paket Gratis",exact:true}),pro=page.getByRole("region",{name:"Paket Pro",exact:true});await expect(free).toContainText("Rekap belanja Excel per produk atau pesanan");await expect(free).toContainText("Invoice gambar dan WhatsApp");await expect(pro).toContainText("Laporan dengan pilihan periode dan ekspor Excel");
+ await openSection(page,"Paket & langganan");const free=page.getByRole("region",{name:"Paket Gratis",exact:true}),pro=page.getByRole("region",{name:"Paket Pro",exact:true});await expect(free).toContainText("HPP, margin & rekap Excel");await expect(free).toContainText("Invoice gambar & WhatsApp");await expect(pro).toContainText("Semua periode & ekspor Excel");
 });
 
 for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as const)test(`invoice logo cache follows replacements and removal ${business} ${width}`,async({page})=>{
