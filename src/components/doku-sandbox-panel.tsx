@@ -124,7 +124,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
     {!historyOpen && (error || needsReview) && <div id="invoice-pro" className="card pro-invoice-body">{error && <p className="error-message" role="alert">{error}</p>}{needsReview && <p className="field-hint">Pembayaran perlu diperiksa. Buka Riwayat langganan untuk cek status atau batalkan invoice yang belum lunas.</p>}</div>}
     {historyOpen && <SubscriptionHistoryDialog busy={busy} opener={historyOpener} onCheck={()=>void load("status")} onClose={()=>{setHistoryOpen(false);setCancelId(null);}}>
       {error && <p className="error-message" role="alert">{error}</p>}
-      {billing?.invoices?<SubscriptionHistory invoices={billing.invoices} livePro email={account.email} busy={busy} clock={clock} cancelId={cancelId} onCheck={()=>void load("status")} onCancel={setCancelId} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>setCancelId(null)}/>:<p role="status">{busy?"Memuat riwayat langganan…":"Riwayat belum dapat dimuat. Coba cek status kembali."}</p>}
+      {billing?.invoices?<SubscriptionHistory invoices={billing.invoices} livePro email={account.email} busy={busy} clock={clock} cancelId={cancelId} error={error} onCheck={()=>void load("status")} onCancel={id=>{setError("");setCancelId(id);}} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>{setCancelId(null);setError("");}}/>:<p role="status">{busy?"Memuat riwayat langganan…":"Riwayat belum dapat dimuat. Coba cek status kembali."}</p>}
     </SubscriptionHistoryDialog>}
   </>;
   return <section id={testing?"production-test-payment":"invoice-pro"} className="card pro-invoice-panel" aria-label={livePro?"Invoice langganan Pro":testing?"Uji pembayaran produksi":"Pembayaran Pro sandbox"}>
@@ -142,7 +142,7 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
         <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("status")}><RefreshCw size={16}/>{busy?"Memuat…":"Cek status pembayaran"}</Button>
         {invoice?.status==="paid" && <Button className="btn btn-secondary" disabled={busy} onClick={()=>void load("checkout")}>{livePro?"Perpanjang Pro":testing?"Uji pembayaran lagi":"Uji perpanjangan Pro"}</Button>}
       </div>{error&&<p className="error-message" role="alert">{error}</p>}
-      {production && billing?.invoices && <SubscriptionHistory invoices={billing.invoices} livePro={livePro} email={account.email} busy={busy} clock={clock} cancelId={cancelId} onCheck={()=>void load("status")} onCancel={setCancelId} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>setCancelId(null)}/>}
+      {production && billing?.invoices && <SubscriptionHistory invoices={billing.invoices} livePro={livePro} email={account.email} busy={busy} clock={clock} cancelId={cancelId} error={error} onCheck={()=>void load("status")} onCancel={id=>{setError("");setCancelId(id);}} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>{setCancelId(null);setError("");}}/>}
 
     </div>
   </section>;

@@ -955,8 +955,10 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 :root[data-theme="dark"] .billing-status-expired { color:#ffc397; background:#452e21; }
 :root[data-theme="dark"] .billing-status-cancelled { color:#c4cbd3; background:#343a42; }
 :root[data-theme="dark"] .billing-status-error { color:#ffb2bb; background:#49292f; }
-.pro-history-confirmation { margin-top:16px; overflow-wrap:anywhere; }
-.pro-history-confirmation p { margin-bottom:12px; }
+.subscription-cancel-dialog { background:var(--paper); overflow-wrap:anywhere; }
+.subscription-cancel-dialog[open] { display:flex; flex-direction:column; }
+.subscription-cancel-dialog>.modal-body { min-height:0; overflow:auto; }
+.subscription-cancel-dialog>.modal-header,.subscription-cancel-dialog>.modal-footer { flex-shrink:0; }
 @media (max-width:600px) {
  .pro-history-desktop { display:none; }
  .pro-history-mobile { display:block; list-style:none; margin:16px 0 0; padding:0; border-top:1px solid var(--border); }

@@ -1099,9 +1099,11 @@ for(const width of [320,1440])test(`DOKU production cancellation history at ${wi
  const panel=page.getByRole("region",{name:"Uji pembayaran produksi"}),history=panel.getByRole("region",{name:"Daftar pembayaran uji"});
  await expect(history).toContainText("tester@example.test");
  await history.getByRole("button",{name:"Batalkan",exact:true}).click();expect(calls).toBe(0);
- await history.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(panel.getByRole("alert")).toContainText("Order Cancellation not activated");
- await expect(history).toContainText("Menunggu pembayaran");allowCancel=true;
- await history.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(history).toContainText("Dibatalkan");
+ const confirmation=page.getByRole("dialog",{name:"Batalkan pembayaran?",exact:true});
+ await expect(confirmation).toBeVisible();await expect(confirmation.getByRole("button",{name:"Kembali",exact:true})).toBeFocused();
+ await confirmation.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(confirmation.getByRole("alert")).toContainText("Order Cancellation not activated");
+ await expect(confirmation).toBeVisible();allowCancel=true;
+ await confirmation.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(confirmation).toHaveCount(0);await expect(history).toContainText("Dibatalkan");
  await expect(history.getByRole("button",{name:"Batalkan",exact:true})).toHaveCount(0);await expect(panel.getByRole("button",{name:"Buka pembayaran DOKU"})).toHaveCount(0);
  await page.reload();await expect(history).toContainText("Dibatalkan");
  expect(calls).toBe(2);
@@ -1175,7 +1177,14 @@ for(const width of [320,1440])test(`DOKU Pro subscription popup, activation and 
  const rows=width<=600?history.locator(".pro-history-mobile > li"):history.locator("tbody tr");await expect(rows).toHaveCount(2);
  if(width<=600){await expect(history.getByRole("region",{name:"Invoice berlangganan",exact:true})).toHaveCount(0);await rows.first().locator("summary").click();await expect(rows.first().getByText("Batas bayar",{exact:true})).toBeVisible();}
  await history.getByRole("button",{name:"Cek status",exact:true}).click();await history.getByRole("button",{name:"Batalkan",exact:true}).click();
- await history.getByRole("button",{name:"Ya, batalkan pembayaran"}).click();await expect(history).toContainText("Dibatalkan");await expect(history.getByRole("button",{name:"Batalkan",exact:true})).toHaveCount(0);
+ const confirmation=page.getByRole("dialog",{name:"Batalkan pembayaran?",exact:true});
+ const confirmButton=confirmation.getByRole("button",{name:"Ya, batalkan pembayaran"});
+ await expect(confirmation).toBeVisible();await expect(confirmButton).toBeInViewport();
+ await expect(confirmation.getByRole("button",{name:"Kembali",exact:true})).toBeFocused();
+ expect(cancelled).toBe(false);await page.keyboard.press("Escape");await expect(confirmation).toHaveCount(0);
+ await expect(panel).toBeVisible();await expect(history.getByRole("button",{name:"Batalkan",exact:true})).toBeFocused();expect(cancelled).toBe(false);
+ await history.getByRole("button",{name:"Batalkan",exact:true}).click();await expect(confirmButton).toBeInViewport();
+ await confirmButton.click();await expect(confirmation).toHaveCount(0);await expect(history).toContainText("Dibatalkan");await expect(history.getByRole("button",{name:"Batalkan",exact:true})).toHaveCount(0);
  await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");expect(created).toBe(2);expect(checks).toBeGreaterThanOrEqual(3);
  await panel.getByRole("button",{name:"Tutup riwayat langganan"}).click();await expect(panel).toHaveCount(0);await expect(historyButton).toBeFocused();await page.reload();await historyButton.click();await expect(panel).toBeVisible();await expect(history).toContainText("Dibatalkan");await expect(rows).toHaveCount(2);await expect(page.getByRole("region",{name:"Paket aktif",exact:true})).toContainText("Paketmu: Pro");
  if(width<=600){await rows.last().locator("summary").click();await expect(rows.last().getByText("Mulai Pro",{exact:true})).toBeVisible();await expect(rows.last().getByText("Dibayar pada",{exact:true})).toBeVisible();}
