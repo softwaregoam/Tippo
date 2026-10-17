@@ -34,6 +34,8 @@ export function SubscriptionHistory({invoices,livePro,email,busy,clock,cancelId,
  const badge=(item:SandboxInvoice)=><span className={`status-tag billing-status-${status(item)}`}>{labels[status(item)]}</span>;
  const shortDate=(value:string)=>new Date(value).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric",timeZone:"Asia/Jakarta"});
  const shortDateTime=(value:string)=>`${shortDate(value)} · ${new Date(value).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jakarta"})}`;
+ const hasDetails=(item:SandboxInvoice)=>Boolean(item.paidAt || item.periodStart && item.periodEnd || canCancel(item));
+ const mobileSummary=(item:SandboxInvoice)=><span className="pro-history-summary">{badge(item)}<span className="pro-history-number">{item.number}</span></span>;
  const actions=(item:SandboxInvoice)=>canCancel(item)?<div className="pro-invoice-actions pro-history-actions">{livePro && <Button size="icon" className="icon-button" aria-label="Cek status" title="Cek status" disabled={busy} onClick={onCheck}><RefreshCw size={17} aria-hidden="true"/></Button>}<Button size="icon" className="icon-button" aria-label="Batalkan" title="Batalkan" disabled={busy} onClick={()=>onCancel(item.id)}><CircleX size={17} aria-hidden="true"/></Button></div>:"—";
  const selected=invoices.find(item=>item.id===cancelId);
  return <section aria-label={livePro?"Riwayat berlangganan":"Daftar pembayaran uji"} style={{marginTop:livePro?0:24}}>
@@ -43,12 +45,12 @@ export function SubscriptionHistory({invoices,livePro,email,busy,clock,cancelId,
    {!livePro && <p className="field-hint">Pembatalan mengikuti ketentuan DOKU.</p>}
    {livePro && <ul className="pro-history-mobile" aria-label="Daftar invoice akunmu">{invoices.map(item=><li key={item.id}>
     <div className="pro-history-mobile-header"><div className="pro-history-mobile-price"><strong>{money(item)}</strong><span className="field-hint">{shortDateTime(item.createdAt)}</span></div>{canCancel(item) && actions(item)}</div>
-    <details><summary><span className="pro-history-summary">{badge(item)}<span className="pro-history-number">{item.number}</span></span><ChevronDown size={18} aria-hidden="true"/></summary>
-    <div className="pro-history-details"><dl><dt>Tanggal invoice</dt><dd>{formatProInvoiceDate(item.createdAt)}</dd><dt>Status</dt><dd>{badge(item)}</dd>
+    {hasDetails(item)?<details><summary>{mobileSummary(item)}<ChevronDown size={18} aria-hidden="true"/></summary>
+    <div className="pro-history-details"><dl>
      {item.paidAt && <><dt>Dibayar pada</dt><dd>{formatProInvoiceDate(item.paidAt)}</dd></>}
      {item.periodStart && item.periodEnd?<><dt>Mulai Pro</dt><dd>{formatProInvoiceDate(item.periodStart)}</dd><dt>Sampai</dt><dd>{formatProInvoiceDate(item.periodEnd)}</dd></>:canCancel(item)?<><dt>Batas bayar</dt><dd>{formatProInvoiceDate(item.expiresAt)}</dd></>:null}
     </dl></div>
-   </details></li>)}</ul>}
+   </details>:<div style={{paddingTop:10}}>{mobileSummary(item)}</div>}</li>)}</ul>}
    <div className={`table-wrap ${livePro?"pro-history-desktop":""}`} tabIndex={0} role="region" aria-label={livePro?"Invoice berlangganan":"Riwayat pembayaran uji"}><table className="orders-table pro-history-table"><thead><tr><th scope="col">{livePro?"Invoice":"Invoice / pelanggan"}</th><th scope="col" className="pro-history-total">Total</th><th scope="col">Status</th>{livePro && <th scope="col" className="pro-history-period">Periode Pro</th>}<th scope="col" className="pro-history-action-cell">Aksi</th></tr></thead><tbody>{invoices.map(item=><tr key={item.id}>
     <td className="pro-history-invoice"><span>{item.number}</span><div className="field-hint">{shortDateTime(item.createdAt)}</div>{!livePro && <>{item.customerName && <div>{item.customerName}</div>}{item.customerEmail && <div className="field-hint">{item.customerEmail}</div>}</>}</td><td className="pro-history-total"><strong>{money(item)}</strong></td><td>{badge(item)}</td>{livePro && <td className="pro-history-period">{item.periodStart && item.periodEnd?`${shortDate(item.periodStart)} – ${shortDate(item.periodEnd)}`:"—"}</td>}<td className="pro-history-action-cell">{actions(item)}</td>
    </tr>)}</tbody></table></div>
