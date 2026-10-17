@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, CircleX, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatProInvoiceDate } from "@/lib/pro-invoice";
 import type { SandboxInvoice } from "@/lib/doku-billing";
@@ -33,7 +33,7 @@ export function SubscriptionHistory({invoices,livePro,email,busy,clock,cancelId,
  const money=(item:SandboxInvoice)=>"Rp"+item.amount.toLocaleString("id-ID");
  const badge=(item:SandboxInvoice)=><span className={`status-tag billing-status-${status(item)}`}>{labels[status(item)]}</span>;
  const shortDate=(value:string)=>new Date(value).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric",timeZone:"Asia/Jakarta"});
- const actions=(item:SandboxInvoice)=>canCancel(item)?<div className="pro-invoice-actions">{livePro && <Button className="btn btn-secondary" disabled={busy} onClick={onCheck}>Cek status</Button>}<Button className="btn btn-secondary" disabled={busy} onClick={()=>onCancel(item.id)}>Batalkan</Button></div>:"—";
+ const actions=(item:SandboxInvoice)=>canCancel(item)?<div className="pro-invoice-actions pro-history-actions">{livePro && <Button size="icon" className="icon-button" aria-label="Cek status" title="Cek status" disabled={busy} onClick={onCheck}><RefreshCw size={17} aria-hidden="true"/></Button>}<Button size="icon" className="icon-button" aria-label="Batalkan" title="Batalkan" disabled={busy} onClick={()=>onCancel(item.id)}><CircleX size={17} aria-hidden="true"/></Button></div>:"—";
  const selected=invoices.find(item=>item.id===cancelId);
  return <section aria-label={livePro?"Riwayat berlangganan":"Daftar pembayaran uji"} style={{marginTop:livePro?0:24}}>
   {!livePro && <h3>Daftar pembayaran uji</h3>}

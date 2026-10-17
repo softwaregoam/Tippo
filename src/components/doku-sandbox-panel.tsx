@@ -122,9 +122,10 @@ export function DokuSandboxPanel({account,mode="sandbox",onSubscriptionChanged,p
   if(livePro)return <>
     {refreshPending && <div className="toast" role="status"><Check size={18} aria-hidden="true" /><span>Pembayaran berhasil, Pro sudah aktif.</span></div>}
     {!historyOpen && (error || needsReview) && <div id="invoice-pro" className="card pro-invoice-body">{error && <p className="error-message" role="alert">{error}</p>}{needsReview && <p className="field-hint">Pembayaran perlu diperiksa. Buka Riwayat langganan untuk cek status atau batalkan invoice yang belum lunas.</p>}</div>}
-    {historyOpen && <SubscriptionHistoryDialog busy={busy} opener={historyOpener} onCheck={()=>void load("status")} onClose={()=>{setHistoryOpen(false);setCancelId(null);}}>
+    {historyOpen && <SubscriptionHistoryDialog busy={busy} opener={historyOpener} onClose={()=>{setHistoryOpen(false);setCancelId(null);}}>
+      {busy && billing?.invoices && !cancelId && <p className="field-hint" role="status">Memuat riwayat langganan…</p>}
       {error && <p className="error-message" role="alert">{error}</p>}
-      {billing?.invoices?<SubscriptionHistory invoices={billing.invoices} livePro email={account.email} busy={busy} clock={clock} cancelId={cancelId} error={error} onCheck={()=>void load("status")} onCancel={id=>{setError("");setCancelId(id);}} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>{setCancelId(null);setError("");}}/>:<p role="status">{busy?"Memuat riwayat langganan…":"Riwayat belum dapat dimuat. Coba cek status kembali."}</p>}
+      {billing?.invoices?<SubscriptionHistory invoices={billing.invoices} livePro email={account.email} busy={busy} clock={clock} cancelId={cancelId} error={error} onCheck={()=>void load("status")} onCancel={id=>{setError("");setCancelId(id);}} onConfirm={()=>{if(cancelId)void load("cancel",cancelId);}} onDismiss={()=>{setCancelId(null);setError("");}}/>:<p role="status">{busy?"Memuat riwayat langganan…":"Riwayat belum dapat dimuat. Coba buka kembali."}</p>}
     </SubscriptionHistoryDialog>}
   </>;
   return <section id={testing?"production-test-payment":"invoice-pro"} className="card pro-invoice-panel" aria-label={livePro?"Invoice langganan Pro":testing?"Uji pembayaran produksi":"Pembayaran Pro sandbox"}>

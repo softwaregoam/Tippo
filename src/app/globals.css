@@ -940,6 +940,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .subscription-history-dialog .modal-body { min-height:0; overflow:auto; overscroll-behavior:contain; }
 @media (max-width:600px) { .subscription-tools .btn { width:100%; } .subscription-history-dialog { width:100vw; height:100dvh; max-height:100dvh; margin:0; border-radius:0; } .subscription-history-dialog .modal-footer .btn { width:100%; } }
 @media (max-width:600px) { .subscription-upgrade { width:100%; white-space:normal; } }
+.pro-history-actions { flex-direction:row; flex-wrap:nowrap; gap:4px; }
 .pro-history-account,.pro-history-invoice,.pro-history-period { overflow-wrap:anywhere; white-space:normal; }
 .pro-history-period { min-width:140px; }
 .orders-table.pro-history-table th,.orders-table.pro-history-table td { padding-left:16px; padding-right:16px; text-align:left; }
