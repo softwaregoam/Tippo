@@ -9,6 +9,7 @@ type Props = Omit<ComponentProps<"button">, "value" | "onChange" | "ref"> & {
   value: string; options: ProductChoice[]; onValueChange: (value: string) => void; ref?: Ref<HTMLButtonElement>;
 };
 const normalize = (text: string) => text.normalize("NFKC").toLocaleLowerCase("id").replace(/\s+/g, " ").trim();
+const displayName = (name: string) => name.replace(/(?:\s*\(salinan\))+\s*$/i, "").trim() || name;
 
 export function ProductPicker({ value, options, onValueChange, ref, name, className = "", ...props }: Props) {
   const contentId = useId();
@@ -21,7 +22,7 @@ export function ProductPicker({ value, options, onValueChange, ref, name, classN
   const tokens = normalize(query).split(" ").filter(Boolean);
   const filtered = options.filter(option => tokens.every(token => normalize(option.searchText).includes(token)));
   return <Popover.Root modal open={open} onOpenChange={next => { setOpen(next); if (next) setQuery(""); }}>
-    <Popover.Trigger asChild><button {...props} type="button" ref={ref} name={name} role="combobox" aria-haspopup="dialog" aria-controls={contentId} aria-expanded={open} data-value={value} className={`select-trigger ${className}`}><span>{selected ? [selected.name, selected.detail, selected.sku].filter(Boolean).join(" · ") : "Pilih produk"}</span><span><ChevronDown size={16} aria-hidden="true" /></span></button></Popover.Trigger>
+    <Popover.Trigger asChild><button {...props} type="button" ref={ref} name={name} role="combobox" aria-haspopup="dialog" aria-controls={contentId} aria-expanded={open} data-value={value} className={`select-trigger ${className}`}><span>{selected ? [displayName(selected.name), selected.detail, selected.sku].filter(Boolean).join(" · ") : "Pilih produk"}</span><span><ChevronDown size={16} aria-hidden="true" /></span></button></Popover.Trigger>
     <Popover.Portal><div className="product-picker-portal">
       {open && <div className="product-picker-scrim" />}
       <Popover.Content id={contentId} data-product-picker className="product-picker" sideOffset={6} collisionPadding={12} aria-label="Pilih produk pesanan" aria-modal="true" onOpenAutoFocus={event => { event.preventDefault(); close.current?.focus({ preventScroll: true }); }}>
@@ -36,7 +37,7 @@ export function ProductPicker({ value, options, onValueChange, ref, name, classN
           if (event.key === "Home") { event.preventDefault(); buttons[0]?.focus(); }
           if (event.key === "End") { event.preventDefault(); buttons.at(-1)?.focus(); }
         }}>
-          {filtered.map(option => <button key={option.value} type="button" role="option" aria-selected={option.value === value} data-value={option.value} className="product-picker-option" onClick={() => { onValueChange(option.value); setOpen(false); }}><span><strong>{option.name}</strong>{option.detail && <span>{option.detail}</span>}<small>{[option.sku && `SKU: ${option.sku}`, option.category && `Kategori: ${option.category}`, option.note].filter(Boolean).join(" · ")}</small></span><span className="product-picker-price">{formatCurrency(option.price)}{option.value === value && <Check size={16} aria-hidden="true" />}</span></button>)}
+          {filtered.map(option => <button key={option.value} type="button" role="option" aria-selected={option.value === value} data-value={option.value} className="product-picker-option" onClick={() => { onValueChange(option.value); setOpen(false); }}><span><strong>{displayName(option.name)}</strong>{option.detail && <span>{option.detail}</span>}<small>{[option.sku && `SKU: ${option.sku}`, option.category && `Kategori: ${option.category}`, option.note].filter(Boolean).join(" · ")}</small></span><span className="product-picker-price">{formatCurrency(option.price)}{option.value === value && <Check size={16} aria-hidden="true" />}</span></button>)}
         </div>
         {!filtered.length && <div className="empty-state compact"><strong>Produk tidak ditemukan</strong><p>Coba nama, SKU, varian, atau kategori lain.</p><button type="button" className="btn btn-secondary" onClick={() => { setQuery(""); search.current?.focus(); }}>Reset pencarian</button></div>}
       </Popover.Content>
