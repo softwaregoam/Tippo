@@ -233,7 +233,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
       const firstField = Object.keys(nextErrors).find((name) => name !== "items");
       const firstItemError = Object.entries(nextItemErrors)[0];
       const name = firstField ?? (firstItemError ? `item-${firstItemError[0]}-${Object.keys(firstItemError[1])[0]}` : undefined);
-      if (name) modalRef.current?.querySelector<HTMLElement>(`[name="${name}"]`)?.focus();
+      if (name) { const target = modalRef.current?.querySelector<HTMLElement>(`[name="${name}"]`); const optional = target?.closest("details"); if (optional) optional.open = true; target?.focus(); }
       return;
     }
     const customer: Customer | undefined = fields.customerId === "new" ? {
@@ -263,7 +263,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
       <label className="field-label" htmlFor={id}>{label}{["product", "quantity", "unitPrice"].includes(name) && <span className="required-mark" aria-hidden="true"> *</span>}</label>
       <div style={{ position: "relative" }}>
         {isAmount && <span aria-hidden="true" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--muted)", fontSize: 13 }}>Rp</span>}
-        {numeric ? <NumberInput aria-label={label} required={["product", "quantity", "unitPrice"].includes(name)} id={id} name={`item-${item.id}-${name}`} className="input" inputMode={numeric ? "numeric" : undefined} min={numeric ? name === "quantity" ? "1" : "0" : undefined} step={numeric ? "1" : undefined} maxLength={!numeric ? itemTextLimits[name as keyof typeof itemTextLimits] : undefined} style={isAmount ? { paddingLeft: 37 } : undefined} value={item[name]} placeholder={name === "quantity" ? "Contoh: 2" : name === "unitCost" ? "Belum diketahui" : "0"} onValueChange={(value) => updateItem(item.id, name, value)} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined} /> : <input aria-label={label} required={["product", "quantity", "unitPrice"].includes(name)} id={id} name={`item-${item.id}-${name}`} className="input" ref={index === 0 && name === "product" ? productRef : undefined} type="text" inputMode={numeric ? "numeric" : undefined} min={numeric ? name === "quantity" ? "1" : "0" : undefined} step={numeric ? "1" : undefined} maxLength={!numeric ? itemTextLimits[name as keyof typeof itemTextLimits] : undefined} style={isAmount ? { paddingLeft: 37 } : undefined} value={item[name]} placeholder={name === "product" ? "Contoh: Airism Oversized / Nasi ayam"  : name === "variant" ? "Contoh: original / pedas" : name === "color" ? "Contoh: navy" : name === "size" ? "Contoh: M / porsi besar" : "0"} onChange={(event) => updateItem(item.id, name, event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined} />}
+        {numeric ? <NumberInput aria-label={label} required={["product", "quantity", "unitPrice"].includes(name)} id={id} name={`item-${item.id}-${name}`} className="input" inputMode={numeric ? "numeric" : undefined} min={numeric ? name === "quantity" ? "1" : "0" : undefined} step={numeric ? "1" : undefined} maxLength={!numeric ? itemTextLimits[name as keyof typeof itemTextLimits] : undefined} style={isAmount ? { paddingLeft: 37 } : undefined} value={item[name]} placeholder={name === "quantity" ? "Contoh: 2" : name === "unitCost" ? "Belum diketahui" : "0"} onValueChange={(value) => updateItem(item.id, name, value)} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined} /> : <input aria-label={label} required={["product", "quantity", "unitPrice"].includes(name)} id={id} name={`item-${item.id}-${name}`} className="input" ref={index === 0 && name === "product" ? productRef : undefined} type="text" inputMode={numeric ? "numeric" : undefined} min={numeric ? name === "quantity" ? "1" : "0" : undefined} step={numeric ? "1" : undefined} maxLength={!numeric ? itemTextLimits[name as keyof typeof itemTextLimits] : undefined} style={isAmount ? { paddingLeft: 37 } : undefined} value={item[name]} placeholder={name === "product" ? "Contoh: Airism Oversized / Nasi ayam"  : name === "store" ? "Contoh: Uniqlo atau toko supplier" : name === "variant" ? "Contoh: original / pedas" : name === "color" ? "Contoh: navy" : name === "size" ? "Contoh: M / porsi besar" : "0"} onChange={(event) => updateItem(item.id, name, event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined} />}
       </div>
       {error ? <span className="error-message" id={`${id}-error`}>{error}</span> : hint ? <span className="field-hint" id={`${id}-hint`}>{hint}</span> : null}
     </div>;
@@ -295,13 +295,17 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
               <div className="field"><label className="field-label" htmlFor="order-date">Tanggal pesanan<span className="required-mark" aria-hidden="true"> *</span></label><DatePicker aria-label="Tanggal pesanan" required id="order-date" name="date" value={fields.date} onValueChange={value => update("date", value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? "error-date" : undefined} />{errors.date && <span id="error-date" className="error-message">{errors.date}</span>}</div>
             {fields.customerId === "new" && <>
               <div className="field"><label className="field-label" htmlFor="order-customerName">Nama pelanggan<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama pelanggan" required id="order-customerName" name="customerName" className="input" maxLength={textLimits.customerName} value={fields.customerName} placeholder="Contoh: Alya Putri" autoComplete="name" onChange={(event) => update("customerName", event.target.value)} aria-invalid={Boolean(errors.customerName)} aria-describedby={errors.customerName ? "error-customerName" : undefined} />{errors.customerName && <span id="error-customerName" className="error-message">{errors.customerName}</span>}</div>
+              <details className="order-optional-fields order-full-width" onInvalidCapture={event => { event.currentTarget.open = true; }}>
+                <summary><span>Kontak pelanggan <small>(opsional)</small></span><ChevronDown size={18} aria-hidden="true" /></summary>
+                <div className="form-grid order-optional-body">
               <div className="field"><label className="field-label" htmlFor="order-customerPhone">WhatsApp <span className="muted">(opsional)</span></label><input id="order-customerPhone" name="customerPhone" className="input" type="tel" maxLength={textLimits.customerPhone} value={fields.customerPhone} placeholder="08xxxxxxxxxx" autoComplete="tel" onChange={(event) => update("customerPhone", event.target.value)} aria-invalid={Boolean(errors.customerPhone)} aria-describedby={errors.customerPhone ? "error-customerPhone" : undefined} />{errors.customerPhone && <span id="error-customerPhone" className="error-message">{errors.customerPhone}</span>}</div>
               <div className="field"><label className="field-label" htmlFor="order-customerAddress">Alamat (opsional)</label><textarea id="order-customerAddress" name="customerAddress" className="input" rows={3} placeholder="Alamat lengkap pelanggan" maxLength={textLimits.customerAddress} autoComplete="street-address" value={fields.customerAddress} onChange={(event) => update("customerAddress", event.target.value)} /></div>
+                </div>
+              </details>
             </>}
           </div></section>
           <div className="form-section order-section">
             <h3><span className="order-section-number">2</span>Produk / makanan</h3>
-            <p className="field-hint" style={{ marginTop: 6 }}>Varian, warna, dan ukuran dicatat pada masing-masing produk.</p>
             {errors.items && <p className="error-message" role="alert">{errors.items}</p>}
             {items.map((item, index) => <fieldset key={item.id} className="order-item-card">
               <legend className="field-label" style={{ padding: "0 6px" }}>Produk {index + 1}</legend>
@@ -312,12 +316,18 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
               <div className="form-grid jastip-item-grid">
                 {itemField(item, index, "product", "Nama produk")}
                 {itemField(item, index, "quantity", "Jumlah produk")}
-                {itemField(item, index, "store", "Toko / brand (opsional)", "Contoh: Uniqlo atau toko supplier")}{itemField(item, index, "variant", "Varian (opsional)")}
-                {itemField(item, index, "color", "Warna (opsional)")}
-                {itemField(item, index, "size", "Ukuran (opsional)")}
                 {itemField(item, index, "unitPrice", "Harga jual / produk")}
-                {itemField(item, index, "unitCost", "Harga beli / produk", "Kosongkan jika belum tahu. HPP ditandai belum lengkap.")}
               </div>
+              <details className="order-optional-fields" open={Boolean(order?.items.some(row => row.id === item.id && (row.store || row.variant || row.color || row.size || row.unitCost != null)))} onInvalidCapture={event => { event.currentTarget.open = true; }}>
+                <summary><span>Detail produk <small>(opsional)</small></span><ChevronDown size={18} aria-hidden="true" /></summary>
+                <div className="form-grid order-optional-body">
+                  {itemField(item, index, "store", "Toko / brand (opsional)")}
+                  {itemField(item, index, "variant", "Varian (opsional)")}
+                  {itemField(item, index, "color", "Warna (opsional)")}
+                  {itemField(item, index, "size", "Ukuran (opsional)")}
+                  {itemField(item, index, "unitCost", "Harga beli / produk")}
+                </div>
+              </details>
             </fieldset>)}
             <Button className="btn btn-primary add-order-item" type="button" onClick={addItem} disabled={items.length >= 100} style={{ marginTop: 14 }}><Plus size={16} />Tambah produk</Button>
             {items.length >= 100 && <p className="field-hint">Maksimal 100 produk per pesanan.</p>}

@@ -1277,6 +1277,20 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .order-extra-details > summary > svg { flex-shrink:0; transition:transform .15s; }
 .order-extra-details[open] > summary > svg { transform:rotate(180deg); }
 .order-extra-body { padding-top:20px; }
+.order-optional-fields { margin-top:16px; border:1px solid var(--border); border-radius:9px; background:var(--paper); overflow:hidden; }
+.order-optional-fields>summary { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:46px; padding:12px 14px; list-style:none; cursor:pointer; color:var(--primary); font-size:13px; font-weight:650; background:color-mix(in srgb,var(--primary) 7%,var(--paper)); }
+.order-optional-fields>summary::-webkit-details-marker { display:none; }
+.order-optional-fields>summary small { font-size:12px; font-weight:400; }
+.order-optional-fields>summary>svg { flex-shrink:0; transition:transform .15s; }
+.order-optional-fields[open]>summary>svg { transform:rotate(180deg); }
+.order-optional-fields>summary:hover { background:color-mix(in srgb,var(--primary) 12%,var(--paper)); }
+.order-optional-fields>summary:focus-visible { outline:2px solid var(--primary); outline-offset:-3px; }
+.order-optional-body { padding:16px 14px; }
+.order-dialog .order-item-card .order-optional-body>.field:first-child { grid-column:1/-1; }
+@media(max-width:600px) { .order-dialog .order-item-card .form-grid.order-optional-body { grid-template-columns:minmax(0,1fr); } }
+.order-extra-details>summary { min-height:48px; padding:12px 14px; border:1px solid var(--border); border-radius:9px; color:var(--primary); background:color-mix(in srgb,var(--primary) 7%,var(--paper)); }
+.order-extra-details>summary:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+
 .order-extra-body .order-shipping-fields { padding:18px 0 0; margin:8px 0 0; border-top:1px solid var(--border); border-bottom:0; }
 .shipping-time-control > input { flex:1; min-width:0; font-variant-numeric:tabular-nums; }
 

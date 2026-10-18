@@ -292,7 +292,7 @@ test("account saves await Supabase, ignore local Pro and keep demo data separate
   await openSection(page,"Pesanan");
   await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
-  await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama produk",{exact:true}).fill("Tote Canvas");await dialog.getByLabel("Harga jual / produk",{exact:true}).fill("150000");await dialog.getByLabel("Harga beli / produk",{exact:true}).fill("100000");
+  await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama produk",{exact:true}).fill("Tote Canvas");await dialog.getByLabel("Harga jual / produk",{exact:true}).fill("150000");await dialog.locator(".order-item-card .order-optional-fields > summary").click();await dialog.getByLabel("Harga beli / produk",{exact:true}).fill("100000");
   await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).not.toBeVisible();expect(requests).toHaveLength(1);expect(requests[0].p_data.orders[0].items[0].product).toBe("Tote Canvas");
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("tippo.workspace.v1")!).orders)).toEqual([]);
   await page.getByRole("button",{name:"Paket & langganan",exact:true}).click();await expect(page.getByRole("button",{name:"Coba Pro (demo)"})).toHaveCount(0);await expect(page.getByRole("link",{name:"Lihat invoice Pro",exact:true})).toBeVisible();
@@ -983,7 +983,7 @@ for (const [business,width] of [["Jastip",1440],["Open PO",1440],["Jastip",390],
   if(business==="Jastip") {
     await form.getByLabel("Nama produk",{exact:true}).fill("Roti Diskon");
     await form.getByLabel("Harga jual / produk",{exact:true}).fill("25000");
-    await form.getByLabel("Harga beli / produk",{exact:true}).fill("12000");
+    await form.locator(".order-item-card .order-optional-fields > summary").click();await form.getByLabel("Harga beli / produk",{exact:true}).fill("12000");
   } else {
     await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");
     await chooseOption(form.getByLabel("Produk",{exact:true}),"discount-product");
@@ -1376,6 +1376,7 @@ for(const business of ["Jastip","Open PO"] as const)test(`shop and option snapsh
  const form=page.getByRole("dialog",{name:business==="Open PO"?"Pesanan PO baru":"Pesanan jastip baru",exact:true});
  await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");await form.getByLabel("Tanggal pesanan",{exact:true}).fill("2026-10-13");
  if(business==="Jastip"){
+  await form.locator(".order-item-card .order-optional-fields > summary").click();
   for(const [name,value] of [["Nama produk","Kaos"],["Toko / brand (opsional)","Uniqlo"],["Varian (opsional)","Airism"],["Warna (opsional)","Hitam"],["Ukuran (opsional)","L"],["Harga jual / produk","25000"]])await form.getByLabel(name,{exact:true}).fill(value);
  }else await chooseOption(form.getByLabel("Produk",{exact:true}),"shirt");
  await form.getByLabel("Jumlah produk",{exact:true}).fill("2");await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);
@@ -1940,4 +1941,16 @@ for(const width of [320,1440])test(`backup import uses Tippo confirmation before
  await input.setInputFiles(backup);await expect(modal).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await modal.getByRole("button",{name:"Impor data",exact:true}).click();await expect(modal).toHaveCount(0);await expect.poll(()=>saves.length).toBe(1);
  expect(saves[0].p_data).toMatchObject({batches:[],orders:[],customers:[],products:[]});expect(browserDialogs).toHaveLength(0);
+});
+
+for(const width of [320,1440])test(`optional order details preserve values and reveal invalid hidden costs ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:900});const saves=await authenticate(page);await page.goto("/app");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
+ const form=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
+ await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");await form.getByLabel("Tanggal pesanan",{exact:true}).fill("2026-10-18");await form.getByLabel("Nama produk",{exact:true}).fill("Kaos Uji");await form.getByLabel("Jumlah produk",{exact:true}).fill("1");await form.getByLabel("Harga jual / produk",{exact:true}).fill("25000");
+ const optional=form.locator(".order-item-card .order-optional-fields"),summary=optional.locator("summary"),store=form.getByLabel("Toko / brand (opsional)",{exact:true}),cost=form.getByLabel("Harga beli / produk",{exact:true});
+ await expect(store).toBeHidden();await expect(summary).toBeVisible();await summary.focus();await page.keyboard.press("Enter");await expect(store).toBeVisible();await expect(store).toHaveAttribute("placeholder","Contoh: Uniqlo atau toko supplier");
+ await expect(form.getByText("Kosongkan jika belum tahu. HPP ditandai belum lengkap.",{exact:true})).toHaveCount(0);
+ await store.fill("Uniqlo");await cost.fill("9007199254740992");await summary.click();await expect(cost).toBeHidden();await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(cost).toBeVisible();await expect(cost).toBeFocused();expect(saves).toHaveLength(0);
+ await cost.fill("12000");await summary.click();await expect(store).toBeHidden();await summary.click();await expect(store).toHaveValue("Uniqlo");await expect(cost).toHaveValue("12.000");
+ await page.screenshot({path:`/tmp/tippo-order-optional-${width}.png`});await summary.click();await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);await expect.poll(()=>saves.length).toBe(1);expect(saves[0].p_data.orders[0].items[0]).toMatchObject({store:"Uniqlo",unitCost:12000});
 });
