@@ -36,8 +36,19 @@ export interface Product {
   active: boolean;
 }
 
+/** Purchase currency and rate are fixed snapshots; invoice amounts stay in IDR. */
+export interface PurchaseFx {
+  currency: string;
+  amount: string | null;
+  rate: string | null;
+  status: "estimate" | "final";
+  source: "manual" | "frankfurter";
+  rateDate?: string;
+}
+
 /** One item and its options, recorded as a historical snapshot. */
 export interface OrderItem {
+  purchaseFx?: PurchaseFx;
   id: string;
   /** Optional link to an Open PO product; archived products remain valid for history. */
   productId?: string | null;

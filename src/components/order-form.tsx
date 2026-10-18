@@ -1,4 +1,7 @@
 "use client";
+import { PurchaseCostFields } from "./purchase-cost-fields";
+import { PriceAssistant } from "./price-assistant";
+import { draftFromFx, fxFromDraft, fxDraftError, hasEstimatedCost, type FxDraft } from "@/lib/purchase-fx";
 import { CustomerPicker } from "./customer-picker";
 
 import { NumberInput } from "@/components/ui/number-input";
@@ -86,6 +89,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     id: item.id, product: item.product, store: item.store ?? "", variant: item.variant, color: item.color, size: item.size,
     quantity: String(item.quantity), unitPrice: String(item.unitPrice), unitCost: item.unitCost === null ? "" : String(item.unitCost),
   })) ?? [newItem()]);
+  const [purchaseFx, setPurchaseFx] = useState<Record<string, FxDraft | undefined>>(() => Object.fromEntries(order?.items.map(item => [item.id, draftFromFx(item.purchaseFx)]) ?? []));
   const [createdAt] = useState(() => order?.createdAt ?? new Date().toISOString());
   const [errors, setErrors] = useState<FieldErrors>({});
   const [itemErrors, setItemErrors] = useState<ItemErrors>({});
@@ -131,6 +135,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
   const draft = useMemo<Order>(() => ({
     id: order?.id ?? "draft-order-preview", batchId: fields.batchId, customerId: fields.customerId,
     items: items.map((item) => ({
+      ...(purchaseFx[item.id] ? { purchaseFx: fxFromDraft(purchaseFx[item.id]!) } : {}),
       id: item.id, product: item.product.trim(), store: item.store.trim(), variant: item.variant.trim(), color: item.color.trim(), size: item.size.trim(),
       quantity: Math.max(1, previewAmount(item.quantity)), unitPrice: previewAmount(item.unitPrice),
       unitCost: item.unitCost.trim() === "" ? null : previewAmount(item.unitCost),
@@ -139,7 +144,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     discount: { type: fields.discountType, value: previewAmount(fields.discountValue) }, refunds: order?.refunds,
     date: fields.date, createdAt, status: order?.status ?? "new", notes: fields.notes.trim(),
     shippingDate:fields.shippingDate||undefined,shippingTime:fields.shippingTime||undefined,shippingMethod:fields.shippingMethod.trim()||undefined,
-  }), [fields, items, order, createdAt]);
+  }), [fields, items, order, createdAt, purchaseFx]);
   const revenue = orderRevenue(draft);
   const previewOrders = [...data.orders.filter((entry) => entry.id !== draft.id), draft];
   const hpp = orderHpp(draft, previewOrders, data.batches);
@@ -209,6 +214,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
       if (!rowErrors.quantity && Number(item.quantity) < 1) rowErrors.quantity = "Jumlah minimal 1.";
       if (!rowErrors.unitPrice && !rowErrors.quantity && !Number.isSafeInteger(Number(item.quantity) * Number(item.unitPrice))) rowErrors.unitPrice = "Total harga produk terlalu besar.";
       if (item.unitCost.trim() !== "" && !rowErrors.unitCost && !rowErrors.quantity && !Number.isSafeInteger(Number(item.quantity) * Number(item.unitCost))) rowErrors.unitCost = "Total harga beli terlalu besar.";
+      const fxError = fxDraftError(purchaseFx[item.id]); if (fxError) rowErrors.unitCost = fxError;
       if (Object.keys(rowErrors).length) nextItemErrors[item.id] = rowErrors;
     }
     for (const name of ["serviceFee", "shippingCharge", "paid"] as const) {
@@ -266,6 +272,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
         {numeric ? <NumberInput aria-label={label} required={["product", "quantity", "unitPrice"].includes(name)} id={id} name={`item-${item.id}-${name}`} className="input" inputMode={numeric ? "numeric" : undefined} min={numeric ? name === "quantity" ? "1" : "0" : undefined} step={numeric ? "1" : undefined} maxLength={!numeric ? itemTextLimits[name as keyof typeof itemTextLimits] : undefined} style={isAmount ? { paddingLeft: 37 } : undefined} value={item[name]} placeholder={name === "quantity" ? "Contoh: 2" : name === "unitCost" ? "Belum diketahui" : "0"} onValueChange={(value) => updateItem(item.id, name, value)} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined} /> : <input aria-label={label} required={["product", "quantity", "unitPrice"].includes(name)} id={id} name={`item-${item.id}-${name}`} className="input" ref={index === 0 && name === "product" ? productRef : undefined} type="text" inputMode={numeric ? "numeric" : undefined} min={numeric ? name === "quantity" ? "1" : "0" : undefined} step={numeric ? "1" : undefined} maxLength={!numeric ? itemTextLimits[name as keyof typeof itemTextLimits] : undefined} style={isAmount ? { paddingLeft: 37 } : undefined} value={item[name]} placeholder={name === "product" ? "Contoh: Airism Oversized / Nasi ayam"  : name === "store" ? "Contoh: Uniqlo atau toko supplier" : name === "variant" ? "Contoh: original / pedas" : name === "color" ? "Contoh: navy" : name === "size" ? "Contoh: M / porsi besar" : "0"} onChange={(event) => updateItem(item.id, name, event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined} />}
       </div>
       {error ? <span className="error-message" id={`${id}-error`}>{error}</span> : hint ? <span className="field-hint" id={`${id}-hint`}>{hint}</span> : null}
+      {name === "unitPrice" && <PriceAssistant cost={item.unitCost.trim() && Number.isSafeInteger(Number(item.unitCost)) && Number(item.unitCost) >= 0 ? Number(item.unitCost) : null} estimated={purchaseFx[item.id]?.status === "estimate"} onUse={value => updateItem(item.id, "unitPrice", String(value))} />}
     </div>;
   }
 
@@ -318,14 +325,14 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
                 {itemField(item, index, "quantity", "Jumlah produk")}
                 {itemField(item, index, "unitPrice", "Harga jual / produk")}
               </div>
-              <details className="order-optional-fields" open={Boolean(order?.items.some(row => row.id === item.id && (row.store || row.variant || row.color || row.size || row.unitCost != null)))} onInvalidCapture={event => { event.currentTarget.open = true; }}>
+              <details className="order-optional-fields" open={Boolean(order?.items.some(row => row.id === item.id && (row.purchaseFx || row.store || row.variant || row.color || row.size || row.unitCost != null)))} onInvalidCapture={event => { event.currentTarget.open = true; }}>
                 <summary><span>Detail produk <small>(opsional)</small></span><ChevronDown size={18} aria-hidden="true" /></summary>
                 <div className="form-grid order-optional-body">
                   {itemField(item, index, "store", "Toko / brand (opsional)")}
                   {itemField(item, index, "variant", "Varian (opsional)")}
                   {itemField(item, index, "color", "Warna (opsional)")}
                   {itemField(item, index, "size", "Ukuran (opsional)")}
-                  {itemField(item, index, "unitCost", "Harga beli / produk")}
+                  <PurchaseCostFields id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
                 </div>
               </details>
             </fieldset>)}
@@ -346,8 +353,8 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
           <section className="order-section"><h3><span className="order-section-number">4</span>Pembayaran</h3><div className="order-payment"><p className="payment-total">Total tagihan <strong>{formatCurrency(revenue)}</strong></p>{amountField("paid", "Sudah dibayar (DP / lunas)")}</div></section>
           <div className="summary-strip" aria-live="polite" style={{ marginTop: 20 }}>
             <div className="summary-cell"><span>Total tagihan</span><strong>{formatCurrency(revenue)}</strong></div>
-            <div className="summary-cell"><span>Estimasi HPP</span><strong>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</strong></div>
-            <div className="summary-cell"><span>Estimasi laba</span><strong style={margin !== null && margin < 0 ? { color: "var(--danger)" } : undefined}>{margin === null ? "Belum lengkap" : formatCurrency(margin)}</strong></div>
+            <div className="summary-cell"><span>{hasEstimatedCost(draft) ? "HPP · Kurs estimasi" : "Estimasi HPP"}</span><strong>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</strong></div>
+            <div className="summary-cell"><span>{hasEstimatedCost(draft) ? "Laba · Kurs estimasi" : "Estimasi laba"}</span><strong style={margin !== null && margin < 0 ? { color: "var(--danger)" } : undefined}>{margin === null ? "Belum lengkap" : formatCurrency(margin)}</strong></div>
             <div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div>
           </div>
         </div>

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Pencil, Search, X } from "lucide-react";
-import { NumberInput } from "@/components/ui/number-input";
+import { PurchaseCostFields } from "@/components/purchase-cost-fields";
+import { draftFromFx, fxFromDraft, fxDraftError, hasEstimatedCost, type FxDraft } from "@/lib/purchase-fx";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { allocatedBatchCosts, formatCurrency, itemLabel, orderHpp, orderQuantity, orderRevenue } from "@/lib/finance";
@@ -18,16 +19,18 @@ function purchaseCost(value: string): number | null {
 function HppOrderDialog({order,batch,data,onSave,onClose}:{order:Order;batch:Batch;data:AppData;onSave:SaveHpp;onClose:()=>void}) {
   const dialog=useRef<HTMLDialogElement>(null);
   const [costs,setCosts]=useState(()=>Object.fromEntries(order.items.map(item=>[item.id,item.unitCost===null?"":String(item.unitCost)])));
+  const [fx,setFx]=useState<Record<string,FxDraft|undefined>>(()=>Object.fromEntries(order.items.map(item=>[item.id,draftFromFx(item.purchaseFx)])));
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
   useEffect(()=>{const trigger=document.activeElement;dialog.current?.showModal();return()=>{if(trigger instanceof HTMLElement&&trigger.isConnected)trigger.focus({preventScroll:true});};},[]);
-  const updated={...order,items:order.items.map(item=>({...item,unitCost:purchaseCost(costs[item.id]??"")}))};
+  const updated={...order,items:order.items.map(item=>({...item,purchaseFx:fx[item.id]?fxFromDraft(fx[item.id]!):undefined,unitCost:purchaseCost(costs[item.id]??"")}))};
   const next={...data,orders:data.orders.map(entry=>entry.id===order.id?updated:entry)};
   const cost=orderHpp(updated,next.orders,data.batches);
   const margin=cost===null?null:orderRevenue(updated)-cost;
   const customer=data.customers.find(entry=>entry.id===order.customerId)?.name||"Pelanggan";
   async function submit(event:React.FormEvent) {
     event.preventDefault();if(busy)return;
+    const invalidFx=Object.values(fx).map(value=>fxDraftError(value)).find(Boolean);if(invalidFx){setError(invalidFx);return;}
     if(Object.values(costs).some(value=>value!==""&&purchaseCost(value)===null)){setError("Harga beli harus berupa rupiah bulat, minimal nol.");return;}
     if(!isAppData(next)){setError("Total biaya terlalu besar. Periksa harga beli produk.");return;}
     setBusy(true);setError("");
@@ -38,8 +41,8 @@ function HppOrderDialog({order,batch,data,onSave,onClose}:{order:Order;batch:Bat
   return <dialog ref={dialog} className="native-dialog hpp-edit-dialog" aria-label={`HPP pesanan ${customer}`} onCancel={event=>{event.preventDefault();if(!busy)onClose();}}>
     <div className="modal-header"><div><h2>HPP pesanan</h2><p>{customer} · {formatCalendarDate(order.date)}</p></div><button type="button" className="icon-button" aria-label="Tutup HPP" disabled={busy} onClick={onClose}><X size={20}/></button></div>
     <form onSubmit={submit}><div className="modal-body">
-      <div className="hpp-edit-products">{order.items.map(item=><div className="hpp-edit-product" key={item.id}><div><strong>{itemLabel(item)}</strong><span>{item.quantity} unit</span></div><label className="field"><span className="field-label">Harga beli/unit</span><div className="cost-input"><span>Rp</span><NumberInput className="input" aria-label={`Harga beli ${itemLabel(item)}`} min="0" step="1" placeholder="Belum diisi" value={costs[item.id]??""} disabled={busy} onValueChange={value=>setCosts(previous=>({...previous,[item.id]:value}))}/></div></label></div>)}</div>
-      <dl className="hpp-dialog-summary">{batch.directCosts>0&&<div><dt>Biaya lama</dt><dd>{formatCurrency(allocatedBatchCosts(batch,next.orders)[order.id]??0)}</dd></div>}<div><dt>Total HPP</dt><dd>{cost===null?<span className="status-tag status-new">Belum lengkap</span>:formatCurrency(cost)}</dd></div><div><dt>Margin pesanan</dt><dd className={margin===null?"muted":margin<0?"negative":"positive"}>{margin===null?"Belum lengkap":formatCurrency(margin)}</dd></div></dl>
+      <div className="hpp-edit-products">{order.items.map(item=><div className="hpp-edit-product" key={item.id}><div><strong>{itemLabel(item)}</strong><span>{item.quantity} unit</span></div><PurchaseCostFields allowForeign={batch.type==="jastip"} id={`hpp-cost-${item.id}`} label="Harga beli/unit" ariaLabel={`Harga beli ${itemLabel(item)}`} cost={costs[item.id]??""} fx={fx[item.id]} disabled={busy} onChange={(cost,value)=>{setCosts(previous=>({...previous,[item.id]:cost}));setFx(previous=>({...previous,[item.id]:value}));}}/></div>)}</div>
+      <dl className="hpp-dialog-summary">{batch.directCosts>0&&<div><dt>Biaya lama</dt><dd>{formatCurrency(allocatedBatchCosts(batch,next.orders)[order.id]??0)}</dd></div>}<div><dt>{hasEstimatedCost(updated)?"Total HPP · Estimasi":"Total HPP"}</dt><dd>{cost===null?<span className="status-tag status-new">Belum lengkap</span>:formatCurrency(cost)}</dd></div><div><dt>{hasEstimatedCost(updated)?"Margin pesanan · Estimasi":"Margin pesanan"}</dt><dd className={margin===null?"muted":margin<0?"negative":"positive"}>{margin===null?"Belum lengkap":formatCurrency(margin)}</dd></div></dl>
       {error&&<p className="error-message" role="alert">{error}</p>}
     </div><div className="modal-footer"><Button type="button" className="btn btn-secondary" disabled={busy} onClick={onClose}>Batal</Button><Button type="submit" className="btn btn-primary" disabled={busy}><Check size={17}/>{busy?"Menyimpan…":"Simpan HPP"}</Button></div></form>
   </dialog>;
@@ -71,11 +74,12 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
   const page=Math.min(requestedPage,pageCount);
   const visible=filtered.slice((page-1)*10,page*10);
   const selected=orders.find(order=>order.id===editing);
-  const costLabel=(order:Order)=>{const cost=orderHpp(order,data.orders,data.batches);return cost===null?<span className="status-tag status-new">Belum lengkap</span>:formatCurrency(cost);};
-  const marginLabel=(order:Order)=>{const cost=orderHpp(order,data.orders,data.batches);return cost===null?<span className="muted">—</span>:<span className={orderRevenue(order)-cost<0?"negative":"positive"}>{formatCurrency(orderRevenue(order)-cost)}</span>;};
+  const costLabel=(order:Order)=>{const cost=orderHpp(order,data.orders,data.batches);return cost===null?<span className="status-tag status-new">Belum lengkap</span>:<>{formatCurrency(cost)}{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</>;};
+  const marginLabel=(order:Order)=>{const cost=orderHpp(order,data.orders,data.batches);return cost===null?<span className="muted">—</span>:<span className={orderRevenue(order)-cost<0?"negative":"positive"}>{formatCurrency(orderRevenue(order)-cost)}{hasEstimatedCost(order)&&<small className="fx-estimate">Estimasi</small>}</span>;};
   const actionLabel=(order:Order)=>orderHpp(order,data.orders,data.batches)===null?"Isi HPP":"Edit HPP";
   function changePage(next:number){setPage(next);details.current?.scrollIntoView({block:"start"});}
   return <div className="reports-layout">
+    {orders.some(hasEstimatedCost)&&<p className="fx-estimate-note" role="status">HPP dan margin mencakup kurs estimasi. Finalkan kurs setelah biaya pembayaran pasti.</p>}
     <section className="report-stats hpp-summary-cards" aria-label="Total HPP dan margin batch">{[
       [totals.incomplete?"HPP diketahui":"Total HPP",totalsKnown?formatCurrency(totals.hpp):"Belum lengkap",`${totals.complete} dari ${orders.length} pesanan lengkap`],
       [totals.incomplete?"Margin diketahui":"Total margin",totalsKnown?formatCurrency(totals.margin):"Belum lengkap","Laba kotor sebelum biaya umum"],

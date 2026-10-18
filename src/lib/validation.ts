@@ -1,3 +1,4 @@
+import { validPurchaseFx } from "./purchase-fx.ts";
 import { shippingFieldErrors } from "./order-shipping.ts";
 import type { AppData, Order } from "./types.ts";
 
@@ -129,6 +130,7 @@ export function isAppData(value: unknown): value is AppData {
     for (const item of order.items) {
       if (!record(item) || !extendedId(item.id, LEGACY_ITEM_PREFIX) || allItemIds.has(item.id) || !text(item.product) || !item.product.trim() || (item.store!==undefined && (!text(item.store) || item.store.length>80)) || !text(item.variant) || !text(item.color) || !text(item.size) || !money(item.quantity) || item.quantity <= 0 || !money(item.unitPrice) || !(item.unitCost === null || money(item.unitCost))) return false;
       if (!(item.productId === undefined || item.productId === null || (extendedId(item.productId, LEGACY_PRODUCT_PREFIX) && productIds.has(item.productId) && batchTypes.get(order.batchId as string) === "po"))) return false;
+      if (item.purchaseFx !== undefined && (batchTypes.get(order.batchId as string) !== "jastip" || !validPurchaseFx(item.purchaseFx, item.unitCost))) return false;
       allItemIds.add(item.id);
       const lineRevenue = item.quantity * item.unitPrice;
       const linePurchase = item.quantity * (item.unitCost ?? 0);

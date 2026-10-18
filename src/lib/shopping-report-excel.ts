@@ -1,3 +1,4 @@
+import { hasEstimatedCost } from "./purchase-fx.ts";
 import { formatCalendarDate } from "./calendar-date.ts";
 import type { Worksheet } from "exceljs";
 import type { ShoppingReport } from "./shopping-report.ts";
@@ -11,7 +12,7 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  const quantity:Column={header:"Qty",key:"quantity",width:12};
  function prepare(name:string,columns:Column[]) {
   const sheet=book.addWorksheet(name);sheet.columns=columns.map(({key,width,money})=>({key,width,style:{numFmt:money?'#,##0;[Red]-#,##0':'General'}}));
-  for(const text of [`Rekap ${po?"Open PO":"Jastip"} · ${name}`,report.batch.name]){const row=sheet.addRow([text]);sheet.mergeCells(row.number,1,row.number,columns.length);row.alignment={vertical:"middle",wrapText:true};row.height=26;}
+  for(const text of [`Rekap ${po?"Open PO":"Jastip"} · ${name}`,report.batch.name+(kind==="orders"&&report.orders.some(order=>hasEstimatedCost(order))?" · HPP/margin mencakup kurs estimasi":"")]){const row=sheet.addRow([text]);sheet.mergeCells(row.number,1,row.number,columns.length);row.alignment={vertical:"middle",wrapText:true};row.height=26;}
   const header=sheet.addRow(columns.map(column=>column.header));header.font={bold:true,color:{argb:"FFFFFFFF"}};header.fill={type:"pattern",pattern:"solid",fgColor:{argb:color}};header.alignment={wrapText:true,vertical:"middle"};header.height=32;
   // ExcelJS emits outlinePr after pageSetUpPr when outlineProperties is set; that order is invalid in XLSX.
   sheet.views=[{state:"frozen",ySplit:3,activeCell:"A4"}];
@@ -21,6 +22,7 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  function subtotal(sheet:Worksheet,values:Record<string,unknown>,grand=false) {
   const row=sheet.addRow(values);row.font={bold:true,color:{argb:grand?"FFFFFFFF":"FF25312E"}};row.fill={type:"pattern",pattern:"solid",fgColor:{argb:grand?color:"FFF1EEE5"}};return row;
  }
+ const estimated=report.orders.some(order=>hasEstimatedCost(order));
  const palette=["FFFFF2CC","FFD9E2F3","FFF4CCCC","FFD9EAD3","FFD9EAF0"];
  if(kind==="products"){
  const products=prepare("Per produk",[
@@ -66,7 +68,7 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  for(const [index,order] of report.orders.entries()){
   const start=orders.rowCount+1,fill=palette[index%palette.length];
   for(const [line,item] of order.items.entries()){
-   const options=[item.color,item.size,...(po&&item.category!=="Tanpa kategori"?[`Kategori: ${item.category}`]:[]),...(item.store?[`Toko: ${item.store}`]:[])].filter(Boolean).join(" · ");
+   const options=[item.color,item.size,...(po&&item.category!=="Tanpa kategori"?[`Kategori: ${item.category}`]:[]),...(item.store?[`Toko: ${item.store}`]:[]),...(item.purchaseFx?[`Harga beli: ${item.purchaseFx.amount??"?"} ${item.purchaseFx.currency}; 1 ${item.purchaseFx.currency} = Rp${item.purchaseFx.rate??"?"} (${item.purchaseFx.status==="estimate"?"estimasi":"final"})`]:[])].filter(Boolean).join(" · ");
    const label=[item.product,item.variant].filter(Boolean).join(" ")+(options?`\n${options}`:"");
    const row=orders.addRow({customer:line===0?{richText:[{text:order.customer,font:{bold:true,size:11}},{text:`\n${formatCalendarDate(order.date)}`,font:{bold:false,size:10,color:{argb:"FF626862"}}}]}:undefined,product:label,quantity:item.quantity,unitPrice:item.unitPrice,value:item.quantity*item.unitPrice,orderValue:line===0?order.totals.value:undefined,address:line===0?order.address:undefined,unitCost:item.unitCost??missing,itemCost:item.unitCost===null?missing:item.quantity*item.unitCost,cost:line===0?(order.totals.cost??missing):undefined,margin:line===0?(order.totals.cost===null?missing:order.totals.value-order.totals.cost):undefined});
    const identityHeight=(Math.ceil(order.customer.length/28)+1)*16+8;
@@ -81,7 +83,7 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
   }
   const end=orders.rowCount;if(end>start)for(const column of [1,6,7,10,11])orders.mergeCells(start,column,end,column);
  }
- const orderTotal=subtotal(orders,{customer:"TOTAL KESELURUHAN",quantity:report.totals.quantity,orderValue:report.totals.value,cost:report.totals.cost??missing,margin:report.totals.cost===null?missing:report.totals.value-report.totals.cost},true);
+ const orderTotal=subtotal(orders,{customer:estimated?"TOTAL KESELURUHAN · ESTIMASI":"TOTAL KESELURUHAN",quantity:report.totals.quantity,orderValue:report.totals.value,cost:report.totals.cost??missing,margin:report.totals.cost===null?missing:report.totals.value-report.totals.cost},true);
  orders.mergeCells(orderTotal.number,1,orderTotal.number,2);orderTotal.height=30;orderTotal.alignment={vertical:"middle",horizontal:"right"};orderTotal.getCell(3).alignment={vertical:"middle",horizontal:"center"};
  }
  return new Uint8Array(await book.xlsx.writeBuffer());

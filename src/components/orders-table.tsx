@@ -1,4 +1,5 @@
 "use client";
+import { hasEstimatedCost } from "@/lib/purchase-fx";
 import { visibleOrderStatus } from "@/lib/order-status";
 
 import { OrderStatusDialog, orderStatuses as statuses, type OrderStatusHandler } from "@/components/order-status-dialog";
@@ -94,7 +95,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
                   <span className="row-subtitle">{batch?.type === "jastip" ? "Jastip" : "Open PO"}</span>
                 </td>
                 <td className="numeric-cell"><span className="row-title" style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{formatCurrency(revenue)}</span></td>
-                {!compact && <td className="numeric-cell"><span className={hpp === null ? "row-subtitle" : "row-title"} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</span></td>}
+                {!compact && <td className="numeric-cell"><span className={hpp === null ? "row-subtitle" : "row-title"} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</span>{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</td>}
                 <td>
                   {refundedTotal(order)>0 && <div className="row-subtitle">Refund {formatCurrency(refundedTotal(order))}</div>}
                   {cancelled ? <span className="payment-label muted">Dibatalkan</span> : remaining === 0 ? <span className="payment-label payment-paid">Lunas</span> : <>
@@ -149,7 +150,7 @@ function MobileOrderDetail({order,data}:{order:Order;data:AppData}) {
       {products.length>5&&scrollbar.visible&&<span className="order-detail-scrollbar" aria-hidden="true"><span style={{height:scrollbar.height,transform:`translateY(${scrollbar.top}px)`}}/></span>}
       </div>
     </section>
-    <dl className="order-detail-payment"><div className="order-detail-total"><dt>Total tagihan</dt><dd>{formatCurrency(orderRevenue(order))}</dd></div><div><dt>Sudah dibayar</dt><dd>{formatCurrency(order.paid)}</dd></div><div><dt>Sisa tagihan</dt><dd>{formatCurrency(outstanding(order))}</dd></div><div><dt>HPP</dt><dd>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</dd></div></dl>
+    <dl className="order-detail-payment"><div className="order-detail-total"><dt>Total tagihan</dt><dd>{formatCurrency(orderRevenue(order))}</dd></div><div><dt>Sudah dibayar</dt><dd>{formatCurrency(order.paid)}</dd></div><div><dt>Sisa tagihan</dt><dd>{formatCurrency(outstanding(order))}</dd></div><div><dt>{hasEstimatedCost(order)?"HPP · Estimasi":"HPP"}</dt><dd>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</dd></div></dl>
 
   </div>;
 }

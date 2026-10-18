@@ -13,6 +13,7 @@ before(async () => {
   const limitsSql=await readFile(new URL("../supabase/migrations/202610110005_discount_limits.sql", import.meta.url),"utf8");
   await db.exec(limitsSql); await db.exec(limitsSql);
   const recapSql=await readFile(new URL("../supabase/migrations/202610130012_shopping_recap.sql",import.meta.url),"utf8");await db.exec(recapSql);await db.exec(recapSql);
+  const fxSql=await readFile(new URL("../supabase/migrations/202610180001_purchase_fx.sql",import.meta.url),"utf8");await db.exec(fxSql);await db.exec(fxSql);
 });
 after(async () => { await db.close(); });
 async function login(user: string) { await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${user}',false);`); }
@@ -98,4 +99,24 @@ test("recap fields are optional and server rejects malformed shop snapshots with
  d.products=[{id:"master",name:"Produk",variant:"",sku:"",store:"Supplier",color:"Hitam",size:"L",unitPrice:10000,unitCost:null,active:true}];assert.equal(await validate(d),true);
  d.products[0].store=null as unknown as string;assert.equal(await validate(d),false);
  d.products[0].store="Supplier";d.orders[0].discount={type:"percent",value:101};assert.equal(await validate(d),false);
+});
+
+test("FX snapshots validate conversion and final status without weakening server quotas",async()=>{
+ await db.exec("reset role");
+ const id="00000000-0000-0000-0000-000000000099";await db.exec(`insert into auth.users values('${id}');`);await login(id);const initial=await get();
+ const data=workspace([order("fx-item","jastip")]);data.orders[0].items[0].purchaseFx={currency:"JPY",amount:"1000",rate:"105.5",status:"estimate",source:"frankfurter",rateDate:"2026-10-16"};data.orders[0].items[0].unitCost=105500;
+ let saved=await save(data,initial.version);assert.deepEqual(saved.data.orders[0].items[0].purchaseFx,data.orders[0].items[0].purchaseFx);
+ for(const mutate of [
+  (d:AppData)=>{d.orders[0].items[0].unitCost=1;},
+  (d:AppData)=>{d.orders[0].items[0].purchaseFx!.rate="-1";},
+  (d:AppData)=>{d.orders[0].items[0].purchaseFx!.currency="IDR";},
+  (d:AppData)=>{d.orders[0].items[0].purchaseFx!.rateDate="2026-02-30";},
+  (d:AppData)=>{d.orders[0].items[0].purchaseFx!.amount=null;d.orders[0].items[0].purchaseFx!.status="final";d.orders[0].items[0].unitCost=null;},
+  (d:AppData)=>{d.orders[0].batchId="po";},
+ ]) {const invalid=structuredClone(data);mutate(invalid);await assert.rejects(save(invalid,saved.version),/TIPPO_INVALID/);}
+ const incomplete=structuredClone(data);incomplete.orders[0].items[0].purchaseFx!.rate=null;incomplete.orders[0].items[0].purchaseFx!.source="manual";delete incomplete.orders[0].items[0].purchaseFx!.rateDate;incomplete.orders[0].items[0].unitCost=null;
+ saved=await save(incomplete,saved.version);assert.equal(saved.data.orders[0].items[0].unitCost,null);
+ const final=structuredClone(data);final.orders[0].items[0].purchaseFx!.status="final";saved=await save(final,saved.version);assert.equal(saved.usage.length,1);
+ const full=workspace(Array.from({length:5},(_,i)=>order(i===0?"fx-item":`fx-${i}`,"jastip")));saved=await save(full,saved.version);
+ await assert.rejects(save({...full,orders:[...full.orders,order("fx-sixth","jastip")]},saved.version),/TIPPO_ORDER_LIMIT/);
 });
