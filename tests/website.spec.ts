@@ -1751,13 +1751,13 @@ for(const [width,height] of [[320,568],[390,844],[430,932]] as const)test(`mobil
 for(const width of [390,1440])test(`duplicate product opens an editable copy and preserves the original ${width}`,async({page})=>{
  await page.setViewportSize({width,height:900});
  const data=structuredClone(fixture);
- const source={id:"copy-source",name:"Roti Asli",variant:"Coklat",sku:"ORIGINAL",store:"Toko Roti",category:"Makanan",color:"Coklat",size:"Besar",unitPrice:25000,unitCost:12000,active:true};
+ const source={id:"copy-source",name:"Roti Asli (salinan)",variant:"Coklat",sku:"ORIGINAL",store:"Toko Roti",category:"Makanan",color:"Coklat",size:"Besar",unitPrice:25000,unitCost:12000,active:true};
  data.products=[source];
  const requests=await authenticate(page,{workspace:data});await page.goto("/app");await openBusiness(page,"Open PO");
  if(width<600){await page.getByRole("button",{name:"Detail Roti Asli",exact:true}).click();await page.getByRole("dialog",{name:"Detail Roti Asli",exact:true}).getByRole("button",{name:"Duplikat produk",exact:true}).click();}
  else await page.getByRole("button",{name:"Duplikat produk Roti Asli",exact:true}).click();
  let form=page.getByRole("dialog",{name:"Duplikat produk",exact:true});
- await expect(form).toBeVisible();await expect(form.getByLabel("Nama produk",{exact:true})).toHaveValue("Roti Asli (salinan)");await expect(form.getByLabel("SKU (opsional)")).toHaveValue("");await expect(form.getByLabel("Varian (opsional)")).toHaveValue("Coklat");
+ await expect(form).toBeVisible();await expect(form.getByLabel("Nama produk",{exact:true})).toHaveValue("Roti Asli");await expect(form.getByLabel("SKU (opsional)")).toHaveValue("");await expect(form.getByLabel("Varian (opsional)")).toHaveValue("Coklat");
  expect(requests).toHaveLength(0);
  await form.getByRole("button",{name:"Batal",exact:true}).click();expect(requests).toHaveLength(0);
  if(width<600){await page.getByRole("button",{name:"Detail Roti Asli",exact:true}).click();await page.getByRole("dialog",{name:"Detail Roti Asli",exact:true}).getByRole("button",{name:"Duplikat produk",exact:true}).click();}

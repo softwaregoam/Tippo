@@ -1,4 +1,5 @@
 "use client";
+import { productDisplayName } from "@/lib/product-name";
 import { BatchPicker } from "./batch-picker";
 import { CategoryFilter } from "./category-filter";
 import type { InvoiceSettings } from "@/lib/business-profile";
@@ -121,7 +122,7 @@ function ExcelImportButton({ allowed, onClick }: { allowed: boolean; onClick: ()
 }
 
 export function ProductForm({ product, duplicate=false, categories, onSave, onClose }: { categories: string[]; product?: Product; duplicate?: boolean; onSave: (product: Product) => boolean | Promise<boolean>; onClose: () => void }) {
-  const [name, setName] = useState(duplicate && product ? `${product.name.slice(0,110)} (salinan)` : product?.name ?? "");
+  const [name, setName] = useState(duplicate && product ? productDisplayName(product.name) : product?.name ?? "");
   const [variant, setVariant] = useState(product?.variant ?? "");
   const [store,setStore]=useState(product?.store ?? "");
   const [color,setColor]=useState(product?.color ?? "");
