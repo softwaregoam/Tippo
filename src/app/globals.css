@@ -1467,3 +1467,11 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .purchase-fx-rate>.btn { width:100%; }
  .purchase-fx-result { align-items:stretch; flex-direction:column; }
 }
+
+.purchase-cost-compact .cost-input>.input { padding-left:56px; }
+.purchase-cost-conversion:empty { display:none; }
+.order-dialog .order-price-assistant { align-self:start; padding-top:37px; }
+.order-price-assistant>.price-assistant { margin-top:0; }
+@media(max-width:600px) {
+ .order-dialog .order-price-assistant { padding-top:0; }
+}

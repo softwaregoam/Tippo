@@ -28,3 +28,5 @@ Membuka Tambah pesanan, atau memilih batch lain dalam pesanan baru, meminta kurs
 Saat API gagal, tampilkan pesan yang jelas dan pertahankan kurs referensi sebelumnya sebagai estimasi, atau isi manual. Mengganti mata uang membuang kurs mata uang sebelumnya. Respons permintaan yang dibatalkan diabaikan. Selama pengambilan berlangsung, tombol simpan menunggu; mengisi kurs batch manual membatalkan permintaan.
 
 Validasi server batch ada di `supabase/migrations/202610180002_batch_purchase_fx.sql`. Jalankan setelah `202610180001_purchase_fx.sql`; kedua migrasi aman dijalankan ulang, tidak menghapus data, dan tidak mengubah aturan kuota.
+
+Pada form pesanan, kurs bersama berada di bagian 1. Harga beli per produk ditampilkan sebagai satu input dengan kode mata uang dan hasil konversi rupiah. Form edit dengan kurs bersama menampilkan snapshot pesanan, bukan kurs batch terkini; pesanan lama dengan kurs berbeda per produk tetap mempertahankan kontrol masing-masing. Finalisasi tetap tersedia di HPP & Margin. Nama penyedia API tidak ditampilkan pada form. Bantuan harga jual berada di kanan input harga jual pada desktop dan di bawahnya pada ponsel.

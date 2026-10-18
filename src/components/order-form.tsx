@@ -91,7 +91,12 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
     id: item.id, product: item.product, store: item.store ?? "", variant: item.variant, color: item.color, size: item.size,
     quantity: String(item.quantity), unitPrice: String(item.unitPrice), unitCost: item.unitCost === null ? "" : String(item.unitCost),
   })) ?? [newItem()]);
-  const [batchQuote, setBatchQuote] = useState<BatchPurchaseFx | undefined>(() => jastipBatches.find(b => b.id === fields.batchId)?.purchaseFx);
+  const firstFx = order?.items[0]?.purchaseFx;
+  const sharedOrderFx = !!firstFx && order!.items.every(item => item.purchaseFx?.currency === firstFx.currency && item.purchaseFx?.rate === firstFx.rate && item.purchaseFx?.source === firstFx.source && item.purchaseFx?.rateDate === firstFx.rateDate);
+  const compactPurchase = !order || sharedOrderFx || !order.items.some(item => item.purchaseFx);
+  const [batchQuote, setBatchQuote] = useState<BatchPurchaseFx | undefined>(() => order
+    ? sharedOrderFx ? {currency:firstFx!.currency,rate:firstFx!.rate,source:firstFx!.source,rateDate:firstFx!.rateDate} : undefined
+    : jastipBatches.find(b => b.id === fields.batchId)?.purchaseFx);
   const [loadingRate, setLoadingRate] = useState(false);
   const [purchaseFx, setPurchaseFx] = useState<Record<string, FxDraft | undefined>>(() => Object.fromEntries(order?.items.map(item => [item.id, draftFromFx(item.purchaseFx)]) ?? items.map(item => [item.id, batchFxDraft(batchQuote)])));
   const [createdAt] = useState(() => order?.createdAt ?? new Date().toISOString());
@@ -173,7 +178,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
       const amount = purchaseFx[item.id] ? fxFromDraft(purchaseFx[item.id]!).amount : null;
       return {...item, unitCost: quote ? String(convertedCost(amount, quote.rate) ?? "") : purchaseFx[item.id] ? "" : item.unitCost};
     }));
-    if (updateBatch && quote?.source === "frankfurter") onBatchQuote?.(fields.batchId, quote);
+    if (!order && updateBatch && quote?.source === "frankfurter") onBatchQuote?.(fields.batchId, quote);
   }
   function update(name: keyof Fields, value: string) {
     if (name === "batchId" && !order) applyBatchQuote(jastipBatches.find(b => b.id === value)?.purchaseFx, false);
@@ -292,7 +297,6 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
         {numeric ? <NumberInput aria-label={label} required={["product", "quantity", "unitPrice"].includes(name)} id={id} name={`item-${item.id}-${name}`} className="input" inputMode={numeric ? "numeric" : undefined} min={numeric ? name === "quantity" ? "1" : "0" : undefined} step={numeric ? "1" : undefined} maxLength={!numeric ? itemTextLimits[name as keyof typeof itemTextLimits] : undefined} style={isAmount ? { paddingLeft: 37 } : undefined} value={item[name]} placeholder={name === "quantity" ? "Contoh: 2" : name === "unitCost" ? "Belum diketahui" : "0"} onValueChange={(value) => updateItem(item.id, name, value)} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined} /> : <input aria-label={label} required={["product", "quantity", "unitPrice"].includes(name)} id={id} name={`item-${item.id}-${name}`} className="input" ref={index === 0 && name === "product" ? productRef : undefined} type="text" inputMode={numeric ? "numeric" : undefined} min={numeric ? name === "quantity" ? "1" : "0" : undefined} step={numeric ? "1" : undefined} maxLength={!numeric ? itemTextLimits[name as keyof typeof itemTextLimits] : undefined} style={isAmount ? { paddingLeft: 37 } : undefined} value={item[name]} placeholder={name === "product" ? "Contoh: Airism Oversized / Nasi ayam"  : name === "store" ? "Contoh: Uniqlo atau toko supplier" : name === "variant" ? "Contoh: original / pedas" : name === "color" ? "Contoh: navy" : name === "size" ? "Contoh: M / porsi besar" : "0"} onChange={(event) => updateItem(item.id, name, event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined} />}
       </div>
       {error ? <span className="error-message" id={`${id}-error`}>{error}</span> : hint ? <span className="field-hint" id={`${id}-hint`}>{hint}</span> : null}
-      {name === "unitPrice" && <PriceAssistant cost={item.unitCost.trim() && Number.isSafeInteger(Number(item.unitCost)) && Number(item.unitCost) >= 0 ? Number(item.unitCost) : null} estimated={purchaseFx[item.id]?.status === "estimate"} onUse={value => updateItem(item.id, "unitPrice", String(value))} />}
     </div>;
   }
 
@@ -312,7 +316,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
                 {!fields.batchId && <SelectOption value="">{hasOpenBatch ? "Pilih batch aktif" : "Buat atau buka batch terlebih dahulu"}</SelectOption>}
                 {jastipBatches.map((batch) => <SelectOption key={batch.id} value={batch.id} disabled={batch.status !== "open" && batch.id !== order?.batchId}>{batch.name}{batch.status === "closed" ? " · ditutup" : batch.status === "completed" ? " · selesai" : ""}</SelectOption>)}
               </Select>
-              {!order && selectedBatch && <BatchCurrencyFields key={selectedBatch.id} value={batchQuote} lockedCurrency autoRefresh onLoading={setLoadingRate} onChange={applyBatchQuote}/>}
+              {selectedBatch && (!order || sharedOrderFx) && <BatchCurrencyFields key={selectedBatch.id} value={batchQuote} lockedCurrency autoRefresh={!order} onLoading={setLoadingRate} onChange={applyBatchQuote}/>}
               {errors.batchId && <span id="error-batchId" className="error-message">{errors.batchId}</span>}{batchHint && <span id="hint-batchId" className="field-hint">{batchHint}</span>}
             </div>
             <div className="field">
@@ -345,6 +349,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
                 {itemField(item, index, "product", "Nama produk")}
                 {itemField(item, index, "quantity", "Jumlah produk")}
                 {itemField(item, index, "unitPrice", "Harga jual / produk")}
+                <div className="field order-price-assistant"><PriceAssistant cost={item.unitCost.trim() && Number.isSafeInteger(Number(item.unitCost)) && Number(item.unitCost) >= 0 ? Number(item.unitCost) : null} estimated={purchaseFx[item.id]?.status === "estimate"} onUse={value => updateItem(item.id, "unitPrice", String(value))} /></div>
               </div>
               <details className="order-optional-fields" open={Boolean(order?.items.some(row => row.id === item.id && (row.purchaseFx || row.store || row.variant || row.color || row.size || row.unitCost != null)))} onInvalidCapture={event => { event.currentTarget.open = true; }}>
                 <summary><span>Detail produk <small>(opsional)</small></span><ChevronDown size={18} aria-hidden="true" /></summary>
@@ -353,7 +358,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
                   {itemField(item, index, "variant", "Varian (opsional)")}
                   {itemField(item, index, "color", "Warna (opsional)")}
                   {itemField(item, index, "size", "Ukuran (opsional)")}
-                  <PurchaseCostFields disabled={!order && loadingRate} allowForeign={!!order} lockCurrency={!order} id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
+                  <PurchaseCostFields compact={compactPurchase} disabled={!order && loadingRate} allowForeign={!compactPurchase} lockCurrency={!order} id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
                 </div>
               </details>
             </fieldset>)}
