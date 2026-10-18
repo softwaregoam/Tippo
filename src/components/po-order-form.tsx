@@ -327,7 +327,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               {amountField("shippingCharge", "Ongkir yang ditagihkan")}
 
               {Boolean(order?.serviceFee) && amountField("serviceFee", "Fee tambahan pesanan asal")}
-              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="po-order-notes">Catatan invoice <span className="muted">(opsional)</span></label><input id="po-order-notes" name="notes" className="input" value={fields.notes} maxLength={textLimits.notes} placeholder="Catatan untuk pelanggan" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "po-error-notes" : undefined} />{errors.notes && <span id="po-error-notes" className="error-message">{errors.notes}</span>}</div>
+              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="po-order-notes">Catatan invoice <span className="muted">(opsional)</span></label><input id="po-order-notes" name="notes" className="input" value={fields.notes} maxLength={textLimits.notes} placeholder="Contoh: Simpan roti di tempat sejuk" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "po-error-notes" : undefined} />{errors.notes && <span id="po-error-notes" className="error-message">{errors.notes}</span>}</div>
             </div>
             <OrderShippingFields id="po-order" values={fields} onChange={update} errors={errors}/>
           </div></details>
