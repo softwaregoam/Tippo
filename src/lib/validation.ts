@@ -1,4 +1,4 @@
-import { validPurchaseFx } from "./purchase-fx.ts";
+import { validBatchPurchaseFx, validPurchaseFx } from "./purchase-fx.ts";
 import { shippingFieldErrors } from "./order-shipping.ts";
 import type { AppData, Order } from "./types.ts";
 
@@ -39,6 +39,7 @@ function baseWorkspace(value: unknown): value is Record<string, unknown> & {
   const { batches, customers, orders } = value;
   if (!Array.isArray(batches) || !Array.isArray(customers) || !Array.isArray(orders)) return false;
   if (batches.length > 10000 || customers.length > 10000 || orders.length > 100000) return false;
+  if (!batches.every(b => !record(b) || b.purchaseFx === undefined || b.type === "jastip" && validBatchPurchaseFx(b.purchaseFx))) return false;
   if (!batches.every((b) => record(b) && id(b.id) && text(b.name) && b.name.trim() && text(b.origin) && validDate(b.closeDate) && ["jastip", "po"].includes(b.type as string) && ["open", "closed", "completed"].includes(b.status as string) && money(b.directCosts))) return false;
   if (!customers.every((c) => record(c) && id(c.id) && text(c.name) && c.name.trim() && text(c.phone) && (c.address === undefined || (text(c.address) && c.address.length <= 1000)))) return false;
   return new Set(batches.map((b) => b.id)).size === batches.length && new Set(customers.map((c) => c.id)).size === customers.length;

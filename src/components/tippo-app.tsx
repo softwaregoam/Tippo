@@ -34,7 +34,8 @@ import { OrdersTable } from "@/components/orders-table";
 import { ReportsPanel } from "@/components/reports-panel";
 import { BatchPicker } from "@/components/batch-picker";
 import { HppPanel } from "@/components/hpp-panel";
-import { hasEstimatedCost } from "@/lib/purchase-fx";
+import { BatchCurrencyFields } from "./batch-currency-fields";
+import { hasEstimatedCost, type BatchPurchaseFx } from "@/lib/purchase-fx";
 import { SubscriptionPanel } from "@/components/subscription-panel";
 import { useAppData, saveAppData, normalizeAppData } from "@/lib/store";
 import { seedData } from "@/lib/seed";
@@ -229,11 +230,11 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
       setSaveError(error); notify(error); return false;
     }
     try {
-      if (cloud) { const saved = await cloud.commit(next); if (saved) notify(message); return saved; }
+      if (cloud) { const saved = await cloud.commit(next); if (saved && message) notify(message); return saved; }
       const previousUsageSaved = recordOrderUsage(data.orders.filter((order) => !sampleOrderIds.has(order.id)), data.batches);
       const saved = saveAppData(next);
       const usageSaved = recordOrderUsage(next.orders.filter((order) => !sampleOrderIds.has(order.id)), next.batches);
-      notify(saved && previousUsageSaved && usageSaved ? message : "Perubahan sementara: penyimpanan browser tidak tersedia. Ekspor data sebelum menutup.");
+      if (message) notify(saved && previousUsageSaved && usageSaved ? message : "Perubahan sementara: penyimpanan browser tidak tersedia. Ekspor data sebelum menutup.");
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Data belum tersimpan.";
@@ -249,7 +250,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     setSelectedHpp("");
     go("dashboard");
   }
-  async function saveOrder(order: Order, customer?: Customer) {
+  async function saveOrder(order: Order, customer?: Customer, batchFx?: BatchPurchaseFx) {
     const existing = data.orders.find((entry) => entry.id === order.id);
     if (!existing) {
       const type = data.batches.find((batch) => batch.id === order.batchId)?.type;
@@ -257,7 +258,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
       if (!quota.allowed) { notify(quota.message); return; }
     }
     const savedOrder = { ...order, refunds: existing?.refunds ?? order.refunds, createdAt: existing?.createdAt ?? new Date().toISOString() };
-    const next = { ...data, customers: customer ? [customer, ...data.customers] : data.customers, orders: existing ? data.orders.map((o) => o.id === order.id ? savedOrder : o) : [savedOrder, ...data.orders] };
+    const next = { ...data, batches: !existing ? data.batches.map(batch => batch.id === order.batchId ? { ...batch, purchaseFx: batchFx } : batch) : data.batches, customers: customer ? [customer, ...data.customers] : data.customers, orders: existing ? data.orders.map((o) => o.id === order.id ? savedOrder : o) : [savedOrder, ...data.orders] };
     if (await persist(next, !orderModal?.order ? "Pesanan baru berhasil dicatat" : "Pesanan berhasil diperbarui")) setOrderModal(null);
   }
   function updateStatus(order: Order, status: Order["status"]) {
@@ -447,7 +448,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
             </div>
         </main>
       </div>
-      {orderModal && (orderModal.type === "po" ? <PoOrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} onSave={saveOrder} onClose={() => setOrderModal(null)} /> : <OrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} defaultBatchId={orderModal.batchId} onSave={saveOrder} onClose={() => setOrderModal(null)} />)}
+      {orderModal && (orderModal.type === "po" ? <PoOrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} onSave={saveOrder} onClose={() => setOrderModal(null)} /> : <OrderForm onBatchQuote={(id, quote) => { const batch = data.batches.find(b => b.id === id); if (batch && JSON.stringify(batch.purchaseFx) !== JSON.stringify(quote)) void persist({ ...data, batches: data.batches.map(b => b.id === id ? { ...b, purchaseFx: quote } : b) }, ""); }} saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} defaultBatchId={orderModal.batchId} onSave={saveOrder} onClose={() => setOrderModal(null)} />)}
       {duplicateProduct && <ProductForm duplicate product={duplicateProduct} categories={[...new Set(data.products.map(product => product.category?.trim()).filter((category): category is string => Boolean(category)))]} onClose={() => setDuplicateProduct(null)} onSave={async (product) => { const saved = await saveProduct(product); if (saved) setDuplicateProduct(null); return saved; }} />}
       {productModal && <ProductForm categories={[...new Set(data.products.map(product => product.category?.trim()).filter((category): category is string => Boolean(category)))]} product={productModal === "new" ? undefined : productModal} onClose={() => setProductModal(null)} onSave={async (product) => { const saved = await saveProduct(product); if (saved) setProductModal(null); return saved; }} />}
       {productRequired && <SimpleModal title="Belum ada produk aktif" onClose={() => setProductRequired(false)}><div className="modal-body"><p>Tambahkan produk terlebih dahulu agar kamu bisa mencatat pesanan Open PO. Produk yang diarsipkan tidak bisa dipilih untuk pesanan baru, kamu bisa mengaktifkannya kembali di halaman Produk.</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setProductRequired(false)}>Nanti dulu</Button><Button className="btn btn-primary" onClick={() => { setProductRequired(false); go("products"); }}><Plus size={17} />Tambah produk</Button></div></SimpleModal>}
@@ -525,10 +526,12 @@ function SimpleModal({ title, subtitle, onClose, children }: { title: string; su
 }
 
 function BatchForm({ type, batch, onSave, onClose }: { type: Batch["type"]; batch?: Batch; onSave: (batch: Batch) => void; onClose: () => void }) {
+  const [purchaseFx, setPurchaseFx] = useState<BatchPurchaseFx | undefined>(batch?.purchaseFx);
+  const [loadingRate, setLoadingRate] = useState(false);
   const [name, setName] = useState(batch?.name ?? "");
   const [origin, setOrigin] = useState(batch?.origin ?? "");
   const [closeDate, setCloseDate] = useState(batch?.closeDate ?? new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }));
-  return <SimpleModal title={batch ? "Edit batch" : type === "po" ? "Batch PO baru" : "Batch jastip baru"} subtitle="Kumpulkan titipan dalam satu batch yang rapi." onClose={onClose}><form onSubmit={(e) => { e.preventDefault(); onSave({ id: batch?.id ?? crypto.randomUUID(), name: name.trim(), type, origin: origin.trim(), closeDate, status: batch?.status ?? "open", directCosts: batch?.directCosts ?? 0 }); }}><div className="modal-body"><div className="field"><label className="field-label" htmlFor="batch-name">Nama batch<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama batch" id="batch-name" className="input" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "po" ? "Contoh: PO Roti • November" : "Contoh: Seoul Beauty • November"} /></div><div className="form-grid batch-fields-row"><div className="field"><label className="field-label" htmlFor="batch-type">Jenis titipan</label><input id="batch-type" className="input" readOnly value={type === "po" ? "Open PO" : "Jastip"} /></div><div className="field"><label className="field-label" htmlFor="batch-close">Tutup pesanan<span className="required-mark" aria-hidden="true"> *</span></label><DatePicker aria-label="Tutup pesanan" id="batch-close" required value={closeDate} onValueChange={setCloseDate} /></div></div><div className="field"><label className="field-label" htmlFor="batch-origin">Lokasi / supplier</label><input id="batch-origin" className="input" maxLength={120} value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder={type === "po" ? "Contoh: Dapur Roti, Bandung" : "Contoh: Seoul, Korea Selatan"} /></div></div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={onClose}>Batal</Button><Button type="submit" className="btn btn-primary">Simpan batch <ArrowRight size={16} /></Button></div></form></SimpleModal>;
+  return <SimpleModal title={batch ? "Edit batch" : type === "po" ? "Batch PO baru" : "Batch jastip baru"} subtitle="Kumpulkan titipan dalam satu batch yang rapi." onClose={onClose}><form onSubmit={(e) => { e.preventDefault(); onSave({ id: batch?.id ?? crypto.randomUUID(), name: name.trim(), type, origin: origin.trim(), closeDate, status: batch?.status ?? "open", directCosts: batch?.directCosts ?? 0, ...(type === "jastip" && purchaseFx ? { purchaseFx } : {}) }); }}><div className="modal-body"><div className="field"><label className="field-label" htmlFor="batch-name">Nama batch<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama batch" id="batch-name" className="input" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "po" ? "Contoh: PO Roti • November" : "Contoh: Seoul Beauty • November"} /></div><div className="form-grid batch-fields-row"><div className="field"><label className="field-label" htmlFor="batch-type">Jenis titipan</label><input id="batch-type" className="input" readOnly value={type === "po" ? "Open PO" : "Jastip"} /></div><div className="field"><label className="field-label" htmlFor="batch-close">Tutup pesanan<span className="required-mark" aria-hidden="true"> *</span></label><DatePicker aria-label="Tutup pesanan" id="batch-close" required value={closeDate} onValueChange={setCloseDate} /></div></div><div className="field"><label className="field-label" htmlFor="batch-origin">Lokasi / supplier</label><input id="batch-origin" className="input" maxLength={120} value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder={type === "po" ? "Contoh: Dapur Roti, Bandung" : "Contoh: Seoul, Korea Selatan"} /></div>{type === "jastip" && <BatchCurrencyFields value={purchaseFx} onChange={setPurchaseFx} onLoading={setLoadingRate}/>}</div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={onClose}>Batal</Button><Button type="submit" disabled={loadingRate} className="btn btn-primary">Simpan batch <ArrowRight size={16} /></Button></div></form></SimpleModal>;
 }
 
 function CustomerForm({ customer, onSave, onClose }: { customer?: Customer; onSave: (customer: Customer) => Promise<boolean>; onClose: () => void }) {

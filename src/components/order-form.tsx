@@ -1,7 +1,8 @@
 "use client";
+import { BatchCurrencyFields } from "./batch-currency-fields";
 import { PurchaseCostFields } from "./purchase-cost-fields";
 import { PriceAssistant } from "./price-assistant";
-import { draftFromFx, fxFromDraft, fxDraftError, hasEstimatedCost, type FxDraft } from "@/lib/purchase-fx";
+import { batchFxDraft, convertedCost, type BatchPurchaseFx, draftFromFx, fxFromDraft, fxDraftError, hasEstimatedCost, type FxDraft } from "@/lib/purchase-fx";
 import { CustomerPicker } from "./customer-picker";
 
 import { NumberInput } from "@/components/ui/number-input";
@@ -23,7 +24,8 @@ type OrderFormProps = {
   data: AppData;
   order?: Order;
   defaultBatchId?: string;
-  onSave: (order: Order, customer?: Customer) => void;
+  onSave: (order: Order, customer?: Customer, batchFx?: BatchPurchaseFx) => void;
+  onBatchQuote?: (batchId: string, quote: BatchPurchaseFx) => void;
   onClose: () => void;
 };
 
@@ -70,7 +72,7 @@ function newItem(): ItemFields {
   return { id: crypto.randomUUID(), product: "", store: "", variant: "", color: "", size: "", quantity: "", unitPrice: "", unitCost: "" };
 }
 
-export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveError, saving }: OrderFormProps) {
+export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatchQuote, saveError, saving }: OrderFormProps) {
   const jastipBatches = data.batches.filter((batch) => batch.type === "jastip");
   const [fields, setFields] = useState<Fields>(() => ({
     batchId: order?.batchId
@@ -89,7 +91,9 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     id: item.id, product: item.product, store: item.store ?? "", variant: item.variant, color: item.color, size: item.size,
     quantity: String(item.quantity), unitPrice: String(item.unitPrice), unitCost: item.unitCost === null ? "" : String(item.unitCost),
   })) ?? [newItem()]);
-  const [purchaseFx, setPurchaseFx] = useState<Record<string, FxDraft | undefined>>(() => Object.fromEntries(order?.items.map(item => [item.id, draftFromFx(item.purchaseFx)]) ?? []));
+  const [batchQuote, setBatchQuote] = useState<BatchPurchaseFx | undefined>(() => jastipBatches.find(b => b.id === fields.batchId)?.purchaseFx);
+  const [loadingRate, setLoadingRate] = useState(false);
+  const [purchaseFx, setPurchaseFx] = useState<Record<string, FxDraft | undefined>>(() => Object.fromEntries(order?.items.map(item => [item.id, draftFromFx(item.purchaseFx)]) ?? items.map(item => [item.id, batchFxDraft(batchQuote)])));
   const [createdAt] = useState(() => order?.createdAt ?? new Date().toISOString());
   const [errors, setErrors] = useState<FieldErrors>({});
   const [itemErrors, setItemErrors] = useState<ItemErrors>({});
@@ -158,7 +162,21 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
       : "Buat atau buka batch sebelum menambahkan pesanan."
     : undefined;
 
+  function applyBatchQuote(quote?: BatchPurchaseFx, updateBatch = true) {
+    setBatchQuote(quote);
+    setPurchaseFx(previous => Object.fromEntries(items.map(item => {
+      const next = batchFxDraft(quote);
+      if (next) next.amount = previous[item.id]?.amount ?? "";
+      return [item.id, next];
+    })));
+    setItems(current => current.map(item => {
+      const amount = purchaseFx[item.id] ? fxFromDraft(purchaseFx[item.id]!).amount : null;
+      return {...item, unitCost: quote ? String(convertedCost(amount, quote.rate) ?? "") : purchaseFx[item.id] ? "" : item.unitCost};
+    }));
+    if (updateBatch && quote?.source === "frankfurter") onBatchQuote?.(fields.batchId, quote);
+  }
   function update(name: keyof Fields, value: string) {
+    if (name === "batchId" && !order) applyBatchQuote(jastipBatches.find(b => b.id === value)?.purchaseFx, false);
     setFields((current) => ({ ...current, [name]: value }));
     setErrors((current) => {
       const next = { ...current }; delete next[name];
@@ -177,6 +195,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     if (items.length >= 100) return;
     const item = newItem(); pendingItemFocus.current = item.id;
     setItems((current) => [...current, item]);
+    setPurchaseFx(current => ({...current, [item.id]: batchFxDraft(batchQuote)}));
   }
 
   function removeItem(id: string) {
@@ -188,6 +207,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (loadingRate) return;
     const nextErrors: FieldErrors = {}; const nextItemErrors: ItemErrors = {};
     if (!selectedBatch) nextErrors.batchId = "Pilih batch pesanan yang aktif.";
     else if (!canUseSelectedBatch) nextErrors.batchId = "Batch sudah ditutup. Pilih batch yang masih aktif.";
@@ -245,7 +265,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
     const customer: Customer | undefined = fields.customerId === "new" ? {
       id: crypto.randomUUID(), name: fields.customerName.trim(), phone: fields.customerPhone.trim(), address: fields.customerAddress.trim(),
     } : undefined;
-    onSave({ ...draft, id: order?.id ?? crypto.randomUUID(), customerId: customer?.id ?? fields.customerId }, customer);
+    onSave({ ...draft, id: order?.id ?? crypto.randomUUID(), customerId: customer?.id ?? fields.customerId }, customer, batchQuote);
   }
 
   function amountField(name: "serviceFee" | "shippingCharge" | "paid", label: string, hint?: string) {
@@ -292,6 +312,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
                 {!fields.batchId && <SelectOption value="">{hasOpenBatch ? "Pilih batch aktif" : "Buat atau buka batch terlebih dahulu"}</SelectOption>}
                 {jastipBatches.map((batch) => <SelectOption key={batch.id} value={batch.id} disabled={batch.status !== "open" && batch.id !== order?.batchId}>{batch.name}{batch.status === "closed" ? " · ditutup" : batch.status === "completed" ? " · selesai" : ""}</SelectOption>)}
               </Select>
+              {!order && selectedBatch && <BatchCurrencyFields key={selectedBatch.id} value={batchQuote} lockedCurrency autoRefresh onLoading={setLoadingRate} onChange={applyBatchQuote}/>}
               {errors.batchId && <span id="error-batchId" className="error-message">{errors.batchId}</span>}{batchHint && <span id="hint-batchId" className="field-hint">{batchHint}</span>}
             </div>
             <div className="field">
@@ -332,7 +353,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
                   {itemField(item, index, "variant", "Varian (opsional)")}
                   {itemField(item, index, "color", "Warna (opsional)")}
                   {itemField(item, index, "size", "Ukuran (opsional)")}
-                  <PurchaseCostFields id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
+                  <PurchaseCostFields disabled={!order && loadingRate} allowForeign={!!order} lockCurrency={!order} id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
                 </div>
               </details>
             </fieldset>)}
@@ -358,7 +379,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, saveEr
             <div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div>
           </div>
         </div>
-        <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || !canUseSelectedBatch}>{order ? <Check size={17} /> : <Plus size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
+        <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || loadingRate || !canUseSelectedBatch}>{order ? <Check size={17} /> : <Plus size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
       </form>
     </div>
   </div>;

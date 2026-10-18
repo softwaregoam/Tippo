@@ -1,6 +1,6 @@
 # Harga beli valas Jastip
 
-Pesanan lama dan Open PO tetap memakai harga beli rupiah. Pada detail produk Jastip, pengguna bisa memilih mata uang asing, memasukkan harga beli per unit serta kurs, atau mengambil kurs referensi melalui tombol Frankfurter. Semua tagihan dan harga jual tetap rupiah.
+Mata uang harga beli Jastip dipilih pada batch. Kurs referensi otomatis diambil saat memilih mata uang dan membuka pesanan baru. Pada detail produk, pengguna memasukkan harga beli per unit, dan tetap dapat menyesuaikan kurs secara manual. Pesanan lama mempertahankan kurs tersimpan; Open PO tetap memakai rupiah. Semua tagihan dan harga jual tetap rupiah.
 
 `OrderItem.purchaseFx` bersifat opsional dan menyimpan `currency`, `amount`, `rate`, `status` (`estimate`/`final`), `source` (`manual`/`frankfurter`), serta `rateDate` untuk kurs referensi API. Angka desimal disimpan sebagai string bertitik tanpa pemisah ribuan. Input menggunakan format Indonesia, misalnya `1.000,50`. Batas angka adalah 12 digit utuh dan 6 desimal.
 
@@ -17,3 +17,14 @@ HPP & Margin dapat mengubah/finalisasi FX. HPP, laporan, dan ekspor yang mencaku
 Jalankan seluruh `supabase/migrations/202610180001_purchase_fx.sql` di SQL Editor proyek Tippo. SQL memperluas validator workspace, tanpa mengubah tabel, data, atau fungsi kuota. Pengulangan migrasi sudah diuji. Perubahan Git tidak menjalankan SQL Supabase otomatis; penerapan produksi harus dikonfirmasi operator.
 
 Validasi lokal menggunakan PGlite menguji konversi, metadata, status Final, mata uang, dan aturan kuota. Tes browser memakai mock Frankfurter dan Supabase untuk menghindari perubahan data produksi.
+
+
+## Mata uang batch dan pengambilan otomatis
+
+Mata uang harga beli dipilih pada batch Jastip (Rupiah secara default). Memilih atau mengganti mata uang asing langsung meminta kurs Frankfurter. Batch menyimpan mata uang, kurs referensi terakhir, sumber, dan tanggal kurs melalui `Batch.purchaseFx`; field yang tidak ada berarti IDR.
+
+Membuka Tambah pesanan, atau memilih batch lain dalam pesanan baru, meminta kurs baru satu kali untuk batch tersebut (`cache: no-store`). Kurs yang berhasil diambil memperbarui referensi batch tanpa mengubah pesanan tersimpan. Produk baru dalam formulir memakai kurs batch dengan status Estimasi. Harga beli tetap boleh kosong. Pesanan dan HPP yang sudah tersimpan menyimpan kurs masing-masing; membukanya untuk diedit tidak mengambil kurs otomatis.
+
+Saat API gagal, tampilkan pesan yang jelas dan pertahankan kurs referensi sebelumnya sebagai estimasi, atau isi manual. Mengganti mata uang membuang kurs mata uang sebelumnya. Respons permintaan yang dibatalkan diabaikan. Selama pengambilan berlangsung, tombol simpan menunggu; mengisi kurs batch manual membatalkan permintaan.
+
+Validasi server batch ada di `supabase/migrations/202610180002_batch_purchase_fx.sql`. Jalankan setelah `202610180001_purchase_fx.sql`; kedua migrasi aman dijalankan ulang, tidak menghapus data, dan tidak mengubah aturan kuota.

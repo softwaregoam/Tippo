@@ -11,6 +11,8 @@ export interface Batch {
   status: BatchStatus;
   /** Shared purchase costs, in whole rupiah, excluding charges billed to customers. */
   directCosts: number;
+  /** Default purchase currency and latest reference quote for new orders. */
+  purchaseFx?: Omit<PurchaseFx, "amount" | "status">;
 }
 
 export interface Customer {

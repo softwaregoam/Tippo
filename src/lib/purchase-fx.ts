@@ -77,3 +77,19 @@ export function readFrankfurterRate(value: unknown, currency: string, now = new 
   if (!canonical || decimalUnits(canonical)! <= BigInt(0)) throw new Error("INVALID_RATE");
   return { rate: canonical, date: data.date };
 }
+
+export type BatchPurchaseFx = NonNullable<import("./types.ts").Batch["purchaseFx"]>;
+export function validBatchPurchaseFx(value: unknown): value is BatchPurchaseFx {
+  return !!value && typeof value === "object" && !Array.isArray(value) && validPurchaseFx({ ...value, amount: null, status: "estimate" }, null);
+}
+export async function fetchPurchaseRate(currency: string, signal: AbortSignal): Promise<BatchPurchaseFx> {
+  const response = await fetch(`https://api.frankfurter.dev/v1/latest?from=${encodeURIComponent(currency)}&to=IDR`, {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(12000)]), credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store",
+  });
+  if (!response.ok) throw new Error("RATE_UNAVAILABLE");
+  const result = readFrankfurterRate(await response.json(), currency);
+  return { currency, rate: result.rate, rateDate: result.date, source: "frankfurter" };
+}
+export function batchFxDraft(fx?: BatchPurchaseFx): FxDraft | undefined {
+  return fx ? draftFromFx({ ...fx, amount: null, status: "estimate" }) : undefined;
+}
