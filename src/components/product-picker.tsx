@@ -5,7 +5,7 @@ import { Check, ChevronDown, Search, X } from "lucide-react";
 import { productDisplayName } from "@/lib/product-name";
 import { formatCurrency } from "@/lib/finance";
 
-export type ProductChoice = { value: string; name: string; variant?: string; size?: string; detail: string; sku: string; category: string; price: number; searchText: string; note?: string };
+export type ProductChoice = { value: string; name: string; variant?: string; size?: string; supplier?: string; detail: string; sku: string; category: string; price: number; searchText: string; note?: string };
 type Props = Omit<ComponentProps<"button">, "value" | "onChange" | "ref"> & {
   value: string; options: ProductChoice[]; onValueChange: (value: string) => void; ref?: Ref<HTMLButtonElement>;
 };
@@ -42,7 +42,7 @@ export function ProductPicker({ value, options, onValueChange, ref, name, classN
           if (event.key === "Home") { event.preventDefault(); buttons[0]?.focus(); }
           if (event.key === "End") { event.preventDefault(); buttons.at(-1)?.focus(); }
         }}>
-          {filtered.map(option => <button key={option.value} type="button" role="option" aria-selected={option.value === value} data-value={option.value} className="product-picker-option" onClick={() => { onValueChange(option.value); setOpen(false); }}><span><strong>{choiceTitle(option)}</strong>{option.category && <small>Kategori: {option.category}</small>}{option.sku && <small>SKU: {option.sku}</small>}{option.detail && <small>{option.detail}</small>}{option.note && <small>{option.note}</small>}</span><span className="product-picker-price">{formatCurrency(option.price)}{option.value === value && <Check size={16} aria-hidden="true" />}</span></button>)}
+          {filtered.map(option => <button key={option.value} type="button" role="option" aria-selected={option.value === value} data-value={option.value} className="product-picker-option" onClick={() => { onValueChange(option.value); setOpen(false); }}><span><strong>{choiceTitle(option)}</strong>{option.category && <small>Kategori: {option.category}</small>}{option.supplier?.trim() && <small>Supplier: {option.supplier.trim()}</small>}{option.sku && <small>SKU: {option.sku}</small>}{option.detail && <small>{option.detail}</small>}{option.note && <small>{option.note}</small>}</span><span className="product-picker-price">{formatCurrency(option.price)}{option.value === value && <Check size={16} aria-hidden="true" />}</span></button>)}
         </div>
         {!filtered.length && <div className="empty-state compact"><strong>Produk tidak ditemukan</strong><p>Coba nama, SKU, varian, atau kategori lain.</p><button type="button" className="btn btn-secondary" onClick={() => { setQuery(""); search.current?.focus(); }}>Reset pencarian</button></div>}
       </Popover.Content>

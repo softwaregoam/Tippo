@@ -1382,7 +1382,7 @@ for(const business of ["Jastip","Open PO"] as const)test(`shop and option snapsh
  expect(requests[0].p_data.orders[0].items[0]).toMatchObject({store:"Uniqlo",variant:"Airism",color:"Hitam",size:"L",quantity:2});
  if(business==="Open PO"){
   await openSection(page,"Produk");await page.getByRole("button",{name:"Detail Kaos",exact:true}).click();await page.getByRole("dialog",{name:"Detail Kaos",exact:true}).getByRole("button",{name:"Edit produk",exact:true}).click();
-  const master=page.getByRole("dialog",{name:"Edit produk",exact:true});await master.getByLabel("Toko / brand (opsional)",{exact:true}).fill("Supplier baru");await master.getByLabel("Warna (opsional)",{exact:true}).fill("Putih");await master.getByRole("button",{name:/Simpan produk/}).click();await expect(master).toHaveCount(0);
+  const master=page.getByRole("dialog",{name:"Edit produk",exact:true});await master.getByLabel("Supplier / brand (opsional)",{exact:true}).fill("Supplier baru");await master.getByLabel("Warna (opsional)",{exact:true}).fill("Putih");await master.getByRole("button",{name:/Simpan produk/}).click();await expect(master).toHaveCount(0);
   expect(requests[1].p_data.products[0].store).toBe("Supplier baru");expect(requests[1].p_data.orders[0].items[0]).toMatchObject({store:"Uniqlo",color:"Hitam"});
  }
 });
@@ -1544,7 +1544,7 @@ for(const width of [320,1440])test(`PO product search finds catalogue fields and
  const workspace=structuredClone(fixture);
  workspace.batches=[{...fixture.batches[0],id:"po",type:"po",name:"PO Roti"}];
  workspace.products=Array.from({length:120},(_,index)=>({id:`p-${index}`,name:`Produk ${index}`,variant:"Original",category:"Umum",sku:`SKU-${index}`,unitPrice:10000,unitCost:5000,active:true}));
- workspace.products.push({id:"target",name:"Roti Susu",variant:"Coklat",size:"Reguler",category:"Roti Enak",sku:"RSC-999",unitPrice:25000,unitCost:12000,active:true},{id:"archived",name:"Roti Arsip",variant:"",category:"Roti Enak",sku:"ARCHIVE",unitPrice:10000,unitCost:null,active:false});
+ workspace.products.push({id:"target",name:"Roti Susu",variant:"Coklat",size:"Reguler",store:"Dapur Roti",category:"Roti Enak",sku:"RSC-999",unitPrice:25000,unitCost:12000,active:true},{id:"archived",name:"Roti Arsip",variant:"",category:"Roti Enak",sku:"ARCHIVE",unitPrice:10000,unitCost:null,active:false});
  const requests=await authenticate(page,{workspace,pro:true});await page.goto("/app");await openBusiness(page,"Open PO");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
  const form=page.getByRole("dialog",{name:"Pesanan PO baru",exact:true});
  const product=form.getByRole("combobox",{name:"Produk",exact:true});
@@ -1556,7 +1556,7 @@ for(const width of [320,1440])test(`PO product search finds catalogue fields and
  for(const query of ["Roti Susu","RSC-999","coklat","roti enak"]){
   await search.fill(query);await expect(picker.getByRole("option")).toHaveCount(1);await expect(picker.getByRole("option")).toContainText("Roti Susu");await expect(picker.getByRole("option")).toContainText("25.000");
  }
- const option=picker.getByRole("option");await expect(option.locator("strong")).toHaveText("Roti Susu Coklat — Reguler");await expect(option.locator("small")).toHaveText(["Kategori: Roti Enak","SKU: RSC-999"]);
+ const option=picker.getByRole("option");await expect(option.locator("strong")).toHaveText("Roti Susu Coklat — Reguler");await expect(option.locator("small")).toHaveText(["Kategori: Roti Enak","Supplier: Dapur Roti","SKU: RSC-999"]);
  await page.screenshot({path:`/tmp/tippo-product-choice-${width}.png`});
  await search.fill("ARCHIVE");await expect(picker).toContainText("Produk tidak ditemukan");await expect(picker.getByRole("option")).toHaveCount(0);
  await picker.getByRole("button",{name:"Reset pencarian"}).click();await expect(search).toHaveValue("");
