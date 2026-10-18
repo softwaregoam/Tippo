@@ -129,7 +129,7 @@ export function ProductForm({ product, duplicate=false, categories, onSave, onCl
   const [size,setSize]=useState(product?.size ?? "");
   const [sku, setSku] = useState(duplicate ? "" : product?.sku ?? "");
   const [category, setCategory] = useState(product?.category ?? "");
-  const [addingCategory, setAddingCategory] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(() => !product && !categories.some(value => value.trim()));
   const [newCategory, setNewCategory] = useState("");
   const categoryOptions = Array.from(new Set([...categories, category.trim()].filter(Boolean)));
   const [price, setPrice] = useState(product ? String(product.unitPrice) : "");
