@@ -1923,3 +1923,19 @@ for(const width of [320,1440])test(`product category filter searches and preserv
  await trigger.click();await query.fill("Kategori 23");await query.press("ArrowDown");await page.keyboard.press("ArrowDown");await page.keyboard.press("Enter");await expect(trigger).toContainText("Kategori 23");await expect(page.getByRole("heading",{name:"Produk tidak ditemukan",exact:true})).toBeVisible();await chooseOption(page.getByRole("combobox",{name:"Filter produk",exact:true}),"active");await expect(catalog.locator(".table-footer")).toContainText("1 dari 51 produk");
  await page.getByRole("textbox",{name:"Cari produk master",exact:true}).fill("Produk kategori 23");await trigger.click();await picker.getByRole("option",{name:"Semua kategori",exact:true}).click();await expect(catalog.locator(".table-footer")).toContainText("1 dari 51 produk");await page.getByRole("textbox",{name:"Cari produk master",exact:true}).fill("");await expect(catalog.locator(".table-footer")).toContainText("50 dari 51 produk");await trigger.click();await page.screenshot({path:`/tmp/tippo-category-search-${width}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+
+for(const width of [320,1440])test(`backup import uses Tippo confirmation before replacing data ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:900});const saves=await authenticate(page,{pro:true});
+ const browserDialogs:string[]=[];page.on("dialog",async dialog=>{browserDialogs.push(dialog.type());await dialog.dismiss();});
+ await page.goto("/app");await openSection(page,"Pengaturan data");
+ const input=page.locator('.data-backup-actions input[type="file"]');
+ const backup={name:"salinan.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify({schemaVersion:3,data:{batches:[],orders:[],customers:[],products:[]}}))};
+ const modal=page.getByRole("dialog",{name:"Impor salinan data?",exact:true});
+ await input.setInputFiles(backup);await expect(modal).toBeVisible();expect(saves).toHaveLength(0);
+ await modal.getByRole("button",{name:"Batal",exact:true}).click();await expect(modal).toHaveCount(0);expect(saves).toHaveLength(0);
+ await input.setInputFiles(backup);await expect(modal).toBeVisible();await page.keyboard.press("Escape");await expect(modal).toHaveCount(0);expect(saves).toHaveLength(0);
+ await input.setInputFiles({name:"invalid.json",mimeType:"application/json",buffer:Buffer.from("{}")});await expect(page.locator(".toast")).toContainText("Format data tidak sesuai");await expect(modal).toHaveCount(0);expect(saves).toHaveLength(0);
+ await input.setInputFiles(backup);await expect(modal).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await modal.getByRole("button",{name:"Impor data",exact:true}).click();await expect(modal).toHaveCount(0);await expect.poll(()=>saves.length).toBe(1);
+ expect(saves[0].p_data).toMatchObject({batches:[],orders:[],customers:[],products:[]});expect(browserDialogs).toHaveLength(0);
+});

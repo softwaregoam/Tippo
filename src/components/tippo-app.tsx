@@ -564,6 +564,7 @@ function CustomerForm({ customer, onSave, onClose }: { customer?: Customer; onSa
 function DataSettings({ data, cloud, onUpdate, onNotify }: { data: AppData; cloud?: boolean; onUpdate: (next: AppData, message: string) => void; onNotify: (message: string) => void }) {
   const file = useRef<HTMLInputElement>(null);
   const [confirm, setConfirm] = useState<"empty" | "demo" | null>(null);
+  const [pendingImport, setPendingImport] = useState<AppData | null>(null);
   function exportData() {
     const content = JSON.stringify({ schemaVersion: 3, exportedAt: new Date().toISOString(), data }, null, 2);
     const url = URL.createObjectURL(new Blob([content], { type: "application/json" }));
@@ -577,8 +578,7 @@ function DataSettings({ data, cloud, onUpdate, onNotify }: { data: AppData; clou
       const value = JSON.parse(await uploaded.text());
       const normalized = value && [1, 2, 3].includes(value.schemaVersion) ? normalizeAppData(value.data) : null;
       if (!normalized) throw new Error("Format data tidak sesuai atau isi pesanan tidak valid.");
-      if (!window.confirm(`Impor akan mengganti seluruh data ${cloud ? "akun" : "demo"} saat ini. Lanjutkan?`)) return;
-      onUpdate(normalized, "Data berhasil dipulihkan dari salinan");
+      setPendingImport(normalized);
     } catch (error) { onNotify(error instanceof Error ? error.message : "Data tidak bisa diimpor."); }
     finally { input.value = ""; }
   }
@@ -593,6 +593,7 @@ function DataSettings({ data, cloud, onUpdate, onNotify }: { data: AppData; clou
     </section>
     <section className="card settings-card data-reset-card" aria-label="Hapus data"><div className="data-reset-description"><Trash2 size={21}/><div><h2>Hapus semua data</h2><p>Pesanan, batch, produk, dan pelanggan akan dihapus. Kuota tetap tercatat.</p></div></div><Button className="btn btn-secondary data-reset-button" onClick={()=>setConfirm("empty")}>Hapus semua data</Button></section>
     {!cloud&&<section className="card settings-card data-demo-card"><div><h2>Simpan di akun pribadi</h2><p>Data demo hanya tersimpan di browser ini.</p></div><div className="settings-actions"><button className="btn btn-secondary" onClick={()=>setConfirm("demo")}>Muat ulang contoh</button><Link className="btn btn-primary" href="/daftar">Buat akun</Link></div></section>}
+    {pendingImport && <SimpleModal title="Impor salinan data?" onClose={() => setPendingImport(null)}><div className="modal-body"><p>Seluruh data {cloud ? "akun" : "demo"} saat ini akan diganti dengan salinan yang dipilih. Unduh cadangan jika masih diperlukan.</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setPendingImport(null)}>Batal</Button><Button className="btn btn-primary" onClick={() => { onUpdate(pendingImport, "Data berhasil dipulihkan dari salinan"); setPendingImport(null); }}>Impor data</Button></div></SimpleModal>}
     {confirm && <SimpleModal title={confirm === "empty" ? "Hapus semua data?" : "Muat ulang data contoh?"} onClose={() => setConfirm(null)}><div className="modal-body"><p>Data saat ini akan {confirm === "empty" ? "dihapus" : "diganti dengan contoh"}. Unduh cadangan jika masih diperlukan. Kuota tidak direset.</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setConfirm(null)}>Batal</Button><Button className={confirm === "empty" ? "btn btn-danger" : "btn btn-primary"} onClick={() => { onUpdate(confirm === "empty" ? { batches: [], orders: [], customers: [], products: [] } : structuredClone(seedData), confirm === "empty" ? "Data dikosongkan. Siap untuk mencatat pesanan." : "Data contoh berhasil dimuat"); setConfirm(null); }}>{confirm === "empty" ? "Hapus data" : "Muat contoh"}</Button></div></SimpleModal>}
   </div>;
 }
