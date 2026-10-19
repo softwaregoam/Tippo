@@ -40,7 +40,7 @@ export function BatchCurrencyFields({ value, onChange, autoRefresh, lockedCurren
       cancel(); setError(""); const text = event.target.value; setManual(text);
       const rate = inputDecimal(text);
       onChange({currency:value.currency, rate: rate && decimalUnits(rate)! > BigInt(0) ? rate : null, source:"manual"});
-    }}/><Button type="button" className="btn btn-secondary" disabled={loading} onClick={() => void refresh(value.currency)}><RefreshCw size={15}/>{loading ? "Mengambil kurs…" : "Perbarui kurs"}</Button></div><span className="field-hint">{value.source === "frankfurter" ? `${value.rateDate} · ` : ""}{lockedCurrency && !autoRefresh ? "Kurs tersimpan untuk pesanan ini." : "Kurs terbaru diambil saat menambah pesanan."}</span>{manual !== null && manual.trim() && !value.rate && <span role="alert" className="error-message">Isi kurs lebih dari nol, gunakan koma untuk desimal.</span>}</>}
+    }}/><Button type="button" className="btn btn-secondary" disabled={loading} onClick={() => void refresh(value.currency)}><RefreshCw size={15}/>{loading ? "Mengambil kurs…" : "Perbarui kurs"}</Button></div>{lockedCurrency && <span className="field-hint">{!autoRefresh ? "Kurs tersimpan untuk pesanan ini." : "Kurs terbaru diambil saat menambah pesanan."}</span>}{manual !== null && manual.trim() && !value.rate && <span role="alert" className="error-message">Isi kurs lebih dari nol, gunakan koma untuk desimal.</span>}</>}
     {error && <span role="alert" className="error-message">{error}{value?.rate ? " Kurs sebelumnya tetap dipakai sebagai estimasi." : ""}</span>}
   </div>;
 }

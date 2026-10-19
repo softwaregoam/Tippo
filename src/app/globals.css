@@ -1475,3 +1475,6 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 @media(max-width:600px) {
  .order-dialog .order-price-assistant { padding-top:0; }
 }
+
+.order-dialog .order-item-card .form-grid.jastip-product-options { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 12px; }
+.order-dialog .order-item-card .jastip-product-options>.field:first-child { grid-column:auto; }

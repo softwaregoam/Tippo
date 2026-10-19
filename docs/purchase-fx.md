@@ -23,10 +23,12 @@ Validasi lokal menggunakan PGlite menguji konversi, metadata, status Final, mata
 
 Mata uang harga beli dipilih pada batch Jastip (Rupiah secara default). Memilih atau mengganti mata uang asing langsung meminta kurs Frankfurter. Batch menyimpan mata uang, kurs referensi terakhir, sumber, dan tanggal kurs melalui `Batch.purchaseFx`; field yang tidak ada berarti IDR.
 
-Membuka Tambah pesanan, atau memilih batch lain dalam pesanan baru, meminta kurs baru satu kali untuk batch tersebut (`cache: no-store`). Kurs yang berhasil diambil memperbarui referensi batch tanpa mengubah pesanan tersimpan. Produk baru dalam formulir memakai kurs batch dengan status Estimasi. Harga beli tetap boleh kosong. Pesanan dan HPP yang sudah tersimpan menyimpan kurs masing-masing; membukanya untuk diedit tidak mengambil kurs otomatis.
+Membuka Tambah pesanan, atau memilih batch lain dalam pesanan baru, meminta kurs baru satu kali untuk batch tersebut (`cache: no-store`). Kurs yang berhasil diambil memperbarui referensi batch tanpa mengubah pesanan tersimpan. Produk baru dalam formulir memakai kurs batch dengan status Estimasi. Harga beli wajib diisi pada form tambah/edit pesanan Jastip; nilai nol berarti biaya diketahui nol. Harga beli berada sebelum harga jual, di luar detail opsional. Data lama yang belum memiliki HPP tetap dapat dibaca. Pesanan dan HPP yang sudah tersimpan menyimpan kurs masing-masing; membukanya untuk diedit tidak mengambil kurs otomatis.
 
 Saat API gagal, tampilkan pesan yang jelas dan pertahankan kurs referensi sebelumnya sebagai estimasi, atau isi manual. Mengganti mata uang membuang kurs mata uang sebelumnya. Respons permintaan yang dibatalkan diabaikan. Selama pengambilan berlangsung, tombol simpan menunggu; mengisi kurs batch manual membatalkan permintaan.
 
 Validasi server batch ada di `supabase/migrations/202610180002_batch_purchase_fx.sql`. Jalankan setelah `202610180001_purchase_fx.sql`; kedua migrasi aman dijalankan ulang, tidak menghapus data, dan tidak mengubah aturan kuota.
 
 Pada form pesanan, kurs bersama berada di bagian 1. Harga beli per produk ditampilkan sebagai satu input dengan kode mata uang dan hasil konversi rupiah. Form edit dengan kurs bersama menampilkan snapshot pesanan, bukan kurs batch terkini; pesanan lama dengan kurs berbeda per produk tetap mempertahankan kontrol masing-masing. Finalisasi tetap tersedia di HPP & Margin. Nama penyedia API tidak ditampilkan pada form. Bantuan harga jual berada di kanan input harga jual pada desktop dan di bawahnya pada ponsel.
+
+Form tambah/edit batch tidak menampilkan teks tanggal dan bantuan pembaruan kurs. Detail produk menempatkan toko di samping varian, serta warna di samping ukuran, termasuk di ponsel.

@@ -232,7 +232,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
         if (item[field].length > limit) rowErrors[field] = `Maksimal ${limit} karakter.`;
       }
       for (const name of ["quantity", "unitPrice", "unitCost"] as const) {
-        if (name === "unitCost" && item[name].trim() === "") continue;
+        if (name === "unitCost" && item[name].trim() === "") { rowErrors.unitCost = purchaseFx[item.id]?.amount.trim() ? "Lengkapi kurs di bagian 1." : "Isi harga beli / HPP produk."; continue; }
         const value = Number(item[name]);
         if (item[name].trim() === "" || !Number.isSafeInteger(value) || value < 0) rowErrors[name] = "Masukkan angka bulat minimal 0.";
       }
@@ -348,17 +348,17 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
               <div className="form-grid jastip-item-grid">
                 {itemField(item, index, "product", "Nama produk")}
                 {itemField(item, index, "quantity", "Jumlah produk")}
+                <PurchaseCostFields required compact={compactPurchase} disabled={!order && loadingRate} allowForeign={!compactPurchase} lockCurrency={!order} id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
                 {itemField(item, index, "unitPrice", "Harga jual / produk")}
                 <div className="field order-price-assistant"><PriceAssistant cost={item.unitCost.trim() && Number.isSafeInteger(Number(item.unitCost)) && Number(item.unitCost) >= 0 ? Number(item.unitCost) : null} estimated={purchaseFx[item.id]?.status === "estimate"} onUse={value => updateItem(item.id, "unitPrice", String(value))} /></div>
               </div>
-              <details className="order-optional-fields" open={Boolean(order?.items.some(row => row.id === item.id && (row.purchaseFx || row.store || row.variant || row.color || row.size || row.unitCost != null)))} onInvalidCapture={event => { event.currentTarget.open = true; }}>
+              <details className="order-optional-fields" open={Boolean(order?.items.some(row => row.id === item.id && (row.store || row.variant || row.color || row.size)))} onInvalidCapture={event => { event.currentTarget.open = true; }}>
                 <summary><span>Detail produk <small>(opsional)</small></span><ChevronDown size={18} aria-hidden="true" /></summary>
-                <div className="form-grid order-optional-body">
+                <div className="form-grid order-optional-body jastip-product-options">
                   {itemField(item, index, "store", "Toko / brand (opsional)")}
                   {itemField(item, index, "variant", "Varian (opsional)")}
                   {itemField(item, index, "color", "Warna (opsional)")}
                   {itemField(item, index, "size", "Ukuran (opsional)")}
-                  <PurchaseCostFields compact={compactPurchase} disabled={!order && loadingRate} allowForeign={!compactPurchase} lockCurrency={!order} id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
                 </div>
               </details>
             </fieldset>)}

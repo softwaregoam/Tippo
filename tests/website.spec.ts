@@ -338,7 +338,7 @@ test("sign out clears the local session even when remote logout fails", async ({
 test("failed account save retains form inputs and never announces a successful save",async({page})=>{
   await authenticate(page,{failSave:true}); await page.goto("/app");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();
   await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();const dialog=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
-  await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama produk",{exact:true}).fill("Belum tersimpan");await dialog.getByLabel("Harga jual / produk",{exact:true}).fill("50000");await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).toBeVisible();await expect(dialog.getByLabel("Nama produk",{exact:true})).toHaveValue("Belum tersimpan");await expect(dialog.getByRole("alert")).toBeVisible();await expect(dialog.getByRole("alert")).toContainText("perangkat lain");await expect(page.locator(".cloud-error")).toContainText("perangkat lain");await expect(page.getByText("Pesanan baru berhasil dicatat",{exact:true})).toHaveCount(0);
+  await chooseOption(dialog.getByLabel("Pelanggan",{exact:true}), "aly");await dialog.getByLabel("Nama produk",{exact:true}).fill("Belum tersimpan");await dialog.getByLabel("Harga jual / produk",{exact:true}).fill("50000");await dialog.getByLabel("Harga beli / produk",{exact:true}).fill("30000");await dialog.getByRole("button",{name:"Simpan pesanan",exact:false}).click();await expect(dialog).toBeVisible();await expect(dialog.getByLabel("Nama produk",{exact:true})).toHaveValue("Belum tersimpan");await expect(dialog.getByRole("alert")).toBeVisible();await expect(dialog.getByRole("alert")).toContainText("perangkat lain");await expect(page.locator(".cloud-error")).toContainText("perangkat lain");await expect(page.getByText("Pesanan baru berhasil dicatat",{exact:true})).toHaveCount(0);
 });
 test("missing remote database displays a recovery screen instead of demo transactions",async({page})=>{
   await authenticate(page,{missing:true});await page.goto("/app");await expect(page.getByRole("heading",{name:"Ruang usahamu belum terbuka."})).toBeVisible();await expect(page.locator(".workspace-wait-card [role=alert]")).toContainText("mengaktifkan database");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toHaveCount(0);
@@ -1377,7 +1377,7 @@ for(const business of ["Jastip","Open PO"] as const)test(`shop and option snapsh
  await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");await form.getByLabel("Tanggal pesanan",{exact:true}).fill("2026-10-13");
  if(business==="Jastip"){
   await form.locator(".order-item-card .order-optional-fields > summary").click();
-  for(const [name,value] of [["Nama produk","Kaos"],["Toko / brand (opsional)","Uniqlo"],["Varian (opsional)","Airism"],["Warna (opsional)","Hitam"],["Ukuran (opsional)","L"],["Harga jual / produk","25000"]])await form.getByLabel(name,{exact:true}).fill(value);
+  for(const [name,value] of [["Nama produk","Kaos"],["Toko / brand (opsional)","Uniqlo"],["Varian (opsional)","Airism"],["Warna (opsional)","Hitam"],["Ukuran (opsional)","L"],["Harga jual / produk","25000"],["Harga beli / produk","12000"]])await form.getByLabel(name,{exact:true}).fill(value);
  }else await chooseOption(form.getByLabel("Produk",{exact:true}),"shirt");
  await form.getByLabel("Jumlah produk",{exact:true}).fill("2");await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);
  expect(requests[0].p_data.orders[0].items[0]).toMatchObject({store:"Uniqlo",variant:"Airism",color:"Hitam",size:"L",quantity:2});
@@ -1943,16 +1943,18 @@ for(const width of [320,1440])test(`backup import uses Tippo confirmation before
  expect(saves[0].p_data).toMatchObject({batches:[],orders:[],customers:[],products:[]});expect(browserDialogs).toHaveLength(0);
 });
 
-for(const width of [320,1440])test(`optional order details preserve values and reveal invalid hidden costs ${width}`,async({page})=>{
+for(const width of [320,1440])test(`Jastip requires purchase costs and pairs optional product fields ${width}`,async({page})=>{
  await page.setViewportSize({width,height:900});const saves=await authenticate(page);await page.goto("/app");await openSection(page,"Pesanan");await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
- const form=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
+ let form=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
  await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");await form.getByLabel("Tanggal pesanan",{exact:true}).fill("2026-10-18");await form.getByLabel("Nama produk",{exact:true}).fill("Kaos Uji");await form.getByLabel("Jumlah produk",{exact:true}).fill("1");await form.getByLabel("Harga jual / produk",{exact:true}).fill("25000");
- const optional=form.locator(".order-item-card .order-optional-fields"),summary=optional.locator("summary"),store=form.getByLabel("Toko / brand (opsional)",{exact:true}),cost=form.getByLabel("Harga beli / produk",{exact:true});
- await expect(store).toBeHidden();await expect(summary).toBeVisible();await summary.focus();await page.keyboard.press("Enter");await expect(store).toBeVisible();await expect(store).toHaveAttribute("placeholder","Contoh: Uniqlo atau toko supplier");
- await expect(form.getByText("Kosongkan jika belum tahu. HPP ditandai belum lengkap.",{exact:true})).toHaveCount(0);
- await store.fill("Uniqlo");await cost.fill("9007199254740992");await summary.click();await expect(cost).toBeHidden();await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(cost).toBeVisible();await expect(cost).toBeFocused();expect(saves).toHaveLength(0);
- await cost.fill("12000");await summary.click();await expect(store).toBeHidden();await summary.click();await expect(store).toHaveValue("Uniqlo");await expect(cost).toHaveValue("12.000");
- await page.screenshot({path:`/tmp/tippo-order-optional-${width}.png`});await summary.click();await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);await expect.poll(()=>saves.length).toBe(1);expect(saves[0].p_data.orders[0].items[0]).toMatchObject({store:"Uniqlo",unitCost:12000});
+ const optional=form.locator(".order-item-card .order-optional-fields"),summary=optional.locator("summary"),store=form.getByLabel("Toko / brand (opsional)",{exact:true});let cost=form.getByLabel("Harga beli / produk",{exact:true});
+ await expect(cost).toBeVisible();await expect(cost).toHaveAttribute("required","");await expect(store).toBeHidden();await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form.getByText("Isi harga beli / HPP produk.",{exact:true})).toBeVisible();await expect(cost).toBeFocused();expect(saves).toHaveLength(0);
+ await summary.focus();await page.keyboard.press("Enter");await expect(store).toBeVisible();await store.fill("Uniqlo");
+ for(const [left,right] of [[store,form.getByLabel("Varian (opsional)",{exact:true})],[form.getByLabel("Warna (opsional)",{exact:true}),form.getByLabel("Ukuran (opsional)",{exact:true})]]){const l=await left.boundingBox(),r=await right.boundingBox();expect(l&&r).toBeTruthy();expect(r!.x).toBeGreaterThan(l!.x+l!.width);expect(Math.abs(l!.y-r!.y)).toBeLessThan(2);}
+ await cost.fill("9007199254740992");await summary.click();await expect(cost).toBeVisible();await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(cost).toBeFocused();expect(saves).toHaveLength(0);
+ await cost.fill("0");await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);await expect.poll(()=>saves.length).toBe(1);expect(saves[0].p_data.orders[0].items[0]).toMatchObject({store:"Uniqlo",unitCost:0});
+ await page.reload();await openSection(page,"Pesanan");if(width<600){await page.getByRole("button",{name:"Detail Alya",exact:true}).click();await page.getByRole("dialog",{name:"Detail Alya",exact:true}).getByRole("button",{name:"Edit",exact:true}).click();}else await page.getByRole("button",{name:/Edit pesanan Kaos Uji/}).click();
+ form=page.getByRole("dialog",{name:"Edit pesanan jastip",exact:true});cost=form.getByLabel("Harga beli / produk",{exact:true});await cost.fill("");await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form.getByText("Isi harga beli / HPP produk.",{exact:true})).toBeVisible();expect(saves).toHaveLength(1);await cost.fill("12000");await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form).toHaveCount(0);await expect.poll(()=>saves.length).toBe(2);expect(saves[1].p_data.orders[0].items[0].unitCost).toBe(12000);
 });
 
 for(const width of [320,1440])test(`Jastip FX snapshot and markup survive reload and finalization ${width}`,async({page})=>{
@@ -1963,6 +1965,7 @@ for(const width of [320,1440])test(`Jastip FX snapshot and markup survive reload
  let form=page.getByRole("dialog",{name:"Pesanan jastip baru",exact:true});
  await chooseOption(form.getByLabel("Pelanggan",{exact:true}),"aly");await form.getByLabel("Tanggal pesanan",{exact:true}).fill(new Date().toISOString().slice(0,10));await form.getByLabel("Nama produk",{exact:true}).fill("FX Uji");await form.getByLabel("Jumlah produk",{exact:true}).fill("2");
  await expect(form.getByLabel("Kurs batch ke rupiah",{exact:true})).toHaveValue("105,5");await expect.poll(()=>saves.length).toBe(1);expect(quotes).toBe(1);
+ await expect(form.getByLabel("Harga beli valas / produk",{exact:true})).toBeVisible();await expect(form.getByLabel("Harga beli valas / produk",{exact:true})).toHaveAttribute("required","");await form.getByRole("button",{name:/Simpan pesanan/}).click();await expect(form.getByText("Isi harga beli / HPP produk.",{exact:true})).toBeVisible();expect(saves).toHaveLength(1);
  await form.locator(".order-item-card .order-optional-fields>summary").click();
  await expect(form.getByRole("combobox",{name:"Satuan Harga beli / produk",exact:true})).toHaveCount(0);
  await form.getByLabel("Harga beli valas / produk",{exact:true}).fill("1000");await expect(form.getByLabel("Kurs ke rupiah",{exact:true})).toHaveCount(0);await expect(form.locator(".purchase-cost-conversion")).toContainText("105.500");await expect(form.getByText(/Frankfurter/)).toHaveCount(0);
@@ -1988,7 +1991,7 @@ test("Batch currency automatically refreshes and ignores cancelled lookup respon
  const form=page.getByRole("dialog",{name:"Batch jastip baru",exact:true});await form.getByLabel("Nama batch",{exact:true}).fill("SGD Uji");expect(quotes).toBe(0);
  await chooseOption(form.getByRole("combobox",{name:"Mata uang batch",exact:true}),"JPY");await expect(form.getByRole("button",{name:"Mengambil kurs…",exact:true})).toBeDisabled();
  await chooseOption(form.getByRole("combobox",{name:"Mata uang batch",exact:true}),"SGD");release();await expect.poll(()=>completed).toBe(true);await expect(form.getByRole("alert")).toContainText("Kurs belum diperbarui");await expect(form.getByLabel("Kurs batch ke rupiah",{exact:true})).toHaveValue("");
- await form.getByLabel("Kurs batch ke rupiah",{exact:true}).fill("12000,5");await expect(form.getByRole("alert")).toHaveCount(0);await expect(form.getByText(/Frankfurter/)).toHaveCount(0);await form.getByRole("button",{name:/Simpan batch/}).click();await expect(form).toHaveCount(0);await expect.poll(()=>saves.length).toBe(1);expect(saves[0].p_data.batches[0].purchaseFx).toEqual({currency:"SGD",rate:"12000.5",source:"manual"});
+ await form.getByLabel("Kurs batch ke rupiah",{exact:true}).fill("12000,5");await expect(form.getByRole("alert")).toHaveCount(0);await expect(form.getByText(/Frankfurter|Kurs terbaru diambil saat menambah pesanan|2026-10-16/)).toHaveCount(0);await form.getByRole("button",{name:/Simpan batch/}).click();await expect(form).toHaveCount(0);await expect.poll(()=>saves.length).toBe(1);expect(saves[0].p_data.batches[0].purchaseFx).toEqual({currency:"SGD",rate:"12000.5",source:"manual"});
 });
 
 test("New orders refresh the selected batch and new items inherit its currency",async({page})=>{
