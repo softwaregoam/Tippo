@@ -105,9 +105,11 @@ Referensi batch/pelanggan harus valid. `items[].productId` wajib menunjuk master
 ## Perhitungan yang dipakai MVP
 
 ```text
-Revenue(order) = Σ(item.quantity × item.unitPrice) + serviceFee + shippingCharge
+Subtotal(order) = Σ(item.quantity × item.unitPrice) + serviceFee
+Revenue(order) = Subtotal(order) − Discount(order) + shippingCharge
+NetSales(order) = max(0, Subtotal(order) − Discount(order))
 HPP(order) = Σ(item.quantity × item.unitCost) + allocatedBatchCost
-Margin(order) = Revenue(order) − HPP(order)
+Margin(order) = NetSales(order) − HPP(order)
 Outstanding(order) = Revenue(order) − paid
 ```
 
@@ -235,3 +237,10 @@ Migration dan batas verifikasi remote: [SUPABASE-SETUP.md](./SUPABASE-SETUP.md).
 `Product.category?: string` menyimpan kategori opsional maksimal 80 karakter. `Order.refunds?: { id: string; amount: number; date: string; reason: string; createdAt: string }[]` menyimpan riwayat pengembalian; maksimal 100 entri dengan ID unik dan nominal positif. `Order.paid` tetap pembayaran bersih yang masih diterima setelah refund. Total pembayaran sebelum refund dapat direkonstruksi dari `paid + sum(refunds.amount)`.
 
 Data lama tanpa dua properti opsional tetap valid. Kedua properti disimpan dalam JSON workspace melalui RPC versi yang sudah ada, bersama nominal pembayaran dalam satu penyimpanan. Tidak memerlukan migrasi database baru. Validasi klien memeriksa riwayat; ledger ini bukan audit trail immutable yang ditegakkan server. Invariant backend pesanan dibatalkan dengan pembayaran nol tetap dipenuhi.
+
+
+## Margin tanpa ongkir pelanggan
+
+Margin pesanan = max(0, subtotal produk + fee − diskon) − HPP. Ongkir yang ditagihkan kepada pelanggan tidak membentuk margin. Diskon rupiah mengurangi produk/fee terlebih dahulu; kelebihan diskon hanya mengurangi ongkir, sehingga dasar margin tidak menjadi negatif akibat diskon ongkir. HPP tetap dapat membuat margin negatif. Nilai belum lengkap dan pesanan dibatalkan tetap mengikuti aturan sebelumnya.
+
+Total tagihan/penjualan dan sisa pembayaran tetap mencakup ongkir. Ringkasan margin, form Jastip, HPP & Margin, laporan penjualan, dan Excel penjualan memakai dasar tanpa ongkir yang sama. Rekap belanja per produk/per pesanan sejak awal menghitung harga produk saja. Data transaksi tidak ditulis ulang dan tidak memerlukan migrasi SQL.

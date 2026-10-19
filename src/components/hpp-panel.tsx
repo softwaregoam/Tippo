@@ -6,7 +6,7 @@ import { PurchaseCostFields } from "@/components/purchase-cost-fields";
 import { draftFromFx, fxFromDraft, fxDraftError, hasEstimatedCost, type FxDraft } from "@/lib/purchase-fx";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { allocatedBatchCosts, formatCurrency, itemLabel, orderHpp, orderQuantity, orderRevenue } from "@/lib/finance";
+import { allocatedBatchCosts, formatCurrency, itemLabel, orderHpp, orderQuantity, orderNetSales } from "@/lib/finance";
 import { formatCalendarDate } from "@/lib/calendar-date";
 import { isAppData } from "@/lib/validation";
 import type { AppData, Batch, Order } from "@/lib/types";
@@ -26,7 +26,7 @@ function HppOrderDialog({order,batch,data,onSave,onClose}:{order:Order;batch:Bat
   const updated={...order,items:order.items.map(item=>({...item,purchaseFx:fx[item.id]?fxFromDraft(fx[item.id]!):undefined,unitCost:purchaseCost(costs[item.id]??"")}))};
   const next={...data,orders:data.orders.map(entry=>entry.id===order.id?updated:entry)};
   const cost=orderHpp(updated,next.orders,data.batches);
-  const margin=cost===null?null:orderRevenue(updated)-cost;
+  const margin=cost===null?null:orderNetSales(updated)-cost;
   const customer=data.customers.find(entry=>entry.id===order.customerId)?.name||"Pelanggan";
   async function submit(event:React.FormEvent) {
     event.preventDefault();if(busy)return;
@@ -53,7 +53,7 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
   const totals=orders.reduce((sum,order)=>{
     const cost=orderHpp(order,data.orders,data.batches);
     if(cost===null)sum.incomplete+=1;
-    else{sum.hpp+=cost;sum.margin+=orderRevenue(order)-cost;sum.complete+=1;}
+    else{sum.hpp+=cost;sum.margin+=orderNetSales(order)-cost;sum.complete+=1;}
     return sum;
   },{hpp:0,margin:0,incomplete:0,complete:0});
   const totalsKnown=orders.length===0||totals.complete>0;
@@ -75,14 +75,14 @@ export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData;
   const visible=filtered.slice((page-1)*10,page*10);
   const selected=orders.find(order=>order.id===editing);
   const costLabel=(order:Order)=>{const cost=orderHpp(order,data.orders,data.batches);return cost===null?<span className="status-tag status-new">Belum lengkap</span>:<>{formatCurrency(cost)}{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</>;};
-  const marginLabel=(order:Order)=>{const cost=orderHpp(order,data.orders,data.batches);return cost===null?<span className="muted">—</span>:<span className={orderRevenue(order)-cost<0?"negative":"positive"}>{formatCurrency(orderRevenue(order)-cost)}{hasEstimatedCost(order)&&<small className="fx-estimate">Estimasi</small>}</span>;};
+  const marginLabel=(order:Order)=>{const cost=orderHpp(order,data.orders,data.batches);return cost===null?<span className="muted">—</span>:<span className={orderNetSales(order)-cost<0?"negative":"positive"}>{formatCurrency(orderNetSales(order)-cost)}{hasEstimatedCost(order)&&<small className="fx-estimate">Estimasi</small>}</span>;};
   const actionLabel=(order:Order)=>orderHpp(order,data.orders,data.batches)===null?"Isi HPP":"Edit HPP";
   function changePage(next:number){setPage(next);details.current?.scrollIntoView({block:"start"});}
   return <div className="reports-layout">
     {orders.some(hasEstimatedCost)&&<p className="fx-estimate-note" role="status">HPP dan margin mencakup kurs estimasi. Finalkan kurs setelah biaya pembayaran pasti.</p>}
     <section className="report-stats hpp-summary-cards" aria-label="Total HPP dan margin batch">{[
       [totals.incomplete?"HPP diketahui":"Total HPP",totalsKnown?formatCurrency(totals.hpp):"Belum lengkap",`${totals.complete} dari ${orders.length} pesanan lengkap`],
-      [totals.incomplete?"Margin diketahui":"Total margin",totalsKnown?formatCurrency(totals.margin):"Belum lengkap","Laba kotor sebelum biaya umum"],
+      [totals.incomplete?"Margin diketahui":"Total margin",totalsKnown?formatCurrency(totals.margin):"Belum lengkap","Tanpa ongkir · sebelum biaya umum"],
       ["Total pesanan",String(orders.length),`${orders.reduce((sum,order)=>sum+orderQuantity(order),0)} unit produk`],
       ["HPP belum lengkap",String(totals.incomplete),totals.incomplete?"Pesanan perlu dilengkapi":"Semua HPP lengkap"],
     ].map(([label,value,note],index)=><div className="card stat-card" key={index}><p className="muted">{label}</p><strong className={`report-stat-value${index===1&&totalsKnown&&totals.margin<0?" negative":""}`}>{value}</strong><p className="field-hint">{note}</p></div>)}</section>

@@ -12,7 +12,7 @@ test("discounts reduce totals, balances, margin and monthly sales without reduci
     const o={...order,discount}, d=workspace(o);
     assert.equal(orderDiscount(o),6000); assert.equal(orderRevenue(o),59000);
     assert.equal(outstanding(o),39000); assert.equal(orderHpp(o,d.orders,d.batches),24000);
-    assert.equal(orderMargin(o,d.orders,d.batches),35000);
+    assert.equal(orderMargin(o,d.orders,d.batches),30000);
     assert.equal(getMonthSummary(d,"2026-10").revenue,59000); assert.equal(isAppData(d),true);
     assert.match(buildInvoice(o),/Diskon.*6\.000/); assert.match(buildInvoice(o),/Total tagihan.*59\.000/);
   }

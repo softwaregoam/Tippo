@@ -34,6 +34,13 @@ export function orderDiscount(order: Order): number {
   return Number((BigInt(base) * BigInt(discount.value) + BigInt(50)) / BigInt(100));
 }
 
+/** Product sales plus fee after discount; shipping is a pass-through, never profit.
+ * Fixed discounts reduce products/fee first; any excess only discounts shipping.
+ */
+export function orderNetSales(order: Order): number {
+  return Math.max(0, orderSubtotal(order) - orderDiscount(order));
+}
+
 export function orderRevenue(order: Order): number {
   return orderSubtotal(order) - orderDiscount(order) + order.shippingCharge;
 }
@@ -75,7 +82,7 @@ export function orderHpp(order: Order, orders: Order[], batches: Batch[]): numbe
 export function orderMargin(order: Order, orders: Order[], batches: Batch[]): number | null {
   if (order.status === "cancelled") return 0;
   const hpp = orderHpp(order, orders, batches);
-  return hpp === null ? null : orderRevenue(order) - hpp;
+  return hpp === null ? null : orderNetSales(order) - hpp;
 }
 
 export function outstanding(order: Order): number {
@@ -105,7 +112,7 @@ export function getMonthSummary(data: AppData, month: string): MonthSummary {
       summary.unknownCostCount += 1;
     } else {
       summary.hpp += hpp;
-      summary.profit += revenue - hpp;
+      summary.profit += orderNetSales(order) - hpp;
     }
   }
   return summary;

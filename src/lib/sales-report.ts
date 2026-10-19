@@ -1,4 +1,4 @@
-import { orderHpp, orderQuantity, orderRevenue } from "./finance.ts";
+import { orderHpp, orderQuantity, orderRevenue, orderNetSales } from "./finance.ts";
 import type { AppData, Batch } from "./types.ts";
 
 export type ReportFilter = { type: Batch["type"]; from: string; to: string; batchId?: string };
@@ -23,7 +23,7 @@ export function buildSalesReport(data: AppData, filter: ReportFilter) {
     const revenue = orderRevenue(order);
     // Always allocate shared costs against the full batch, before date filtering.
     const hpp = orderHpp(order, data.orders, data.batches);
-    return { order, customer: data.customers.find(customer => customer.id === order.customerId)?.name ?? "Pelanggan", batch: batches.find(batch => batch.id === order.batchId)!.name, revenue, hpp, margin: hpp === null ? null : revenue - hpp, quantity: orderQuantity(order) };
+    return { order, customer: data.customers.find(customer => customer.id === order.customerId)?.name ?? "Pelanggan", batch: batches.find(batch => batch.id === order.batchId)!.name, revenue, hpp, margin: hpp === null ? null : orderNetSales(order) - hpp, quantity: orderQuantity(order) };
   });
   const summary = rows.reduce((sum,row) => ({ orders: sum.orders + 1, quantity: sum.quantity + row.quantity, revenue: sum.revenue + row.revenue, hpp: sum.hpp + (row.hpp ?? 0), margin: sum.margin + (row.margin ?? 0), unknownCosts: sum.unknownCosts + Number(row.hpp === null), knownRevenue: sum.knownRevenue + (row.hpp === null ? 0 : row.revenue) }), { orders:0, quantity:0, revenue:0, hpp:0, margin:0, unknownCosts:0, knownRevenue:0 });
   const products = new Map<string,{key:string;name:string;detail:string;quantity:number}>();

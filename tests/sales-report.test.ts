@@ -14,8 +14,8 @@ test("report uses inclusive order dates, excludes cancellations and other busine
  const report=buildSalesReport(workspace,filter);
  assert.equal(report.rows.length,1);assert.equal(report.summary.revenue,100);
  // Shared 9 rupiah split across two eligible orders, including the prior day.
- assert.equal(report.rows[0].hpp,65);assert.equal(report.summary.margin,35);
- const all=buildSalesReport(workspace,{...filter,from:"2026-10-01"});assert.equal(all.summary.hpp,129);assert.equal(all.summary.margin,71);
+ assert.equal(report.rows[0].hpp,65);assert.equal(report.summary.margin,30);
+ const all=buildSalesReport(workspace,{...filter,from:"2026-10-01"});assert.equal(all.summary.hpp,129);assert.equal(all.summary.margin,61);
  assert.equal(buildSalesReport(workspace,{...filter,batchId:"p"}).rows.length,0);
  assert.equal(buildSalesReport(workspace,{...filter,type:"po"}).rows[0].order.id,"po");
 });
@@ -46,7 +46,7 @@ test("Excel export matches the filtered report, preserves numeric amounts and ne
  assert.equal(sheet.getCell("C5").value,"=SUM(1,2)");assert.equal(sheet.getCell("I5").value,100);
  assert.equal(sheet.getCell("J6").value,"Belum lengkap");assert.equal(sheet.getCell("K6").value,"Belum lengkap");
  assert.equal(workbook.getWorksheet("Produk terlaris")!.getCell("D5").value,2);
- assert.equal(sheet.getCell("I7").value,200);assert.equal(sheet.getCell("J7").value,65);assert.equal(sheet.getCell("K7").value,35);assert.match(String(sheet.getCell("A7").value),/HPP\/margin diketahui/);
+ assert.equal(sheet.getCell("I7").value,200);assert.equal(sheet.getCell("J7").value,65);assert.equal(sheet.getCell("K7").value,30);assert.match(String(sheet.getCell("A7").value),/HPP\/margin diketahui/);
  for(const worksheet of workbook.worksheets)for(const row of [1,2,3])assert.equal(worksheet.getCell(row,1).alignment.horizontal,"left");
  assert.equal(sheet.getCell("I5").alignment.horizontal,"right");
  assert.equal(sheet.getColumn("I").numFmt,'"Rp" #,##0;[Red]-"Rp" #,##0');assert.equal(sheet.autoFilter,"A4:K6");
@@ -67,3 +67,15 @@ test("empty and incomplete report workbooks keep unknown costs explicit and gran
  assert.equal(sheet.rowCount,7);assert.equal(sheet.columnCount,11);assert.equal(sheet.getCell("A5").value,"a");assert.equal(sheet.getCell("A6").value,"b");assert.equal(sheet.getCell("E5").value,4);assert.equal(sheet.getCell("I5").value,700);assert.equal(sheet.getCell("J5").value,"Belum lengkap");assert.equal(sheet.getCell("E7").value,5);assert.equal(sheet.getCell("I7").value,800);assert.equal(sheet.autoFilter,"A4:K6");assert.equal(book.getWorksheet("Rincian produk"),undefined);
  }
  });
+
+
+test("sales report and Excel profit exclude shipping while invoice totals retain it in both businesses",async()=>{
+ for(const type of ["jastip","po"] as const){
+  const first=make("a",{batchId:type==="jastip"?"j":"p",shippingCharge:1000}),workspace=data([first]);
+  const report=buildSalesReport(workspace,{...filter,type}),without=buildSalesReport(data([{...first,shippingCharge:0}]),{...filter,type});
+  assert.equal(report.summary.margin,without.summary.margin);assert.equal(report.summary.revenue,without.summary.revenue+1000);
+  const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createReportExcel(report)).buffer);const sheet=book.getWorksheet("Pesanan")!;
+  assert.equal(sheet.getCell("H5").value,1000);assert.equal(sheet.getCell("I5").value,report.summary.revenue);assert.equal(sheet.getCell("K5").value,without.summary.margin);
+  assert.match(JSON.stringify(book.getWorksheet("Ringkasan")!.getSheetValues()),/Margin tidak termasuk ongkir/);
+ }
+});

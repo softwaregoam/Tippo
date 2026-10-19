@@ -10,6 +10,7 @@ import {
   orderQuantity,
   itemLabel,
   orderRevenue,
+  orderNetSales,
   outstanding,
 } from "../src/lib/finance.ts";
 import type { AppData, Batch, Order, OrderItem } from "../src/lib/types.ts";
@@ -57,11 +58,11 @@ test("HPP includes allocated cost while payments remain separate from revenue an
   const order = makeOrder({}, { quantity: 2 });
   assert.equal(orderRevenue(order), 2300);
   assert.equal(orderHpp(order, [order], [batch]), 1300);
-  assert.equal(orderMargin(order, [order], [batch]), 1000);
+  assert.equal(orderMargin(order, [order], [batch]), 800);
   assert.equal(outstanding(order), 1800);
   const fullyPaid = { ...order, paid: 2300 };
   assert.equal(orderRevenue(fullyPaid), orderRevenue(order));
-  assert.equal(orderMargin(fullyPaid, [fullyPaid], [batch]), 1000);
+  assert.equal(orderMargin(fullyPaid, [fullyPaid], [batch]), 800);
   assert.equal(outstanding(fullyPaid), 0);
   assert.equal(outstanding({ ...order, paid: 9999 }), 0);
 });
@@ -87,14 +88,14 @@ test("monthly totals exclude cancelled orders and disclose partial profit", () =
   const data: AppData = { batches: [batch], customers: [], orders, products: [] };
   // Three active units share the cost across the whole batch, including September.
   assert.deepEqual(getMonthSummary(data, "2026-10"), {
-    revenue: 2600, hpp: 634, profit: 666, received: 700,
+    revenue: 2600, hpp: 634, profit: 466, received: 700,
     outstanding: 1900, ordersCount: 2, unknownCostCount: 1,
   });
   const series = getMonthlySeries(data, 2026);
   assert.equal(series.length, 12);
   assert.equal(series[9].month, "2026-10");
   assert.equal(series[9].label, "Okt");
-  assert.equal(series[9].profit, 666);
+  assert.equal(series[9].profit, 466);
   assert.equal(series[8].ordersCount, 1);
   assert.equal(series[0].revenue, 0);
 });
@@ -120,7 +121,7 @@ test("one order totals several item snapshots but fees and shipping are charged 
   assert.equal(orderRevenue(order), 155000);
   assert.deepEqual(allocatedBatchCosts(batch, [order, other]), { a: 75, b: 25 });
   assert.equal(orderHpp(order, [order, other], [batch]), 84075);
-  assert.equal(orderMargin(order, [order, other], [batch]), 70925);
+  assert.equal(orderMargin(order, [order, other], [batch]), 60925);
   assert.equal(outstanding(order), 105000);
 });
 
@@ -132,4 +133,20 @@ test("an unknown cost on any line keeps the whole order HPP and margin unknown",
   assert.deepEqual(getMonthSummary(data, "2026-10"), {
     revenue: 2300, hpp: 0, profit: 0, received: 500, outstanding: 1800, ordersCount: 1, unknownCostCount: 1,
   });
+});
+
+
+test("shipping never increases profit, including fixed discounts that reach shipping",()=>{
+ for(const type of ["jastip","po"] as const)for(const discount of [undefined,{type:"amount" as const,value:500},{type:"percent" as const,value:10},{type:"amount" as const,value:1000}]){
+  const base=makeOrder({discount,serviceFee:type==="jastip"?100:0});
+  const net=orderNetSales(base),cost=orderHpp(base,[base],[{...batch,type}])!;
+  for(const shippingCharge of [0,200,10000]){
+   const row={...base,shippingCharge},data={batches:[{...batch,type}],orders:[row],customers:[],products:[]};
+   assert.equal(orderNetSales(row),net);assert.equal(orderMargin(row,[row],data.batches),net-cost);
+   assert.equal(getMonthSummary(data,"2026-10").profit,net-cost);
+   assert.equal(outstanding(row),Math.max(0,orderRevenue(row)-row.paid));
+  }
+ }
+ const free=makeOrder({discount:{type:"amount",value:1300}});
+ assert.equal(orderRevenue(free),0);assert.equal(orderNetSales(free),0);assert.equal(orderMargin(free,[free],[batch]),-700);
 });

@@ -396,7 +396,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
               {page === "dashboard" && <>
                 <div className="stats-grid">
                   <Stat title="Total penjualan" value={formatCurrency(summary.revenue)} note={`${summary.ordersCount} pesanan di ${monthNames[Number(month.slice(5)) - 1]}`} />
-                  <Stat title="Estimasi margin" value={formatCurrency(summary.profit)} note={summary.unknownCostCount ? `${summary.unknownCostCount} pesanan belum lengkap HPP` : "Estimasi laba kotor, sebelum biaya umum"} warning={summary.unknownCostCount > 0} />
+                  <Stat title="Estimasi margin" value={formatCurrency(summary.profit)} note={summary.unknownCostCount ? `${summary.unknownCostCount} pesanan belum lengkap HPP` : "Tanpa ongkir, sebelum biaya umum"} warning={summary.unknownCostCount > 0} />
                   <Stat title="Pesanan bulan ini" value={`${summary.ordersCount}`} note={`${monthOrders.filter((o) => o.status === "done").length} selesai · ${monthOrders.filter((o) => !["done", "cancelled"].includes(o.status)).length} dalam proses`} />
                   <Stat title="Sisa tagihan" value={formatCurrency(summary.outstanding)} note="Piutang pesanan bulan terpilih" />
                 </div>

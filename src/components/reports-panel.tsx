@@ -59,7 +59,7 @@ export function ReportsPanel({ data, type, isPro, onUpgrade }: { data: AppData; 
     <section className="report-stats" aria-label="Ringkasan laporan">{[
         ["Total penjualan",formatCurrency(summary.revenue),"Setelah diskon, termasuk fee dan ongkir"],
         ["HPP diketahui",known?formatCurrency(summary.hpp):"Belum lengkap",`${summary.orders-summary.unknownCosts} dari ${summary.orders} pesanan lengkap`],
-        [summary.unknownCosts?"Margin diketahui":"Estimasi margin",known?formatCurrency(summary.margin):"Belum lengkap","Laba kotor sebelum biaya umum"],
+        [summary.unknownCosts?"Margin diketahui":"Estimasi margin",known?formatCurrency(summary.margin):"Belum lengkap","Tanpa ongkir · sebelum biaya umum"],
         ["Jumlah pesanan",String(summary.orders),`${summary.quantity} unit produk`],
       ].map(([label,value,note])=><div className="card stat-card" key={label}><p className="muted">{label}</p><strong className="report-stat-value">{value}</strong><p className="field-hint">{note}</p></div>)}</section>
       {summary.unknownCosts>0&&<p className="report-cost-note" role="status">Margin belum mencakup {summary.unknownCosts} pesanan dengan HPP belum lengkap.</p>}
