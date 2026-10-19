@@ -1,3 +1,5 @@
+> Development gratis menggunakan branch `dev` + Supabase lokal Docker. Lihat [panduan Tippo Dev](docs/DEVELOPMENT.md). `main` tetap untuk rilis produksi; pengembangan rutin tidak langsung dirilis.
+
 > Pembaruan 10 Oktober 2026: fitur demo publik dihapus. Semua penggunaan aplikasi melalui akun Supabase. Tombol pesan produk, HPP, dan tambah pesanan di tabel dihapus; pembuatan pesanan tetap melalui tombol halaman dan HPP melalui sidebar. Bagian riwayat implementasi lokal di bawah bukan fitur yang tersedia untuk pengguna.
 
 # Tippo

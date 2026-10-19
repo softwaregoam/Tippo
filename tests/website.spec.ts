@@ -76,7 +76,8 @@ for(const width of [320,1440])test(`DOKU production Rp10.000 test at ${width}px`
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
 
-const endpoint="https://bkplemoflteubfgvqhke.supabase.co";
+const endpoint=process.env.PLAYWRIGHT_SUPABASE_URL??process.env.NEXT_PUBLIC_SUPABASE_URL??"https://bkplemoflteubfgvqhke.supabase.co";
+const authStorageKey=`sb-${new URL(endpoint).hostname.split(".")[0]}-auth-token`;
 const owner="00000000-0000-0000-0000-000000000001";
 function session(accountId = owner) {
   const exp=Math.floor(Date.now()/1000)+3600;
@@ -102,11 +103,11 @@ async function checkCalendarOnly(page:Page,input:Locator,form:Locator) {
 }
 async function authenticate(page:Page, options:{failSave?:boolean;missing?:boolean;pro?:boolean;workspace?:AppData;accountId?:string;metadata?:Record<string,unknown>}={}) {
   const auth=session(options.accountId); Object.assign(auth.user.user_metadata,options.metadata); let version=0; let data=structuredClone(options.workspace ?? fixture); const requests: {p_data:AppData;p_expected_version:number}[]=[];
-  await page.addInitScript(({auth})=>{
-    if(!sessionStorage.getItem("auth-test-seeded")){localStorage.setItem("sb-bkplemoflteubfgvqhke-auth-token",JSON.stringify(auth));sessionStorage.setItem("auth-test-seeded","1");}
+  await page.addInitScript(({auth,authStorageKey})=>{
+    if(!sessionStorage.getItem("auth-test-seeded")){localStorage.setItem(authStorageKey,JSON.stringify(auth));sessionStorage.setItem("auth-test-seeded","1");}
     localStorage.setItem("tippo.subscription.demo.v1",JSON.stringify({tier:"pro",expiresAt:"2099-01-01T00:00:00Z",mode:"demo"}));
     localStorage.setItem("tippo.workspace.v1",JSON.stringify({batches:[],customers:[],products:[],orders:[]}));
-  },{auth});
+  },{auth,authStorageKey});
   await page.route(`${endpoint}/**`,async route=>{
     const url=route.request().url();
     if(url.includes("/rpc/get_tippo_workspace")) {
@@ -149,7 +150,7 @@ test(`homepage interactions and mobile navigation lead to real routes ${width} $
   await page.setViewportSize({width,height:1000});
   await page.addInitScript(theme=>localStorage.setItem("tippo.theme.v1",theme),theme);
   const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
-  await page.goto("/"); await expect(page.locator(".wordmark").first()).toHaveText("Tippo."); await expect(page).toHaveTitle("Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{level:1})).toHaveText("Titip & Pesan, Beres di Tippo.");
+  await page.goto("/"); await expect(page.locator(".wordmark").first()).toHaveText("Tippo."); await expect(page).toHaveTitle(process.env.TIPPO_APP_ENV==="development"||process.env.VERCEL_ENV==="preview"?"Tippo Dev: Jastip & Open PO":"Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{level:1})).toHaveText("Titip & Pesan, Beres di Tippo.");
   await expect(page.getByText("Contoh pesanan fiktif",{exact:true})).toBeVisible();await expect(page.getByRole("heading",{name:"Rekap belanja otomatis",exact:true})).toBeVisible();await expect(page.getByRole("heading",{name:"Invoice dengan identitas tokomu",exact:true})).toBeVisible();await expect(page.getByRole("heading",{name:"Laporan yang siap diperiksa",exact:true})).toBeVisible();await expect(page.locator(".plan-table")).toContainText("Rekap belanja Excel");await expect(page.locator(".plan-table")).toContainText("Rp50.000");await expect(page.locator("#harga")).not.toContainText("Belum bisa berlangganan");
   await expect(page.locator(".ledger-product")).toHaveCount(2);expect(await page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Jastip",exact:true}).evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(await page.locator(".ledger-payment").evaluate(el=>getComputedStyle(el).backgroundColor));await expect(page.getByRole("group",{name:"Pilihan alur pesanan"}).getByRole("button",{name:"Jastip",exact:true})).toHaveCSS("background-color",theme==="dark"?"rgb(36, 60, 50)":"rgb(237, 245, 241)");
   await expect(page.locator(".ledger-total")).toContainText(/Rp\s*1\.638\.000/);
@@ -246,7 +247,7 @@ test("browser back retains session and the homepage offers the existing account"
   page.on("request", request => { if (request.url().includes("/auth/v1/logout")) logoutCalls++; });
   await page.goto("/");
   await expect(page.locator(".landing-nav-actions").getByRole("link", {name:"Buka usaha saya", exact:true})).toBeVisible();
-  const savedToken = await page.evaluate(() => localStorage.getItem("sb-bkplemoflteubfgvqhke-auth-token"));
+  const savedToken = await page.evaluate(key => localStorage.getItem(key),authStorageKey);
   await page.locator(".landing-nav-actions").getByRole("link", {name:"Buka usaha saya", exact:true}).click();
   await expect(page.locator(".page-heading h1")).toBeVisible();
   await page.goBack();
@@ -256,7 +257,7 @@ test("browser back retains session and the homepage offers the existing account"
   await expect(page.getByRole("link",{name:"Buat akun gratis",exact:true})).toHaveCount(0);
   await expect(page.getByRole("link",{name:"Masuk",exact:true})).toHaveCount(0);
   await expect(page.getByRole("link",{name:"Buka usaha saya",exact:true})).toHaveCount(4);
-  expect(await page.evaluate(() => localStorage.getItem("sb-bkplemoflteubfgvqhke-auth-token"))).toBe(savedToken);
+  expect(await page.evaluate(key => localStorage.getItem(key),authStorageKey)).toBe(savedToken);
   await page.goForward();
   await expect(page.locator(".page-heading h1")).toBeVisible();
   await page.reload();
@@ -287,7 +288,7 @@ for(const width of [320,1440])test(`successful email login and browser back reta
 });
 test("account saves await Supabase, ignore local Pro and keep demo data separate",async({page})=>{
   const requests=await authenticate(page);const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
-  await page.goto("/app");await expect(page).toHaveTitle("Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();await expect(page.locator(".cloud-toolbar, .owner")).toHaveCount(0);await page.getByRole("button",{name:"Menu akun",exact:true}).click();await expect(page.getByText("Titipan Naya",{exact:true})).toBeVisible();await page.keyboard.press("Escape");
+  await page.goto("/app");await expect(page).toHaveTitle(process.env.TIPPO_APP_ENV==="development"||process.env.VERCEL_ENV==="preview"?"Tippo Dev: Jastip & Open PO":"Tippo: Jastip & Open PO");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();await expect(page.locator(".cloud-toolbar, .owner")).toHaveCount(0);await page.getByRole("button",{name:"Menu akun",exact:true}).click();await expect(page.getByText("Titipan Naya",{exact:true})).toBeVisible();await page.keyboard.press("Escape");
   await expect(page.getByLabel("Pilih bulan ringkasan")).toBeDisabled();
   await openSection(page,"Pesanan");
   await page.getByRole("button",{name:"Tambah pesanan",exact:true}).click();
@@ -333,7 +334,7 @@ test("sign out clears the local session even when remote logout fails", async ({
   await page.getByRole("button",{name:"Menu akun",exact:true}).click();
   await page.getByRole("menuitem",{name:"Keluar",exact:true}).click();
   await expect(page).toHaveURL(/\/masuk$/);
-  expect(await page.evaluate(() => localStorage.getItem("sb-bkplemoflteubfgvqhke-auth-token"))).toBeNull();
+  expect(await page.evaluate(key => localStorage.getItem(key),authStorageKey)).toBeNull();
 });
 test("failed account save retains form inputs and never announces a successful save",async({page})=>{
   await authenticate(page,{failSave:true}); await page.goto("/app");await expect(page.getByRole("heading",{name:"Ringkasan Jastip."})).toBeVisible();
@@ -651,7 +652,7 @@ test("unconfigured Google provider shows a useful error and preserves the email 
 
 test("Google callback creates the account session from tokens and opens its workspace",async({page})=>{
   await authenticate(page);
-  await page.addInitScript(()=>localStorage.removeItem("sb-bkplemoflteubfgvqhke-auth-token"));
+  await page.addInitScript(key=>localStorage.removeItem(key),authStorageKey);
   const auth=session();
   await page.goto(`/auth/callback#access_token=${auth.access_token}&refresh_token=${auth.refresh_token}&expires_in=3600&token_type=bearer`);
   await expect(page).toHaveURL(/\/app$/);

@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { validateDevelopmentEnvironment } from "./scripts/development-environment.mjs";
+
+validateDevelopmentEnvironment(process.env);
 
 const nextConfig: NextConfig = {
   agentRules: false,

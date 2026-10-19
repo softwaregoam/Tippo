@@ -9,3 +9,6 @@ playwright-report/
 test-results/
 *.log
 payment-router/.helipod-state.json
+.local-dev/
+supabase/.temp/
+supabase/.branches/

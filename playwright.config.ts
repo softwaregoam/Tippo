@@ -1,5 +1,8 @@
+import nextEnv from "@next/env";
 import { existsSync } from "node:fs";
 import { defineConfig } from "@playwright/test";
+
+nextEnv.loadEnvConfig(process.cwd(), true);
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001";
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
