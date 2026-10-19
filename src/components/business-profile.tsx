@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DEMO_PROFILE_KEY, readBusinessProfile, validateBusinessProfile, type BusinessProfile } from "@/lib/business-profile";
 import { readInvoiceAppearance, validateInvoiceTemplate, type InvoiceAppearance } from "@/lib/invoice-template";
@@ -43,10 +44,13 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
         <div className="field"><label className="field-label" htmlFor="business-email">Email akun</label><input id="business-email" className="input" readOnly value={cloud?.email ?? "Mode demo, belum terhubung ke akun"}/><p className="field-hint">Email akun tidak diubah melalui profil bisnis.</p></div>
         <div className="field"><label className="field-label" htmlFor="business-phone">Nomor WhatsApp usaha (opsional)</label><input id="business-phone" type="tel" className="input" autoComplete="tel" maxLength={30} disabled={busy} value={profile.phone} onChange={e=>setProfile({...profile,phone:e.target.value})} placeholder="08..."/></div>
         <div className="field"><label className="field-label" htmlFor="business-address">Alamat usaha (opsional)</label><textarea id="business-address" className="input" rows={3} autoComplete="street-address" maxLength={1000} disabled={busy} value={profile.address} onChange={e=>setProfile({...profile,address:e.target.value})}/></div>
-        <fieldset className="business-bank-settings" disabled={busy}><legend>Rekening pembayaran <span className="muted">(opsional)</span></legend>
+        <fieldset className="business-bank-settings" disabled={busy} aria-labelledby="business-bank-title">
+          <div className="business-bank-heading"><span className="business-bank-icon"><Landmark size={23} aria-hidden="true" /></span><div><h3 id="business-bank-title">Rekening pembayaran</h3><p>Ditampilkan pada invoice pelanggan.</p></div><span className="business-bank-optional">Opsional</span></div>
+          <div className="business-bank-fields">
           <div className="field"><label className="field-label" htmlFor="business-bank-name">Nama bank</label><input id="business-bank-name" className="input" maxLength={80} value={appearance.bankName??""} onChange={e=>setAppearance({...appearance,bankName:e.target.value})} placeholder="Contoh: BCA"/></div>
           <div className="field"><label className="field-label" htmlFor="business-bank-account">Nomor rekening</label><input id="business-bank-account" className="input" inputMode="numeric" autoComplete="off" maxLength={40} value={appearance.bankAccount??""} onChange={e=>setAppearance({...appearance,bankAccount:e.target.value})} placeholder="Nomor rekening"/></div>
           <div className="field"><label className="field-label" htmlFor="business-bank-holder">Atas nama</label><input id="business-bank-holder" className="input" maxLength={120} value={appearance.bankHolder??""} onChange={e=>setAppearance({...appearance,bankHolder:e.target.value})} placeholder="Nama pemilik rekening"/></div>
+          </div>
         </fieldset>
         {error && <p className="error-message" role="alert">{error}</p>}
       </div>
