@@ -1,6 +1,7 @@
+import { formatDecimalInput, editDecimalInput } from "../src/lib/decimal-input.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validBatchPurchaseFx, batchFxDraft, canonicalDecimal, inputDecimal, convertedCost, draftFromFx, fxDraftError, fxFromDraft, readFrankfurterRate, suggestedPrice, validPurchaseFx } from "../src/lib/purchase-fx.ts";
+import { limitMarkupPercent, validBatchPurchaseFx, batchFxDraft, canonicalDecimal, inputDecimal, convertedCost, draftFromFx, fxDraftError, fxFromDraft, readFrankfurterRate, suggestedPrice, validPurchaseFx } from "../src/lib/purchase-fx.ts";
 
 test("currency conversion and markup use exact decimal rounding and reject overflow",()=>{
  assert.equal(inputDecimal("1.000,50"),"1000.5");assert.equal(inputDecimal("105.5"),null);assert.equal(inputDecimal("15.300,25"),"15300.25");
@@ -37,4 +38,17 @@ test("batch quotes validate separately from immutable order snapshots",()=>{
  assert.deepEqual(batchFxDraft(quote as Parameters<typeof batchFxDraft>[0]),{...quote,rate:"105,5",amount:"",status:"estimate"});
  for(const invalid of [null,[],{}, {...quote,currency:"IDR"},{...quote,rate:"0"},{...quote,rateDate:"2026-02-30"},{...quote,rateDate:undefined}]) assert.equal(validBatchPurchaseFx(invalid),false);
  assert.equal(validBatchPurchaseFx({currency:"SGD",rate:null,source:"manual"}),true);
+});
+
+test("localized decimal display groups thousands without changing precision or malformed pasted values",()=>{
+ for (const [value,expected] of [["12000,50","12.000,50"],["12000,","12.000,"],["1000","1.000"],["1.000,000001","1.000,000001"],["0,000001","0,000001"],["105.5","105.5"],["",""]]) assert.equal(formatDecimalInput(value),expected);
+ assert.equal(editDecimalInput("1234","1.2345","insertText","5"),"12345");
+ assert.equal(editDecimalInput("12345","12.34","deleteContentBackward"),"1234");
+ assert.equal(editDecimalInput("1234","105.5","insertFromPaste"),"105.5");
+ assert.equal(inputDecimal(formatDecimalInput("12000,50")),"12000.5");
+});
+test("markup permits 0 through 100 percent and caps typed or pasted excess",()=>{
+ assert.equal(suggestedPrice(100000,"100"),200000);assert.equal(suggestedPrice(100000,"100,01"),null);assert.equal(suggestedPrice(100000,"101"),null);
+ for(const value of ["101","100,000001","999999999999999999","1000,","1.000"])assert.equal(limitMarkupPercent(value),"100");
+ for(const value of ["0","99,99","100","100,","","-1"])assert.equal(limitMarkupPercent(value),value);
 });

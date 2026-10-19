@@ -34,3 +34,5 @@ Pada form pesanan, kurs bersama berada di bagian 1. Harga beli per produk ditamp
 Form tambah/edit batch tidak menampilkan teks tanggal dan bantuan pembaruan kurs. Detail produk menempatkan toko di samping varian, serta warna di samping ukuran, termasuk di ponsel.
 
 Bantuan harga jual menempatkan input persentase di samping label dan menampilkan harga saran serta laba dalam blok ringkas. Jika modal belum diisi atau persentase tidak valid, hasil dan tombol penerapan tidak ditampilkan; hanya petunjuk pengisian.
+
+Input kurs dan harga beli valas otomatis memakai titik pemisah ribuan dan koma desimal, termasuk saat angka diperbarui dari API. Pemisah hanya untuk tampilan; snapshot JSON tetap memakai desimal bertitik tanpa pemisah ribuan. Input Untung dari modal dibatasi 0–100%; angka di atas 100 otomatis menjadi 100 dan kalkulator menolak persentase di luar batas.

@@ -64,6 +64,7 @@ export function suggestedPrice(cost: number | null, percent: string): number | n
   const canonical = inputDecimal(percent);
   if (cost === null || !Number.isSafeInteger(cost) || cost < 0 || canonical === null) return null;
   const rate = decimalUnits(canonical)!, divisor = BigInt(100) * scale;
+  if (rate > divisor) return null;
   const result = (BigInt(cost) * (divisor + rate) + divisor - BigInt(1)) / divisor;
   return result <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(result) : null;
 }
@@ -92,4 +93,15 @@ export async function fetchPurchaseRate(currency: string, signal: AbortSignal): 
 }
 export function batchFxDraft(fx?: BatchPurchaseFx): FxDraft | undefined {
   return fx ? draftFromFx({ ...fx, amount: null, status: "estimate" }) : undefined;
+}
+
+/** Cap the typed/pasted markup while retaining incomplete decimal input. */
+export function limitMarkupPercent(value: string): string {
+  const text=value.trim();
+  if (/^\d+(?:,\d*)?$/.test(text)) {
+    const [whole,fraction=""]=text.split(",");
+    if (BigInt(whole)>BigInt(100) || BigInt(whole)===BigInt(100) && /[1-9]/.test(fraction)) return "100";
+  }
+  const canonical = inputDecimal(value);
+  return canonical !== null && decimalUnits(canonical)! > BigInt(100) * scale ? "100" : value;
 }
