@@ -23,7 +23,7 @@ test("WhatsApp invoice includes every item and option, one order fee, total and 
   assert.ok(!invoice.includes("Jenis:"));
   assert.ok(invoice.includes("Status: *BELUM LUNAS*"));
   assert.ok(!invoice.includes("Batch:"));
-  assert.ok(invoice.startsWith("Halo, Kak Dina!\n"));
+  assert.ok(invoice.startsWith("Halo, Dina!\n"));
   assert.ok(invoice.includes("Nama: Dina\nWhatsApp: 081234567890"));
   assert.ok(invoice.includes("• Kaos Oversize · Biru · L"));
   assert.ok(invoice.includes("• Kimbap Tuna"));
@@ -70,7 +70,7 @@ test("PO invoices omit jastip fees and balances while preserving totals and stab
 test("customer labels containing newlines remain on their own invoice lines", () => {
   const invoice = buildInvoice(order, { ...batch, name: "Batch\nbaru" }, { ...customer, name: "Dina\r\nbaru" });
   assert.ok(!invoice.includes("Batch:"));
-  assert.ok(invoice.includes("Halo, Kak Dina baru!\n"));
+  assert.ok(invoice.includes("Halo, Dina baru!\n"));
 });
 
 
