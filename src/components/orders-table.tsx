@@ -32,6 +32,14 @@ function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "?";
 }
 
+function OrderPaymentBadges({order}:{order:Order}) {
+  const remaining=outstanding(order),refund=refundedTotal(order);
+  const state=order.status==="cancelled"?"cancelled":remaining===0?"paid":order.paid>0?"partial":"unpaid";
+  const label={cancelled:"Dibatalkan",paid:"Lunas",partial:"Bayar sebagian",unpaid:"Belum dibayar"}[state];
+  const detail=`${label} · Dibayar ${formatCurrency(order.paid)} · Sisa ${formatCurrency(remaining)}`;
+  return <span className="order-payment-badges"><span className={`order-payment-badge payment-badge-${state}`} title={detail} aria-label={detail}>{label}</span>{refund>0&&<span className="order-payment-badge payment-badge-refund">Refund {formatCurrency(refund)}</span>}</span>;
+}
+
 export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, onRefund, compact = false, readOnly = false }: OrdersTableProps) {
   const [detailOrderId,setDetailOrderId]=useState<string|null>(null);
   const detailOrder=data.orders.find(order=>order.id===detailOrderId);
@@ -54,7 +62,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
   }
 
   return (
-    <><MobileDataList entries={orders.map(order=>({id:order.id,dialogClassName:"order-data-dialog",footer:detailFooter(order),title:data.customers.find(c=>c.id===order.customerId)?.name||"Pelanggan",subtitle:<>{order.items.slice(0,2).map(item=><span className="order-preview-product" key={item.id}>{itemLabel(item)} × {item.quantity}</span>)}{order.items.length>2&&<span className="order-more-products">+{order.items.length-2} produk lainnya</span>}</>,meta:`${formatCurrency(orderRevenue(order))} · ${outstanding(order)>0?`Sisa ${formatCurrency(outstanding(order))}`:"Lunas"}`,status:statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label,statusClassName:`status-tag order-status-${visibleOrderStatus(order.status)}`,details:detailContent(order)}))}/><div className="table-wrap desktop-data-table">
+    <><MobileDataList entries={orders.map(order=>({id:order.id,dialogClassName:"order-data-dialog",footer:detailFooter(order),title:data.customers.find(c=>c.id===order.customerId)?.name||"Pelanggan",subtitle:<>{order.items.slice(0,2).map(item=><span className="order-preview-product" key={item.id}>{itemLabel(item)} × {item.quantity}</span>)}{order.items.length>2&&<span className="order-more-products">+{order.items.length-2} produk lainnya</span>}</>,meta:<span className="order-mobile-payment"><strong>{formatCurrency(orderRevenue(order))}</strong><OrderPaymentBadges order={order}/></span>,status:statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label,statusClassName:`status-tag order-status-${visibleOrderStatus(order.status)}`,details:detailContent(order)}))}/><div className="table-wrap desktop-data-table">
       <table className={`orders-table ${readOnly ? "orders-readonly" : ""}`}>
         <caption className="sr-only">Daftar pesanan jastip dan open PO</caption>
         <thead>
@@ -73,10 +81,8 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
             const customer = data.customers.find((entry) => entry.id === order.customerId);
             const batch = data.batches.find((entry) => entry.id === order.batchId);
             const hpp = orderHpp(order, data.orders, data.batches);
-            const remaining = outstanding(order);
             const revenue = orderRevenue(order);
             const color = avatarColors[Math.max(0, data.customers.findIndex((entry) => entry.id === order.customerId)) % avatarColors.length];
-            const cancelled = order.status === "cancelled";
             const label = orderLabel(order);
             return (
               <tr key={order.id} className="order-detail-row" tabIndex={0} aria-label={`Detail ${customer?.name??"Pelanggan"}`} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))setDetailOrderId(order.id);}} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();setDetailOrderId(order.id);}}}>
@@ -96,13 +102,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
                 </td>
                 <td className="numeric-cell"><span className="row-title" style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{formatCurrency(revenue)}</span></td>
                 {!compact && <td className="numeric-cell"><span className={hpp === null ? "row-subtitle" : "row-title"} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</span>{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</td>}
-                <td>
-                  {refundedTotal(order)>0 && <div className="row-subtitle">Refund {formatCurrency(refundedTotal(order))}</div>}
-                  {cancelled ? <span className="payment-label muted">Dibatalkan</span> : remaining === 0 ? <span className="payment-label payment-paid">Lunas</span> : <>
-                    <span className={`payment-label ${order.paid > 0 ? "payment-partial" : "muted"}`}>{order.paid > 0 ? `Bayar sebagian ${formatCurrency(order.paid)}` : "Belum dibayar"}</span>
-                    <div className="row-subtitle">Sisa {formatCurrency(remaining)}</div>
-                  </>}
-                </td>
+                <td><OrderPaymentBadges order={order}/></td>
                 <td className="center-cell">
                   <span className={`status-tag order-status-${visibleOrderStatus(order.status)}`}>{statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label}</span>
                 </td>

@@ -1553,3 +1553,13 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .po-order-dialog .modal-header .eyebrow,
 .po-order-dialog .order-item-subtotal > strong { color:var(--warning); }
 .po-order-dialog .order-section-number { color:var(--warning); background:var(--tone-surface-f7e4cb); border-color:var(--warning); }
+
+/* Payment badges share the same states in desktop rows and phone cards. */
+.order-payment-badges { display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; max-width:100%; }
+.order-payment-badge { display:inline-flex; align-items:center; padding:5px 8px; border:1px solid transparent; border-radius:6px; font-size:12px; font-weight:600; line-height:1.5; overflow-wrap:anywhere; }
+.payment-badge-paid { color:var(--success); background:var(--success-soft); }
+.payment-badge-partial { color:var(--warning); background:var(--tone-surface-fff2de); }
+.payment-badge-unpaid,.payment-badge-cancelled { color:var(--muted); background:var(--tone-surface-eef1ee); }
+.payment-badge-refund { color:var(--muted); background:var(--tone-surface-fffefa); border-color:var(--border); }
+.order-mobile-payment { display:flex; flex-direction:column; align-items:flex-start; gap:7px; min-width:0; }
+.order-mobile-payment > strong { color:var(--ink); font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
