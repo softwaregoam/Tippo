@@ -1487,3 +1487,12 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .price-assistant-info:hover { color:var(--primary); border-color:var(--primary); }
 .price-assistant-info:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 @media(max-width:600px) { .order-product-pricing { grid-template-columns:minmax(0,1fr); gap:16px; } }
+
+.price-assistant-percentage { display:grid; grid-template-columns:minmax(0,1fr) 76px; gap:10px; align-items:center; }
+.order-dialog .price-assistant-percentage>.field-label { margin:0; font-size:12px; }
+.price-assistant-percentage>.input { text-align:right; min-width:0; }
+.price-assistant-result { grid-template-columns:minmax(0,1fr) auto; align-items:baseline; gap:6px 8px; padding:8px 0; }
+.price-assistant-result>small { grid-column:1/-1; }
+.price-assistant-action,.price-assistant-message { display:flex; align-items:center; gap:8px; min-width:0; }
+.price-assistant-action>.btn { flex:1; min-width:0; }
+.price-assistant-message>.field-hint { flex:1; }
