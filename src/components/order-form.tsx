@@ -342,7 +342,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
             {items.map((item, index) => <fieldset key={item.id} className="order-item-card">
               <legend className="field-label" style={{ padding: "0 6px" }}>Produk {index + 1}</legend>
               <div className="order-item-heading">
-                <span className="field-hint">Subtotal {formatCurrency(previewAmount(item.quantity) * previewAmount(item.unitPrice))}</span>
+                <div className="order-item-subtotal"><span>Subtotal</span><strong>{formatCurrency(previewAmount(item.quantity) * previewAmount(item.unitPrice))}</strong></div>
                 <button type="button" className="icon-button delete-item" aria-label={`Hapus produk ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
               </div>
               <div className="form-grid jastip-item-grid">

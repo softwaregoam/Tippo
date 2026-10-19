@@ -792,8 +792,11 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .order-dialog .order-section + .order-section { padding-top:24px; border-top:1px solid var(--border); }
 .order-dialog .order-item-card { min-width:0; border:1px solid var(--control-border); border-radius:10px; padding:18px; margin:18px 0 0; background:var(--tone-surface-fffefa); }
 .order-dialog .order-item-card legend { padding:0 8px; color:var(--primary); margin:0; }
-.order-item-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
-.order-item-heading .field-hint { color:var(--ink); font-weight:600; }
+.order-item-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px; padding:12px 14px; border:1px solid var(--border); border-radius:10px; background:var(--tone-surface-edf5f1); }
+.order-item-subtotal { display:grid; gap:4px; min-width:0; }
+.order-item-subtotal > span { color:var(--ink); font-size:12px; font-weight:600; line-height:1.5; }
+.order-item-subtotal > strong { color:var(--primary); font-size:22px; font-weight:700; line-height:1.35; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.order-item-heading > .delete-item { flex-shrink:0; }
 .order-dialog .jastip-item-grid { grid-template-columns:repeat(6,minmax(0,1fr)); }
 .order-dialog .jastip-item-grid > .field { grid-column:span 2; }
 .order-dialog .jastip-item-grid > .field:first-child { grid-column:1 / -1; }
