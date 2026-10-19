@@ -1520,3 +1520,8 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .order-dialog .jastip-charges-grid>.field:has(input[name="shippingCharge"]) { grid-column:auto; }
 }
 @media(max-width:600px) { .order-extra-body .order-shipping-fields { padding:14px 12px; } .order-shipping-heading { gap:8px; } }
+
+.currency-picker-trigger>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.currency-picker-list { margin-top:12px; }
+.currency-picker-empty { padding:20px 10px; font-size:13px; color:var(--muted); text-align:center; }
+@media(min-width:601px) { .currency-picker { width:min(380px,calc(100vw - 24px)); } }

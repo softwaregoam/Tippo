@@ -43,3 +43,5 @@ Input kurs dan harga beli valas otomatis memakai titik pemisah ribuan dan koma d
 ## Mengaktifkan sumber exchange-api pada produksi
 
 Jalankan seluruh `supabase/migrations/202610190001_exchange_api.sql` di SQL Editor proyek Supabase Tippo sebelum merilis frontend yang menulis `source: exchange-api`. Script ini dapat langsung digunakan setelah validator shopping recap, maupun setelah dua migrasi FX sebelumnya, dan aman dijalankan ulang. Script memperbarui validasi metadata; tidak menulis ulang data atau mengubah fungsi kuota. Penerapan frontend menunggu konfirmasi operator bahwa SQL berhasil, karena deployment Git tidak menerapkan SQL Supabase.
+
+Pilihan mata uang di batch dan HPP menyediakan pencarian berdasarkan kode, nama, dan negara/wilayah, dengan alias umum seperti China dan Inggris. IDR tetap tersedia di batch; HPP valas hanya menawarkan daftar mata uang asing yang sudah didukung. Pencarian tidak mengubah kurs sampai pilihan dikonfirmasi; Escape menutup pencarian tanpa menutup form.

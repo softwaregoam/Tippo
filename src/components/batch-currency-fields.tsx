@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { Select, SelectOption } from "./ui/select";
+import { CurrencyPicker } from "./currency-picker";
 import { DecimalInput } from "./ui/decimal-input";
 import { Button } from "./ui/button";
-import { FX_CURRENCIES, fetchPurchaseRate, inputDecimal, decimalUnits, type BatchPurchaseFx } from "@/lib/purchase-fx";
+import { fetchPurchaseRate, inputDecimal, decimalUnits, type BatchPurchaseFx } from "@/lib/purchase-fx";
 
 type Props = { value?: BatchPurchaseFx; onChange: (value?: BatchPurchaseFx) => void; autoRefresh?: boolean; lockedCurrency?: boolean; onLoading?: (loading: boolean) => void };
 /** A new order refreshes once on opening. Saved orders never mount this control. */
@@ -32,11 +32,11 @@ export function BatchCurrencyFields({ value, onChange, autoRefresh, lockedCurren
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return <div className="field batch-currency-fields">
-    {!lockedCurrency && <><label className="field-label" htmlFor="batch-currency">Mata uang harga beli</label><Select id="batch-currency" aria-label="Mata uang batch" value={value?.currency ?? "IDR"} onValueChange={currency => {
+    {!lockedCurrency && <><label className="field-label" htmlFor="batch-currency">Mata uang harga beli</label><CurrencyPicker id="batch-currency" aria-label="Mata uang batch" value={value?.currency ?? "IDR"} onValueChange={currency => {
       cancel(); setError(""); setManual(null);
       if (currency === "IDR") onChange(undefined);
       else { onChange({ currency, rate: null, source: "manual" }); void refresh(currency); }
-    }}><SelectOption value="IDR">IDR · Rupiah</SelectOption>{FX_CURRENCIES.map(currency => <SelectOption key={currency} value={currency}>{currency}</SelectOption>)}</Select></>}
+    }}/></>}
     {value && <><label className="field-label" htmlFor="batch-rate">Kurs: 1 {value.currency} = Rp</label><div className="purchase-fx-rate"><DecimalInput id="batch-rate" className="input" aria-label="Kurs batch ke rupiah" inputMode="decimal" placeholder="Isi kurs" maxLength={22} value={manual ?? value.rate?.replace(".", ",") ?? ""} onValueChange={text => {
       cancel(); setError(""); setManual(text);
       const rate = inputDecimal(text);
