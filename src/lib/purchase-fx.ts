@@ -1,6 +1,7 @@
 import type { Order, PurchaseFx } from "./types.ts";
 
-export const FX_CURRENCIES = ["JPY", "KRW", "SGD", "USD", "EUR", "CNY", "MYR", "THB", "HKD", "AUD", "GBP"] as const;
+import { FX_CURRENCIES } from "./currency-catalog.ts";
+export { FX_CURRENCIES } from "./currency-catalog.ts";
 export type FxDraft = { currency: string; amount: string; rate: string; status: "estimate" | "final"; source: PurchaseFx["source"]; rateDate?: string };
 const decimal = /^\d{1,12}(?:\.\d{1,6})?$/;
 const scale = BigInt(1000000);

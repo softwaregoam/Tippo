@@ -1,3 +1,4 @@
+import { FX_CURRENCIES } from "../src/lib/currency-catalog.ts";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -19,6 +20,7 @@ before(async () => {
   const fxSql=await readFile(new URL("../supabase/migrations/202610180001_purchase_fx.sql",import.meta.url),"utf8");await db.exec(fxSql);await db.exec(fxSql);
   const batchFxSql=await readFile(new URL("../supabase/migrations/202610180002_batch_purchase_fx.sql",import.meta.url),"utf8");await db.exec(batchFxSql);await db.exec(batchFxSql);
   await db.exec(exchangeSql);await db.exec(exchangeSql);
+  const currenciesSql=await readFile(new URL("../supabase/migrations/202610190002_all_currencies.sql",import.meta.url),"utf8");await db.exec(currenciesSql);await db.exec(currenciesSql);
 });
 after(async () => { await db.close(); });
 async function login(user: string) { await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${user}',false);`); }
@@ -152,5 +154,17 @@ test("exchange-api snapshots save with provenance checks and retain legacy refer
  for(const bad of [{...batch.purchaseFx,source:"unknown"},{...batch.purchaseFx,rateDate:undefined},{...batch.purchaseFx,rate:null}]) {
   const invalid=structuredClone(saved.data);invalid.batches.find(b=>b.id===batch.id)!.purchaseFx=bad as typeof batch.purchaseFx;
   await assert.rejects(save(invalid,saved.version),/TIPPO_INVALID/);
+ }
+});
+
+
+test("all supported national currencies pass database item and batch validation, unknown codes remain blocked",async()=>{
+ await db.exec("reset role");
+ for(const code of [...FX_CURRENCIES,"BTC","XAU","DEM","INVALID","IDR"]){
+  const data=workspace([order("all-currencies","jastip")]);
+  const fx={currency:code,rate:"1.123456",source:"exchange-api" as const,rateDate:"2026-10-18"};
+  data.batches[0].purchaseFx=fx;data.orders[0].items[0].purchaseFx={...fx,amount:"100",status:"estimate"};data.orders[0].items[0].unitCost=112;
+  const result=await db.query<{valid:boolean}>("select public.tippo_valid_workspace($1::jsonb) valid",[JSON.stringify(data)]);
+  assert.equal(result.rows[0].valid,FX_CURRENCIES.includes(code),code);
  }
 });

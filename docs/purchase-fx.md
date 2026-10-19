@@ -45,3 +45,10 @@ Input kurs dan harga beli valas otomatis memakai titik pemisah ribuan dan koma d
 Jalankan seluruh `supabase/migrations/202610190001_exchange_api.sql` di SQL Editor proyek Supabase Tippo sebelum merilis frontend yang menulis `source: exchange-api`. Script ini dapat langsung digunakan setelah validator shopping recap, maupun setelah dua migrasi FX sebelumnya, dan aman dijalankan ulang. Script memperbarui validasi metadata; tidak menulis ulang data atau mengubah fungsi kuota. Penerapan frontend menunggu konfirmasi operator bahwa SQL berhasil, karena deployment Git tidak menerapkan SQL Supabase.
 
 Pilihan mata uang di batch dan HPP menyediakan pencarian berdasarkan kode, nama, dan negara/wilayah, dengan alias umum seperti China dan Inggris. IDR tetap tersedia di batch; HPP valas hanya menawarkan daftar mata uang asing yang sudah didukung. Pencarian tidak mengubah kurs sampai pilihan dikonfirmasi; Escape menutup pencarian tanpa menutup form.
+
+
+## Seluruh mata uang negara
+
+Katalog tetap `src/lib/currency-catalog.ts` mencakup 158 pilihan (IDR + 157 valas) yang tersedia di exchange-api: mata uang negara/wilayah aktif menurut Unicode CLDR 48, pound/dolar wilayah, dan yuan lepas pantai. Kripto, logam, unit akuntansi, dan mata uang yang sudah diganti tidak ditampilkan. Nama mata uang dan negara berbahasa Indonesia menggunakan CLDR; kode serta alias Inggris API tetap dapat dicari. Daftar dibundel sehingga pencarian tidak memerlukan jaringan; penambahan kode berikutnya harus memperbarui validator SQL juga. Sumber metadata: https://github.com/unicode-org/cldr-json (lisensi Unicode-3.0).
+
+Sebelum merilis katalog baru, jalankan seluruh `supabase/migrations/202610190002_all_currencies.sql` di Supabase produksi dan konfirmasikan keberhasilannya. Migrasi memperluas whitelist di validator item dan batch tanpa mengubah data, perhitungan uang, akses, atau kuota. Deployment frontend menunggu SQL agar mata uang baru tidak ditolak saat disimpan.

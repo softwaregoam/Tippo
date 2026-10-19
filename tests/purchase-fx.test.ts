@@ -1,3 +1,5 @@
+import { CURRENCY_CHOICES, FX_CURRENCIES } from "../src/lib/currency-catalog.ts";
+import { searchCurrencies } from "../src/lib/currencies.ts";
 import { formatDecimalInput, editDecimalInput } from "../src/lib/decimal-input.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -68,4 +70,17 @@ test("markup permits 0 through 100 percent and caps typed or pasted excess",()=>
  assert.equal(suggestedPrice(100000,"100"),200000);assert.equal(suggestedPrice(100000,"100,01"),null);assert.equal(suggestedPrice(100000,"101"),null);
  for(const value of ["101","100,000001","999999999999999999","1000,","1.000"])assert.equal(limitMarkupPercent(value),"100");
  for(const value of ["0","99,99","100","100,","","-1"])assert.equal(limitMarkupPercent(value),value);
+});
+
+
+test("national currency catalog supports every offered code in quotes and snapshots without crypto or obsolete currencies",()=>{
+ assert.equal(CURRENCY_CHOICES.length,158);assert.equal(new Set(CURRENCY_CHOICES.map(x=>x.code)).size,158);
+ for(const item of CURRENCY_CHOICES){assert.ok(item.name&&item.country,item.code);if(item.code==="IDR")continue;
+  const key=item.code.toLowerCase(),rate="1.123456";
+  assert.deepEqual(readExchangeRate({date:"2026-10-18",[key]:{[key]:1,idr:1.123456}},item.code,new Date("2026-10-19")),{rate,date:"2026-10-18"});
+  assert.equal(validPurchaseFx({currency:item.code,amount:"100",rate,status:"estimate",source:"manual"},112),true,item.code);
+  assert.equal(validBatchPurchaseFx({currency:item.code,rate,source:"manual"}),true,item.code);
+ }
+ for(const code of ["BTC","XAU","DEM","INVALID","IDR"])assert.equal(FX_CURRENCIES.includes(code),false);
+ assert.equal(searchCurrencies("Saudi")[0].code,"SAR");assert.equal(searchCurrencies("Vietnam")[0].code,"VND");assert.equal(searchCurrencies("php")[0].country,"Filipina");
 });
