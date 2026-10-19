@@ -246,7 +246,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
   }
 
   return <div className="modal-backdrop">
-    <div className="modal order-dialog" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="po-order-form-title" style={{ maxWidth: 760 }}>
+    <div className="modal order-dialog po-order-dialog" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="po-order-form-title" style={{ maxWidth: 760 }}>
       <div className="modal-header">
         <div><span className="eyebrow">OPEN PO</span><h2 id="po-order-form-title">{order ? "Edit pesanan PO" : "Pesanan PO baru"}</h2></div>
         <button className="icon-button" type="button" onClick={onClose} aria-label="Tutup formulir pesanan PO"><X size={20} /></button>
