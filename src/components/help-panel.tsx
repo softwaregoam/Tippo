@@ -19,6 +19,15 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
         "Satu pesanan bisa berisi beberapa produk. Gunakan Tambah produk untuk mencatat produk berikutnya.",
       ], destination: po ? "products" : "batches", action: po ? "Buka Produk" : "Buka Perjalanan",
     },
+    ...(!po ? [{
+      id: "kurs", title: "Mata uang dan kurs Jastip",
+      steps: [
+        "Pilih mata uang saat membuat atau mengedit perjalanan. Cari lewat kode, nama mata uang, atau negara; kurs referensi harian diambil otomatis.",
+        "Saat menambah pesanan, Tippo mengambil kurs terbaru untuk mata uang batch. Isi harga beli dalam mata uang tersebut; nilai rupiahnya dihitung otomatis sebagai HPP. Harga jual dan tagihan pelanggan tetap rupiah.",
+        "Sesuaikan kurs secara manual jika berbeda dengan kurs yang kamu bayar. Kurs referensi berstatus Estimasi; ubah ke Final di HPP & Margin setelah harga beli dan kurs pembayaran pasti.",
+        "Pesanan yang sudah tersimpan tetap memakai kursnya sendiri. Untuk menentukan harga jual, buka Bantu hitung harga jual, isi untung dari modal (0–100%), lalu pilih Gunakan harga ini.",
+      ], destination: "batches" as const, action: "Atur mata uang perjalanan",
+    }] : []),
     {
       id: "pesanan", title: "Isi pesanan dan pembayaran",
       steps: [
@@ -81,6 +90,11 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
   const questions = [
     ["Apakah data Jastip dan Open PO digabung?", "Ringkasan, pesanan, batch, dan HPP mengikuti usaha yang sedang dipilih. Kontak pelanggan, profil bisnis, pengaturan data, dan langganan dipakai bersama dalam akun."],
     ["Mengapa batch tidak muncul pada pilihan pesanan baru?", "Hanya batch atau perjalanan yang masih dibuka yang bisa dipilih untuk pesanan baru. Batch PO yang sudah ditutup atau selesai tidak ditampilkan. Pada Jastip, perjalanan yang sudah ditutup atau selesai tidak bisa dipilih untuk pesanan baru."],
+    ...(!po ? [
+      ["Kapan kurs Jastip diperbarui?", "Kurs referensi harian diambil saat memilih mata uang pada perjalanan dan saat menambah pesanan. Kurs bukan harga transaksi langsung. Pesanan lama tetap memakai kurs tersimpan, termasuk saat diedit; perubahan kurs batch tidak menghitung ulang pesanan lama."],
+      ["Apa bedanya kurs Estimasi dan Final?", "Estimasi dipakai sebelum kurs pembayaran pasti, sehingga HPP dan laba masih perkiraan. Sesuaikan kurs dengan pembayaran sebenarnya, lalu pilih Final di HPP & Margin. Jika kurs otomatis gagal diambil, kamu bisa mengisi kurs manual."],
+      ["Apakah invoice pelanggan ikut memakai mata uang asing?", "Tidak. Mata uang asing hanya untuk harga beli Jastip dan perhitungan HPP. Harga jual, pembayaran pelanggan, dan invoice tetap dalam rupiah."],
+    ] : []),
     ["Bagaimana menyalin atau mengarsipkan produk?", "Gunakan Duplikat produk untuk menyalin produk menjadi entri baru. Produk yang diarsipkan tidak tersedia untuk pesanan baru; aktifkan kembali melalui halaman Produk."],
     ["Apakah perubahan harga produk mengubah pesanan lama?", "Tidak. Harga produk disalin saat pesanan dibuat dan tersimpan pada pesanan tersebut. Perubahan master produk digunakan untuk pesanan berikutnya."],
     ["Di mana melihat rekap belanja?", "Buka Perjalanan untuk Jastip atau Batch PO untuk Open PO, lalu pilih Rekap belanja atau Rekap kebutuhan produk. Produk digabung menurut toko/brand, nama, varian, warna, dan ukuran. Klik Lihat pelanggan untuk memeriksa pembagian jumlahnya. Pesanan yang dibatalkan tidak disertakan. Isi Toko / brand pada tiap produk Jastip atau pada master produk PO; pesanan lama tetap memakai informasi saat dibuat."],
