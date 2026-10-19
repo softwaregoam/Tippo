@@ -348,9 +348,13 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
               <div className="form-grid jastip-item-grid">
                 {itemField(item, index, "product", "Nama produk")}
                 {itemField(item, index, "quantity", "Jumlah produk")}
-                <PurchaseCostFields required compact={compactPurchase} disabled={!order && loadingRate} allowForeign={!compactPurchase} lockCurrency={!order} id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
-                {itemField(item, index, "unitPrice", "Harga jual / produk")}
-                <div className="field order-price-assistant"><PriceAssistant cost={item.unitCost.trim() && Number.isSafeInteger(Number(item.unitCost)) && Number(item.unitCost) >= 0 ? Number(item.unitCost) : null} estimated={purchaseFx[item.id]?.status === "estimate"} onUse={value => updateItem(item.id, "unitPrice", String(value))} /></div>
+                <div className="order-product-pricing">
+                  <div className="order-product-prices">
+                    <PurchaseCostFields required compact={compactPurchase} disabled={!order && loadingRate} allowForeign={!compactPurchase} lockCurrency={!order} id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
+                    {itemField(item, index, "unitPrice", "Harga jual / produk")}
+                  </div>
+                  <div className="field order-price-assistant"><PriceAssistant cost={item.unitCost.trim() && Number.isSafeInteger(Number(item.unitCost)) && Number(item.unitCost) >= 0 ? Number(item.unitCost) : null} estimated={purchaseFx[item.id]?.status === "estimate"} onUse={value => updateItem(item.id, "unitPrice", String(value))} /></div>
+                </div>
               </div>
               <details className="order-optional-fields" open={Boolean(order?.items.some(row => row.id === item.id && (row.store || row.variant || row.color || row.size)))} onInvalidCapture={event => { event.currentTarget.open = true; }}>
                 <summary><span>Detail produk <small>(opsional)</small></span><ChevronDown size={18} aria-hidden="true" /></summary>
