@@ -1,7 +1,7 @@
 import { formatDecimalInput, editDecimalInput } from "../src/lib/decimal-input.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { limitMarkupPercent, validBatchPurchaseFx, batchFxDraft, canonicalDecimal, inputDecimal, convertedCost, draftFromFx, fxDraftError, fxFromDraft, readFrankfurterRate, suggestedPrice, validPurchaseFx } from "../src/lib/purchase-fx.ts";
+import { limitMarkupPercent, validBatchPurchaseFx, batchFxDraft, canonicalDecimal, inputDecimal, convertedCost, draftFromFx, fxDraftError, fxFromDraft, readExchangeRate, fetchPurchaseRate, suggestedPrice, validPurchaseFx } from "../src/lib/purchase-fx.ts";
 
 test("currency conversion and markup use exact decimal rounding and reject overflow",()=>{
  assert.equal(inputDecimal("1.000,50"),"1000.5");assert.equal(inputDecimal("105.5"),null);assert.equal(inputDecimal("15.300,25"),"15300.25");
@@ -16,15 +16,32 @@ test("FX snapshots distinguish missing values, true zero costs and estimates fro
  assert.equal(validPurchaseFx({...fx,amount:"0"},0),true);assert.equal(validPurchaseFx({...fx,rate:"0"},0),false);assert.equal(validPurchaseFx({...fx,source:"frankfurter"},105500),false);
  assert.equal(validPurchaseFx({...fx,source:"frankfurter",rateDate:"2026-02-30"},105500),false);
 });
-test("Frankfurter responses must match the pair and contain a recent valid daily quote",()=>{
- const now=new Date("2026-10-18T03:00:00Z"),quote={base:"JPY",amount:1,date:"2026-10-16",rates:{IDR:114.1}};
- assert.deepEqual(readFrankfurterRate(quote,"JPY",now),{rate:"114.1",date:"2026-10-16"});
- for(const invalid of [{...quote,base:"USD"},{...quote,amount:100},{...quote,rates:{IDR:0}},{...quote,date:"2026-02-30"},{...quote,date:"2026-10-19"},{...quote,date:"2026-09-01"}])assert.throws(()=>readFrankfurterRate(invalid,"JPY",now));
+test("exchange-api responses match the base, validate dates, and round to snapshot precision",()=>{
+ const now=new Date("2026-10-19T03:00:00Z"),quote={date:"2026-10-18",jpy:{jpy:1,idr:114.23640559}};
+ assert.deepEqual(readExchangeRate(quote,"JPY",now),{rate:"114.236406",date:"2026-10-18"});
+ for(const invalid of [null,{},[],{...quote,jpy:{jpy:2,idr:114}},{...quote,usd:quote.jpy,jpy:undefined},{...quote,jpy:{jpy:1,idr:0}},{...quote,jpy:{jpy:1,idr:"114"}},{...quote,jpy:{jpy:1,idr:1e-9}},{...quote,date:"2026-02-30"},{...quote,date:"2026-10-20"},{...quote,date:"2026-10-01"}])assert.throws(()=>readExchangeRate(invalid,"JPY",now));
+});
+test("exchange-api falls back for outages and invalid quotes, respects cancellation, and sends no credentials",async()=>{
+ const original=globalThis.fetch,quote={date:new Date().toISOString().slice(0,10),jpy:{jpy:1,idr:114.23640559}};
+ try {
+  for(const first of [new Response("unavailable",{status:503}),Response.json({...quote,jpy:{jpy:1,idr:0}}),new Response("not JSON"),Response.json({...quote,date:"2020-01-01"})]) {
+   const requests:string[]=[];
+   globalThis.fetch=async(input,options)=>{requests.push(String(input));assert.equal(options?.credentials,"omit");assert.equal(options?.cache,"no-store");return requests.length===1?first:Response.json(quote);};
+   assert.deepEqual(await fetchPurchaseRate("JPY",new AbortController().signal),{currency:"JPY",rate:"114.236406",rateDate:quote.date,source:"exchange-api"});
+   assert.equal(requests.length,2);assert.match(requests[0],/latest\.currency-api\.pages\.dev/);assert.match(requests[1],/cdn\.jsdelivr\.net/);
+  }
+  let requests=0;globalThis.fetch=async()=>{requests++;return Response.json(quote);};await fetchPurchaseRate("JPY",new AbortController().signal);assert.equal(requests,1);
+  const controller=new AbortController();requests=0;
+  globalThis.fetch=(_input,options)=>{requests++;return new Promise((_resolve,reject)=>options!.signal!.addEventListener("abort",()=>reject(options!.signal!.reason),{once:true}));};
+  const pending=fetchPurchaseRate("JPY",controller.signal);controller.abort();await assert.rejects(pending);assert.equal(requests,1);
+  requests=0;globalThis.fetch=async()=>{requests++;return new Response("unavailable",{status:503});};await assert.rejects(fetchPurchaseRate("JPY",new AbortController().signal),/RATE_UNAVAILABLE/);assert.equal(requests,2);
+  await assert.rejects(fetchPurchaseRate("INVALID",new AbortController().signal),/INVALID_CURRENCY/);assert.equal(requests,2);
+ } finally {globalThis.fetch=original;}
 });
 
 test("JSON backup and Excel reports retain conversion snapshots and mark estimates",async()=>{
  const {seedData}=await import("../src/lib/seed.ts");const {normalizeAppData}=await import("../src/lib/migration.ts");const {buildSalesReport}=await import("../src/lib/sales-report.ts");const {createReportExcel}=await import("../src/lib/report-excel.ts");const {buildShoppingReport}=await import("../src/lib/shopping-report.ts");const {createShoppingReportExcel}=await import("../src/lib/shopping-report-excel.ts");const ExcelJS=(await import("exceljs")).default;
- const data=structuredClone(seedData);data.orders=[data.orders[0]];const item=data.orders[0].items[0];item.purchaseFx={currency:"JPY",amount:"1000",rate:"105.5",source:"manual",status:"estimate"};item.unitCost=105500;
+ const data=structuredClone(seedData);data.orders=[data.orders[0]];const item=data.orders[0].items[0];item.purchaseFx={currency:"JPY",amount:"1000",rate:"105.5",source:"exchange-api",status:"estimate",rateDate:"2026-10-18"};item.unitCost=105500;
  const restored=normalizeAppData(JSON.parse(JSON.stringify(data)));assert.deepEqual(restored,data);
  const invalid=structuredClone(data);invalid.orders[0].items[0].unitCost=1;assert.equal(normalizeAppData(invalid),null);
  const date=data.orders[0].date,report=buildSalesReport(data,{type:"jastip",from:date,to:date});const bytes=await createReportExcel(report),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(bytes).buffer);

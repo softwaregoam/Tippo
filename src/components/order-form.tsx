@@ -178,7 +178,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
       const amount = purchaseFx[item.id] ? fxFromDraft(purchaseFx[item.id]!).amount : null;
       return {...item, unitCost: quote ? String(convertedCost(amount, quote.rate) ?? "") : purchaseFx[item.id] ? "" : item.unitCost};
     }));
-    if (!order && updateBatch && quote?.source === "frankfurter") onBatchQuote?.(fields.batchId, quote);
+    if (!order && updateBatch && quote && quote.source !== "manual") onBatchQuote?.(fields.batchId, quote);
   }
   function update(name: keyof Fields, value: string) {
     if (name === "batchId" && !order) applyBatchQuote(jastipBatches.find(b => b.id === value)?.purchaseFx, false);

@@ -13,8 +13,12 @@ before(async () => {
   const limitsSql=await readFile(new URL("../supabase/migrations/202610110005_discount_limits.sql", import.meta.url),"utf8");
   await db.exec(limitsSql); await db.exec(limitsSql);
   const recapSql=await readFile(new URL("../supabase/migrations/202610130012_shopping_recap.sql",import.meta.url),"utf8");await db.exec(recapSql);await db.exec(recapSql);
+  const exchangeSql=await readFile(new URL("../supabase/migrations/202610190001_exchange_api.sql",import.meta.url),"utf8");await db.exec(exchangeSql);await db.exec(exchangeSql);
+  const probe=workspace([order("exchange-probe","jastip")]);probe.batches[0].purchaseFx={currency:"JPY",rate:"105.5",source:"exchange-api",rateDate:"2026-10-18"};probe.orders[0].items[0].purchaseFx={...probe.batches[0].purchaseFx,amount:"1000",status:"estimate"};probe.orders[0].items[0].unitCost=105500;
+  assert.equal((await db.query<{valid:boolean}>("select public.tippo_valid_workspace($1::jsonb) valid",[JSON.stringify(probe)])).rows[0].valid,true);
   const fxSql=await readFile(new URL("../supabase/migrations/202610180001_purchase_fx.sql",import.meta.url),"utf8");await db.exec(fxSql);await db.exec(fxSql);
   const batchFxSql=await readFile(new URL("../supabase/migrations/202610180002_batch_purchase_fx.sql",import.meta.url),"utf8");await db.exec(batchFxSql);await db.exec(batchFxSql);
+  await db.exec(exchangeSql);await db.exec(exchangeSql);
 });
 after(async () => { await db.close(); });
 async function login(user: string) { await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${user}',false);`); }
@@ -118,6 +122,9 @@ test("FX snapshots validate conversion and final status without weakening server
  const incomplete=structuredClone(data);incomplete.orders[0].items[0].purchaseFx!.rate=null;incomplete.orders[0].items[0].purchaseFx!.source="manual";delete incomplete.orders[0].items[0].purchaseFx!.rateDate;incomplete.orders[0].items[0].unitCost=null;
  saved=await save(incomplete,saved.version);assert.equal(saved.data.orders[0].items[0].unitCost,null);
  const final=structuredClone(data);final.orders[0].items[0].purchaseFx!.status="final";saved=await save(final,saved.version);assert.equal(saved.usage.length,1);
+ const mixed=structuredClone(final);mixed.batches[0].purchaseFx={currency:"JPY",rate:"105.5",source:"exchange-api",rateDate:"2026-10-18"};mixed.orders[0].items.push({...mixed.orders[0].items[0],id:"exchange-item",purchaseFx:{...mixed.orders[0].items[0].purchaseFx!,source:"exchange-api",rateDate:"2026-10-18"}});
+ saved=await save(mixed,saved.version);assert.equal(saved.data.orders[0].items[0].purchaseFx!.source,"frankfurter");assert.equal(saved.data.orders[0].items[1].purchaseFx!.source,"exchange-api");assert.equal(saved.usage.length,1);
+ const missingDate=structuredClone(mixed);delete missingDate.orders[0].items[1].purchaseFx!.rateDate;await assert.rejects(save(missingDate,saved.version),/TIPPO_INVALID/);
  const full=workspace(Array.from({length:5},(_,i)=>order(i===0?"fx-item":`fx-${i}`,"jastip")));saved=await save(full,saved.version);
  await assert.rejects(save({...full,orders:[...full.orders,order("fx-sixth","jastip")]},saved.version),/TIPPO_ORDER_LIMIT/);
 });
@@ -135,5 +142,15 @@ test("batch FX defaults reject malformed imports and never rewrite stored item r
  for(const invalid of [{...batch.purchaseFx,rate:"0"},{...batch.purchaseFx,rate:"-1"},{...batch.purchaseFx,currency:"INVALID"},{...batch.purchaseFx,rateDate:"2026-02-30"},{...batch.purchaseFx,rate:null}]) {
   const bad=structuredClone(saved.data);bad.batches.find(b=>b.id===batch.id)!.purchaseFx=invalid;
   await assert.rejects(save(bad,saved.version),/TIPPO_INVALID/);
+ }
+});
+
+test("exchange-api snapshots save with provenance checks and retain legacy reference quotes",async()=>{
+ await login(userB);const own=await get(),data=structuredClone(own.data),batch=data.batches.find(b=>b.type==="jastip")!;
+ batch.purchaseFx={currency:"JPY",rate:"114.236406",source:"exchange-api",rateDate:"2026-10-18"};
+ const saved=await save(data,own.version);assert.equal(saved.data.batches.find(b=>b.id===batch.id)!.purchaseFx!.source,"exchange-api");assert.deepEqual(saved.data.orders,own.data.orders);assert.deepEqual(saved.usage,own.usage);
+ for(const bad of [{...batch.purchaseFx,source:"unknown"},{...batch.purchaseFx,rateDate:undefined},{...batch.purchaseFx,rate:null}]) {
+  const invalid=structuredClone(saved.data);invalid.batches.find(b=>b.id===batch.id)!.purchaseFx=bad as typeof batch.purchaseFx;
+  await assert.rejects(save(invalid,saved.version),/TIPPO_INVALID/);
  }
 });

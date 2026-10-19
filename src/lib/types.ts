@@ -44,7 +44,7 @@ export interface PurchaseFx {
   amount: string | null;
   rate: string | null;
   status: "estimate" | "final";
-  source: "manual" | "frankfurter";
+  source: "manual" | "frankfurter" | "exchange-api";
   rateDate?: string;
 }
 

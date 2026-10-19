@@ -1,7 +1,7 @@
 import type { Order, PurchaseFx } from "./types.ts";
 
 export const FX_CURRENCIES = ["JPY", "KRW", "SGD", "USD", "EUR", "CNY", "MYR", "THB", "HKD", "AUD", "GBP"] as const;
-export type FxDraft = { currency: string; amount: string; rate: string; status: "estimate" | "final"; source: "manual" | "frankfurter"; rateDate?: string };
+export type FxDraft = { currency: string; amount: string; rate: string; status: "estimate" | "final"; source: PurchaseFx["source"]; rateDate?: string };
 const decimal = /^\d{1,12}(?:\.\d{1,6})?$/;
 const scale = BigInt(1000000);
 export function decimalUnits(value: string): bigint | null {
@@ -32,7 +32,7 @@ export function convertedCost(amount: string | null, rate: string | null): numbe
 export function fxFromDraft(draft: FxDraft): PurchaseFx {
   return { currency: draft.currency, amount: draft.amount.trim() ? inputDecimal(draft.amount) : null,
     rate: draft.rate.trim() ? inputDecimal(draft.rate) : null, status: draft.status,
-    source: draft.source, ...(draft.source === "frankfurter" && draft.rateDate ? { rateDate: draft.rateDate } : {}) };
+    source: draft.source, ...(draft.source !== "manual" && draft.rateDate ? { rateDate: draft.rateDate } : {}) };
 }
 export function draftFromFx(fx?: PurchaseFx): FxDraft | undefined {
   return fx ? { currency: fx.currency, amount: fx.amount?.replace(".", ",") ?? "", rate: fx.rate?.replace(".", ",") ?? "", status: fx.status, source: fx.source, rateDate: fx.rateDate } : undefined;
@@ -51,10 +51,10 @@ export function fxDraftError(draft?: FxDraft): string | null {
 export function validPurchaseFx(value: unknown, unitCost: unknown): value is PurchaseFx {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const fx = value as PurchaseFx;
-  if (!(FX_CURRENCIES as readonly unknown[]).includes(fx.currency) || !["estimate", "final"].includes(fx.status) || !["manual", "frankfurter"].includes(fx.source)) return false;
+  if (!(FX_CURRENCIES as readonly unknown[]).includes(fx.currency) || !["estimate", "final"].includes(fx.status) || !["manual", "frankfurter", "exchange-api"].includes(fx.source)) return false;
   if (!(fx.amount === null || typeof fx.amount === "string" && decimalUnits(fx.amount) !== null) || !(fx.rate === null || typeof fx.rate === "string" && decimalUnits(fx.rate) !== null && decimalUnits(fx.rate)! > BigInt(0))) return false;
   if (fx.rateDate !== undefined && (typeof fx.rateDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(fx.rateDate) || !Number.isFinite(Date.parse(fx.rateDate)) || new Date(fx.rateDate).toISOString().slice(0,10) !== fx.rateDate)) return false;
-  if (fx.source === "frankfurter" && (fx.rate === null || !fx.rateDate)) return false;
+  if (fx.source !== "manual" && (fx.rate === null || !fx.rateDate)) return false;
   const cost = convertedCost(fx.amount, fx.rate);
   return !(fx.amount !== null && fx.rate !== null && cost === null) && (fx.status !== "final" || cost !== null) && unitCost === cost;
 }
@@ -68,15 +68,18 @@ export function suggestedPrice(cost: number | null, percent: string): number | n
   const result = (BigInt(cost) * (divisor + rate) + divisor - BigInt(1)) / divisor;
   return result <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(result) : null;
 }
-export function readFrankfurterRate(value: unknown, currency: string, now = new Date()): { rate: string; date: string } {
-  const data = value as { base?: unknown; amount?: unknown; date?: unknown; rates?: { IDR?: unknown } } | null;
-  const rate = data?.rates?.IDR;
-  if (!data || data.base !== currency || data.amount !== 1 || typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0 || typeof data.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(data.date)) throw new Error("INVALID_RATE");
-  const parsed = new Date(data.date), today = now.toISOString().slice(0,10);
-  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0,10) !== data.date || data.date > today || now.getTime() - parsed.getTime() > 10 * 86400000) throw new Error("STALE_RATE");
-  const canonical = canonicalDecimal(rate.toFixed(6));
-  if (!canonical || decimalUnits(canonical)! <= BigInt(0)) throw new Error("INVALID_RATE");
-  return { rate: canonical, date: data.date };
+/** Daily reference data; both CDNs must provide the requested base and a recent date. */
+export function readExchangeRate(value: unknown, currency: string, now = new Date()): { rate: string; date: string } {
+  const key=currency.toLowerCase();
+  const data=value as {date?:unknown;[key:string]:unknown}|null;
+  const quotes=data?.[key] as Record<string,unknown>|undefined;
+  const rate=quotes?.idr;
+  if (!(FX_CURRENCIES as readonly string[]).includes(currency) || !data || !quotes || typeof quotes!=="object" || Array.isArray(quotes) || quotes[key]!==1 || typeof rate!=="number" || !Number.isFinite(rate) || rate<=0 || typeof data.date!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(data.date)) throw new Error("INVALID_RATE");
+  const parsed=new Date(data.date),today=now.toISOString().slice(0,10);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0,10)!==data.date || data.date>today || now.getTime()-parsed.getTime()>3*86400000) throw new Error("STALE_RATE");
+  const canonical=canonicalDecimal(rate.toFixed(6));
+  if (!canonical || decimalUnits(canonical)!<=BigInt(0)) throw new Error("INVALID_RATE");
+  return {rate:canonical,date:data.date};
 }
 
 export type BatchPurchaseFx = NonNullable<import("./types.ts").Batch["purchaseFx"]>;
@@ -84,13 +87,22 @@ export function validBatchPurchaseFx(value: unknown): value is BatchPurchaseFx {
   return !!value && typeof value === "object" && !Array.isArray(value) && validPurchaseFx({ ...value, amount: null, status: "estimate" }, null);
 }
 export async function fetchPurchaseRate(currency: string, signal: AbortSignal): Promise<BatchPurchaseFx> {
-  const response = await fetch(`https://api.frankfurter.dev/v1/latest?from=${encodeURIComponent(currency)}&to=IDR`, {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(12000)]), credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store",
-  });
-  if (!response.ok) throw new Error("RATE_UNAVAILABLE");
-  const result = readFrankfurterRate(await response.json(), currency);
-  return { currency, rate: result.rate, rateDate: result.date, source: "frankfurter" };
+  if (!(FX_CURRENCIES as readonly string[]).includes(currency)) throw new Error("INVALID_CURRENCY");
+  const key=currency.toLowerCase();
+  const urls=[`https://latest.currency-api.pages.dev/v1/currencies/${key}.json`, `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${key}.json`];
+  for (const url of urls) {
+    signal.throwIfAborted();
+    try {
+      const response=await fetch(url,{signal:AbortSignal.any([signal,AbortSignal.timeout(6000)]),credentials:"omit",referrerPolicy:"no-referrer",cache:"no-store"});
+      if (!response.ok) throw new Error("RATE_UNAVAILABLE");
+      const result=readExchangeRate(await response.json(),currency);
+      signal.throwIfAborted();
+      return {currency,rate:result.rate,rateDate:result.date,source:"exchange-api"};
+    } catch { signal.throwIfAborted(); }
+  }
+  throw new Error("RATE_UNAVAILABLE");
 }
+
 export function batchFxDraft(fx?: BatchPurchaseFx): FxDraft | undefined {
   return fx ? draftFromFx({ ...fx, amount: null, status: "estimate" }) : undefined;
 }
