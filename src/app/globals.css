@@ -869,6 +869,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .order-dialog .order-context .field:has(textarea[name="customerAddress"]) { grid-column:1 / -1; }
 @media(max-width:600px) {
  .order-dialog .order-context .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 12px; }
+ .order-dialog .order-context .form-grid.order-optional-body { grid-template-columns:minmax(0,1fr); }
  .order-dialog .order-context .select-trigger[name="customerId"] { padding-inline:8px; font-size:14px; gap:4px; }
  .order-dialog .order-context .select-trigger[name="customerId"][data-placeholder] > span:first-child { white-space:normal; line-height:1.15; color:var(--placeholder); }
 }
