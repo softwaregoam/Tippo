@@ -1075,6 +1075,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .shopping-recap-line-heading { align-items:center; gap:12px; }
 .shopping-recap-line-heading > strong { font-size:14px; line-height:1.5; }
 .shopping-recap-line-heading > .shopping-recap-quantity { padding:3px 9px; border-radius:6px; background:var(--tone-surface-eaf0e8); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.shopping-recap-dialog[data-batch-type="po"] .shopping-recap-quantity { background:var(--tone-surface-fff2de); color:var(--warning); }
 .shopping-recap-options { display:flex; flex-wrap:wrap; gap:4px 14px; margin:5px 0 0; }
 .shopping-recap-options:empty { display:none; }
 .shopping-recap-options > div { display:flex; gap:4px; min-width:0; font-size:12px; }
@@ -1384,6 +1385,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .shopping-recap-summary { align-items:center; }
 .shopping-recap-export-tools { display:flex; align-items:center; gap:8px; margin-left:auto; }
 .shopping-recap-export-tools .select-trigger { width:170px; }
+.shopping-recap-export-tools .select-trigger:not(:disabled),.shopping-recap-dialog .select-content { background:var(--paper); }
 .shopping-recap-export { white-space:nowrap; }
 @media(max-width:600px) { .shopping-recap-export-tools { flex-basis:100%; margin-left:0; flex-direction:column; align-items:stretch; } .shopping-recap-export-tools .select-trigger { width:100%; } }
 
