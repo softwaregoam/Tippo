@@ -1,7 +1,8 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
-import {ClipboardList,Download,X} from "lucide-react";
+import {ChevronDown,ClipboardList,Download,X} from "lucide-react";
 import {Select,SelectOption} from "@/components/ui/select";
+import {productDisplayName} from "@/lib/product-name";
 import {shoppingRecap} from "@/lib/shopping-recap";
 import type {AppData,Batch} from "@/lib/types";
 
@@ -28,9 +29,9 @@ export function ShoppingRecapDialog({batch,data,onClose}:{batch:Batch;data:AppDa
    {recap.groups.length?recap.groups.map(group=><section className="shopping-recap-group" key={group.key} aria-label={`Toko / brand ${group.store}`}>
     <div className="shopping-recap-group-heading"><h3>{group.key === "" ? "Tanpa toko / brand" : group.store}</h3>{group.lines.length > 1 && <span>{group.quantity} unit</span>}</div>
     <ul className="shopping-recap-lines">{group.lines.map(line=><li key={line.key}>
-     <div className="shopping-recap-line-heading"><strong>{line.product}</strong><span>{line.quantity} unit</span></div>
-     <dl className="shopping-recap-options">{[["Varian",line.variant],["Warna",line.color],["Ukuran",line.size]].filter(([,value])=>Boolean(value)).map(([name,value])=><div key={name}><dt>{name}:</dt><dd>{value}</dd></div>)}</dl>
-     <details className="shopping-recap-customers"><summary>{line.customers.length} pelanggan</summary><ul>{line.customers.map(customer=><li key={customer.id}><span>{customer.name}{customer.orders>1 && <small> · {customer.orders} pesanan</small>}</span><strong>{customer.quantity} unit</strong></li>)}</ul></details>
+     <div className="shopping-recap-line-heading"><strong>{[productDisplayName(line.product),line.variant].filter(Boolean).join(" ")}</strong><span className="shopping-recap-quantity">{line.quantity} unit</span></div>
+     <dl className="shopping-recap-options">{[["Warna",line.color],["Ukuran",line.size]].filter(([,value])=>Boolean(value)).map(([name,value])=><div key={name}><dt>{name}:</dt><dd>{value}</dd></div>)}</dl>
+     <details className="shopping-recap-customers"><summary><span>{line.customers.length} {line.customers.some(customer=>customer.id==="")?"penerima":"pelanggan"}</span><ChevronDown size={15} aria-hidden="true"/></summary><ul>{line.customers.map(customer=><li key={customer.id}><span>{customer.name}{customer.orders>1 && <small> · {customer.orders} pesanan</small>}</span><strong>{customer.quantity} unit</strong></li>)}</ul></details>
     </li>)}</ul>
    </section>):<div className="empty-state compact"><ClipboardList size={28}/><h3>Belum ada produk untuk direkap</h3><p>Catat pesanan pada {batch.type==="po"?"batch":"perjalanan"} ini terlebih dahulu.</p></div>}
   </div>
