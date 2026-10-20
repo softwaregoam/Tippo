@@ -1600,3 +1600,14 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .hpp-personal-note { display:block; font-size:11px; line-height:1.5; margin-top:4px; color:var(--muted); }
 .hpp-margin-explanation { margin:0; }
 @media(min-width:1101px) { .sales-report-summary { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+
+.dashboard-stats .stat-card:nth-child(4) { border-right:0; }
+.dashboard-personal-expense { grid-column:1/-1; display:grid; grid-template-columns:auto auto minmax(0,1fr); align-items:center; gap:8px 18px; padding:16px 24px; border-top:1px solid var(--border); }
+.dashboard-personal-expense>span { font-size:13px; color:var(--muted); }
+.dashboard-personal-expense>strong { font-size:18px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.dashboard-personal-expense>small { justify-self:end; font-size:12px; color:var(--muted); }
+@media(max-width:600px) {
+ .dashboard-personal-expense { grid-template-columns:minmax(0,1fr) auto; padding:16px 18px; gap:6px 12px; }
+ .dashboard-personal-expense>small { grid-column:1/-1; justify-self:start; }
+}
+@media(max-width:420px) { .dashboard-stats .stat-card:nth-child(4) { border-bottom:0; } }
