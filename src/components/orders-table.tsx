@@ -81,7 +81,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
           {orders.map((order) => {
             const customer = data.customers.find((entry) => entry.id === order.customerId);
             const batch = data.batches.find((entry) => entry.id === order.batchId);
-            const hpp = orderHpp(order, data.orders, data.batches);
+            const hpp = isPersonalOrder(order) ? personalExpense(order) : orderHpp(order, data.orders, data.batches);
             const revenue = isPersonalOrder(order)?personalExpense(order):orderRevenue(order);
             const customerName=isPersonalOrder(order)?"Belanja pribadi":customer?.name??"Pelanggan";
             const color = avatarColors[Math.max(0, data.customers.findIndex((entry) => entry.id === order.customerId)) % avatarColors.length];
@@ -103,7 +103,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
                   <span className="row-subtitle">{batch?.type === "jastip" ? "Jastip" : "Open PO"}</span>
                 </td>
                 <td className="numeric-cell"><span className="row-title" style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{formatCurrency(revenue)}</span></td>
-                {!compact && <td className="numeric-cell"><span className={hpp === null ? "row-subtitle" : "row-title"} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{isPersonalOrder(order)?"—":hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</span>{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</td>}
+                {!compact && <td className="numeric-cell"><span className={hpp === null ? "row-subtitle" : "row-title"} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</span>{isPersonalOrder(order)&&<small className="row-subtitle">Belanja sendiri</small>}{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</td>}
                 <td><OrderPaymentBadges order={order}/></td>
                 <td className="center-cell">
                   <span className={`status-tag order-status-${visibleOrderStatus(order.status)}`}>{statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label}</span>
@@ -152,7 +152,7 @@ function MobileOrderDetail({order,data}:{order:Order;data:AppData}) {
       {products.length>5&&scrollbar.visible&&<span className="order-detail-scrollbar" aria-hidden="true"><span style={{height:scrollbar.height,transform:`translateY(${scrollbar.top}px)`}}/></span>}
       </div>
     </section>
-    {isPersonalOrder(order)?<dl className="order-detail-payment"><div className="order-detail-total"><dt>Total belanja pribadi</dt><dd>{formatCurrency(personalExpense(order))}</dd></div></dl>:<dl className="order-detail-payment"><div className="order-detail-total"><dt>Total tagihan</dt><dd>{formatCurrency(isPersonalOrder(order)?personalExpense(order):orderRevenue(order))}</dd></div><div><dt>Sudah dibayar</dt><dd>{formatCurrency(order.paid)}</dd></div><div><dt>Sisa tagihan</dt><dd>{formatCurrency(outstanding(order))}</dd></div><div><dt>{hasEstimatedCost(order)?"HPP · Estimasi":"HPP"}</dt><dd>{isPersonalOrder(order)?"—":hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</dd></div></dl>}
+    {isPersonalOrder(order)?<dl className="order-detail-payment"><div className="order-detail-total"><dt>{hasEstimatedCost(order)?"HPP belanja sendiri · Estimasi":"HPP belanja sendiri"}</dt><dd>{formatCurrency(personalExpense(order))}</dd></div><div><dt>Margin usaha</dt><dd>Di luar perhitungan</dd></div></dl>:<dl className="order-detail-payment"><div className="order-detail-total"><dt>Total tagihan</dt><dd>{formatCurrency(isPersonalOrder(order)?personalExpense(order):orderRevenue(order))}</dd></div><div><dt>Sudah dibayar</dt><dd>{formatCurrency(order.paid)}</dd></div><div><dt>Sisa tagihan</dt><dd>{formatCurrency(outstanding(order))}</dd></div><div><dt>{hasEstimatedCost(order)?"HPP · Estimasi":"HPP"}</dt><dd>{isPersonalOrder(order)?"—":hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</dd></div></dl>}
 
   </div>;
 }
