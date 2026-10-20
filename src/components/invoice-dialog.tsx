@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Copy, Download, FileImage, MessageSquare, Printer, QrCode, X } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Copy, Download, FileImage, MessageSquare, Printer, QrCode, Share2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDocument, printInvoice } from "@/components/invoice-document";
@@ -9,9 +9,10 @@ import { InvoicePhoto } from "@/components/invoice-photo";
 import { downloadInvoiceImage, prepareInvoiceImage } from "@/lib/invoice-image";
 import { buildInvoice, invoiceNumber, invoiceWhatsAppUrl } from "@/lib/invoice";
 import { QrisImage } from "@/components/qris-image";
-import { downloadQris, showQris } from "@/lib/qris";
+import { downloadQris, loadQrisFile, showQris } from "@/lib/qris";
 import { readInvoiceAppearance } from "@/lib/invoice-template";
 import { formatCurrency, outstanding } from "@/lib/finance";
+import { imageFileFromDataUrl, shareOrDownloadFile } from "@/lib/share-file";
 import type { AppData, Order } from "@/lib/types";
 
 type InvoiceTab="image"|"whatsapp"|"qris";
@@ -39,6 +40,9 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
   const [copying, setCopying] = useState(false);
   const [downloading,setDownloading]=useState(false);
   const downloadingRef=useRef(false);
+  const [sharing,setSharing]=useState(false);
+  const [qrisFile,setQrisFile]=useState<{key:string;file:File|null;error:string}|null>(null);
+  const [qrisAttempt,retryQris]=useState(0);
   const customer=data.customers.find(customer=>customer.id===order.customerId);
   const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings);
 
@@ -52,6 +56,28 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
 
   const readyPhoto=photo?.key===photoKey&&photo.url?photo:null;
   const printError=photo?.key===photoKey?photo.error:"";
+
+  const reference=invoiceNumber(order,settings);
+  const filename=reference.replace(/[^A-Za-z0-9_-]/g,"-")+".png";
+  const imageFile=useMemo(()=>readyPhoto?imageFileFromDataUrl(readyPhoto.url,filename):null,[readyPhoto,filename]);
+  const qrisKey=JSON.stringify([qrisUrl,reference,qrisAttempt]);
+  const readyQris=qrisFile?.key===qrisKey?qrisFile:null;
+  useEffect(()=>{
+    if(tab!=="qris"||!hasQris)return;
+    let active=true;
+    void loadQrisFile(qrisUrl,reference).then(file=>{if(active)setQrisFile({key:qrisKey,file,error:""});}).catch(()=>{if(active)setQrisFile({key:qrisKey,file:null,error:"QRIS belum dapat disiapkan. Periksa koneksi, lalu coba lagi."});});
+    return()=>{active=false;};
+  },[tab,hasQris,qrisUrl,reference,qrisKey]);
+
+  async function shareImage(file:File|null){
+    if(!file||downloadingRef.current)return;
+    downloadingRef.current=true;setSharing(true);setFeedback("");setManualCopy(false);
+    try{
+      const result=await shareOrDownloadFile(file);
+      if(result==="downloaded")setFeedback("Perangkat ini belum mendukung berbagi gambar. Gambar diunduh; lampirkan di chat pelanggan.");
+    }catch(error){setManualCopy(true);setFeedback(error instanceof Error?error.message:"Gambar belum dapat dibagikan. Gunakan tombol Unduh.");}
+    finally{downloadingRef.current=false;setSharing(false);}
+  }
 
   useLayoutEffect(()=>{
     // Reset after the new panel is mounted, before the browser paints it.
@@ -144,13 +170,15 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
         </div>
         {hasQris&&<div role="tabpanel" id={`${id}-qris-panel`} aria-labelledby={`${id}-qris-tab`} hidden={tab!=="qris"}>{tab==="qris"&&<div className="invoice-qris-panel"><div className="invoice-qris-amount"><span>Sisa pembayaran</span><strong>{formatCurrency(outstanding(order))}</strong><small>Isi nominal ini di aplikasi pembayaran.</small></div><QrisImage key={qrisUrl} src={qrisUrl} alt="QRIS pembayaran usaha"/><p className="field-hint">Simpan gambar QRIS, lalu pilih dari galeri aplikasi pembayaran yang mendukungnya. Pembayaran dikonfirmasi manual oleh owner.</p></div>}</div>}
         {tab==="image"&&!mobile&&printError&&<p role="alert">{printError}</p>}
+        {tab==="qris"&&readyQris?.error&&<p role="alert">{readyQris.error}</p>}
         {feedback && <p role="status" style={{ color: manualCopy ? "var(--warning, #aa762c)" : "var(--primary, #24756b)" }}>{feedback}</p>}
       </div>
-      <div className="modal-footer">
+      <div className={`modal-footer${tab==="image"?" invoice-image-actions":""}`}>
         {tab==="image"?<>
-          <Button type="button" className="btn btn-secondary" disabled={!readyPhoto&&!printError} onClick={printDocument}><Printer size={16}/>{printError?"Coba siapkan PDF":!readyPhoto?"Menyiapkan PDF…":"Cetak / PDF"}</Button>
-          <Button type="button" className="btn btn-primary" disabled={downloading} onClick={downloadImage}><Download size={16}/>{downloading?"Menyiapkan gambar…":"Unduh gambar"}</Button>
-        </>:tab==="qris"?<Button type="button" className="btn btn-primary" disabled={downloading} onClick={()=>void downloadQrisImage()}><Download size={16}/>{downloading?"Mengunduh…":"Unduh QRIS"}</Button>:<>
+          <Button type="button" className="btn btn-secondary" disabled={sharing||downloading||(!readyPhoto&&!printError)} onClick={printDocument}><Printer size={16}/>{printError?"Coba siapkan PDF":!readyPhoto?"Menyiapkan PDF…":"Cetak / PDF"}</Button>
+          <Button type="button" className="btn btn-secondary" disabled={downloading||sharing} onClick={downloadImage}><Download size={16}/>{downloading?"Menyiapkan gambar…":"Unduh gambar"}</Button>
+          <Button type="button" className="btn btn-primary invoice-share-action" disabled={!imageFile||sharing||downloading} onClick={()=>void shareImage(imageFile)}><Share2 size={16}/>{sharing?"Membuka pilihan berbagi…":"Bagikan gambar"}</Button>
+        </>:tab==="qris"?<><Button type="button" className="btn btn-secondary" disabled={downloading||sharing} onClick={()=>void downloadQrisImage()}><Download size={16}/>{downloading?"Mengunduh…":"Unduh QRIS"}</Button><Button type="button" className="btn btn-primary" disabled={sharing||downloading||(!readyQris?.file&&!readyQris?.error)} onClick={()=>{if(readyQris?.error){setQrisFile(null);retryQris(value=>value+1);}else void shareImage(readyQris?.file??null);}}><Share2 size={16}/>{sharing?"Membuka pilihan berbagi…":readyQris?.error?"Coba siapkan QRIS":!readyQris?.file?"Menyiapkan QRIS…":"Bagikan QRIS"}</Button></>:<>
           <Button type="button" className="btn btn-secondary" disabled={copying} onClick={copyInvoice}><Copy size={16} />{copying ? "Menyalin..." : "Salin invoice WhatsApp"}</Button>
           <a className="btn btn-primary" href={invoiceWhatsAppUrl(message,customer?.phone)} target="_blank" rel="noopener noreferrer"><MessageSquare size={16}/>Bagikan ke WhatsApp</a>
         </>}

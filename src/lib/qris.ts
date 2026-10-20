@@ -1,3 +1,4 @@
+import { downloadFile } from "./share-file.ts";
 import { outstanding } from "./finance.ts";
 import type { Order } from "./types.ts";
 
@@ -31,16 +32,14 @@ export async function validateQrisFile(file: File): Promise<void> {
   finally { URL.revokeObjectURL(url); }
 }
 /** Preserve the uploaded pixels; QR codes are never cropped, resized, or recompressed. */
-export async function downloadQris(url: string, reference: string): Promise<void> {
+export async function loadQrisFile(url: string, reference: string): Promise<File> {
   if (!url || !validQrisUrl(url)) throw new Error("QRIS belum tersedia.");
   const response = await fetch(url, {credentials:"omit",signal:AbortSignal.timeout(15000)});
-  if (!response.ok) throw new Error("QRIS belum dapat diunduh. Coba lagi.");
+  if (!response.ok) throw new Error("QRIS belum dapat dimuat. Coba lagi.");
   const blob = await response.blob(), extension = qrisExtension(blob.type);
   if (!blob.size || blob.size > QRIS_MAX_BYTES) throw new Error("Gambar QRIS tidak valid.");
-  const objectUrl = URL.createObjectURL(blob);
-  try {
-    const link = document.createElement("a"); link.href = objectUrl;
-    link.download = `QRIS-${reference.replace(/[^A-Za-z0-9_-]/g,"-")}.${extension}`;
-    document.body.append(link); link.click(); link.remove();
-  } finally { setTimeout(() => URL.revokeObjectURL(objectUrl), 1000); }
+  return new File([blob], `QRIS-${reference.replace(/[^A-Za-z0-9_-]/g,"-")}.${extension}`, {type:blob.type});
+}
+export async function downloadQris(url: string, reference: string): Promise<void> {
+  downloadFile(await loadQrisFile(url, reference));
 }

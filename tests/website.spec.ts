@@ -2106,3 +2106,34 @@ for(const width of [320,1440])test(`QRIS hides for paid and cancelled invoices $
  await authenticate(page,{workspace:data,metadata:{invoice_template:{qrisUrl:`${endpoint}/storage/v1/object/public/invoice-logos/${owner}/qris-test.png`}}});await page.goto("/app");
  for(const business of ["Jastip","Open PO"] as const){const dialog=await openQrisInvoice(page,business,width);await expect(dialog.getByRole("tab",{name:"QRIS",exact:true})).toHaveCount(0);await expect(dialog.getByRole("tab")).toHaveCount(2);await dialog.getByRole("button",{name:"Tutup invoice",exact:true}).click();}
 });
+
+for(const width of [320,1440])for(const business of ["Jastip","Open PO"] as const)test(`share invoice images and QRIS with cancellation and download fallback ${business} ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:950});const url=`${endpoint}/storage/v1/object/public/invoice-logos/${owner}/qris-share.png`;
+ await authenticate(page,{workspace:twoBusinessWorkspace(),metadata:{invoice_template:{qrisUrl:url}}});await page.route(`${endpoint}/storage/v1/object/**`,route=>route.fulfill({contentType:"image/png",body:qrisPng}));
+ await page.addInitScript(()=>{
+  Object.defineProperty(navigator,"canShare",{configurable:true,value:()=>document.documentElement.dataset.shareMode!=="unsupported"});
+  Object.defineProperty(navigator,"share",{configurable:true,value:async(data:ShareData)=>{
+   const active=navigator.userActivation.isActive,file=data.files![0],bytes=new Uint8Array(await file.arrayBuffer());
+   document.documentElement.dataset.shareResult=JSON.stringify({active,keys:Object.keys(data),count:data.files!.length,name:file.name,type:file.type,size:file.size,bytes:Array.from(file.name.startsWith("QRIS-")?bytes:bytes.slice(0,32))});
+   if(document.documentElement.dataset.shareMode==="cancel")throw new DOMException("Cancelled","AbortError");
+   if(document.documentElement.dataset.shareMode==="deny")throw new DOMException("Denied","NotAllowedError");
+  }});
+ });
+ await page.goto("/app");const dialog=await openQrisInvoice(page,business,width);let downloads=0;page.on("download",()=>downloads++);
+ await dialog.getByRole("button",{name:"Bagikan gambar",exact:true}).click();await expect(page.locator("html")).toHaveAttribute("data-share-result",/image\/png/);
+ const image=JSON.parse((await page.locator("html").getAttribute("data-share-result"))!);expect(image).toMatchObject({active:true,keys:["files"],count:1,type:"image/png"});expect(image.name).toMatch(/\.png$/);expect(Buffer.from(image.bytes).readUInt32BE(16)).toBe(1588);expect(image.size).toBeGreaterThan(10000);expect(downloads).toBe(0);
+ await page.locator("html").evaluate(el=>{(el as HTMLElement).dataset.shareMode="cancel";el.removeAttribute("data-share-result");});await dialog.getByRole("button",{name:"Bagikan gambar",exact:true}).click();await expect(page.locator("html")).toHaveAttribute("data-share-result",/image\/png/);await expect(dialog.getByRole("button",{name:"Bagikan gambar",exact:true})).toBeEnabled();expect(downloads).toBe(0);await expect(dialog.getByRole("status")).toHaveCount(0);
+ await page.locator("html").evaluate(el=>(el as HTMLElement).dataset.shareMode="unsupported");const imageDownload=page.waitForEvent("download");await dialog.getByRole("button",{name:"Bagikan gambar",exact:true}).click();expect((await imageDownload).suggestedFilename()).toBe(image.name);await expect(dialog.getByRole("status")).toContainText("Gambar diunduh");
+ await dialog.getByRole("tab",{name:"QRIS",exact:true}).click();await page.locator("html").evaluate(el=>{(el as HTMLElement).dataset.shareMode="supported";el.removeAttribute("data-share-result");});await dialog.getByRole("button",{name:"Bagikan QRIS",exact:true}).click();await expect(page.locator("html")).toHaveAttribute("data-share-result",/QRIS-/);
+ const qris=JSON.parse((await page.locator("html").getAttribute("data-share-result"))!);expect(qris).toMatchObject({active:true,keys:["files"],count:1,type:"image/png",size:qrisPng.length});expect(Buffer.from(qris.bytes)).toEqual(qrisPng);
+ await page.locator("html").evaluate(el=>(el as HTMLElement).dataset.shareMode="unsupported");const qrDownload=page.waitForEvent("download");await dialog.getByRole("button",{name:"Bagikan QRIS",exact:true}).click();const download=await qrDownload;expect(download.suggestedFilename()).toBe(qris.name);const fs=await import("node:fs/promises");expect(await fs.readFile((await download.path())!)).toEqual(qrisPng);await expect(dialog.getByRole("status")).toContainText("Gambar diunduh");
+ await page.locator("html").evaluate(el=>(el as HTMLElement).dataset.shareMode="deny");await dialog.getByRole("button",{name:"Bagikan QRIS",exact:true}).click();await expect(dialog.getByRole("status")).toContainText("gunakan tombol Unduh");expect(downloads).toBe(2);await expect(dialog.getByRole("button",{name:"Unduh QRIS",exact:true})).toBeEnabled();
+ expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);await page.screenshot({path:`/tmp/tippo-share-qris-${business}-${width}.png`});await dialog.getByRole("tab",{name:"Invoice gambar",exact:true}).click();await page.screenshot({path:`/tmp/tippo-share-invoice-${business}-${width}.png`});
+});
+
+test("QRIS share can retry a failed preload without changing the uploaded image",async({page})=>{
+ const url=`${endpoint}/storage/v1/object/public/invoice-logos/${owner}/qris-retry.png`;await authenticate(page,{workspace:twoBusinessWorkspace(),metadata:{invoice_template:{qrisUrl:url}}});let loads=0;
+ await page.route(`${endpoint}/storage/v1/object/**`,route=>{if(route.request().resourceType()==="fetch"&&++loads===1)return route.fulfill({status:503,body:"Unavailable"});return route.fulfill({contentType:"image/png",body:qrisPng});});
+ await page.goto("/app");const dialog=await openQrisInvoice(page,"Jastip",1440);await dialog.getByRole("tab",{name:"QRIS",exact:true}).click();await expect(dialog.getByRole("alert")).toContainText("QRIS belum dapat disiapkan");await dialog.getByRole("button",{name:"Coba siapkan QRIS",exact:true}).click();await expect(dialog.getByRole("button",{name:"Bagikan QRIS",exact:true})).toBeEnabled();await expect(dialog.getByRole("alert")).toHaveCount(0);expect(loads).toBe(2);
+ const downloadEvent=page.waitForEvent("download");await dialog.getByRole("button",{name:"Unduh QRIS",exact:true}).click();const download=await downloadEvent;const fs=await import("node:fs/promises");expect(await fs.readFile((await download.path())!)).toEqual(qrisPng);
+});
