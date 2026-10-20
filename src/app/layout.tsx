@@ -10,6 +10,7 @@ import "./website.css";
 import "./landing.css";
 import "./auth.css";
 import "./theme.css";
+import "./mobile-dashboard.css";
 
 export const metadata: Metadata = {
   title: "Tippo: Jastip & Open PO",

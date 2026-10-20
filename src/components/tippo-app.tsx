@@ -388,17 +388,17 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
             </div>
           </div>
         </header>
-        <main className="main-content">
+        <main className={`main-content${page === "dashboard" ? " is-dashboard" : ""}`}>
           <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && page !== "reports" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
 
           {!isPro && page !== "settings" && page !== "hpp" && page !== "invoice-template" && page !== "subscription" && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
-            <div key={page}>
+            <div key={page} className={page === "dashboard" ? "dashboard-content" : undefined}>
               {page === "dashboard" && <>
                 <div className="stats-grid dashboard-stats">
-                  <Stat title="Total penjualan" value={formatCurrency(summary.revenue)} note={`${summary.ordersCount} pesanan di ${monthNames[Number(month.slice(5)) - 1]}`} />
-                  <Stat title="Estimasi margin" value={formatCurrency(summary.profit)} note={summary.unknownCostCount ? `${summary.unknownCostCount} pesanan belum lengkap HPP` : "Tanpa ongkir, sebelum biaya umum"} warning={summary.unknownCostCount > 0} />
-                  <Stat title="Pesanan bulan ini" value={`${summary.ordersCount}`} note={`${monthOrders.filter((o) => !isPersonalOrder(o)&&o.status === "done").length} selesai · ${monthOrders.filter((o) => !isPersonalOrder(o)&&!["done", "cancelled"].includes(o.status)).length} dalam proses`} />
-                  <Stat title="Sisa tagihan" value={formatCurrency(summary.outstanding)} note="Piutang pesanan bulan terpilih" />
+                  <Stat icon={<Wallet size={18}/>} title="Total penjualan" value={formatCurrency(summary.revenue)} note={`${summary.ordersCount} pesanan di ${monthNames[Number(month.slice(5)) - 1]}`} />
+                  <Stat icon={<FileBarChart2 size={18}/>} title="Estimasi margin" value={formatCurrency(summary.profit)} note={summary.unknownCostCount ? `${summary.unknownCostCount} pesanan belum lengkap HPP` : "Tanpa ongkir, sebelum biaya umum"} warning={summary.unknownCostCount > 0} />
+                  <Stat icon={<ShoppingBag size={18}/>} title="Pesanan bulan ini" value={`${summary.ordersCount}`} note={`${monthOrders.filter((o) => !isPersonalOrder(o)&&o.status === "done").length} selesai · ${monthOrders.filter((o) => !isPersonalOrder(o)&&!["done", "cancelled"].includes(o.status)).length} dalam proses`} />
+                  <Stat icon={<ReceiptText size={18}/>} title="Sisa tagihan" value={formatCurrency(summary.outstanding)} note="Piutang pesanan bulan terpilih" />
                   {summary.personalExpenses>0&&<div className="dashboard-personal-expense"><span>Belanja sendiri</span><strong>{formatCurrency(summary.personalExpenses)}</strong><small>{monthOrders.some(order=>isPersonalOrder(order)&&hasEstimatedCost(order))?"Mencakup kurs estimasi · di luar margin":"Terpisah dari penjualan dan margin"}</small></div>}
                 </div>
                 <div className="dashboard-middle">
@@ -466,8 +466,8 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   );
 }
 
-function Stat({ title, value, note, warning }: { title: string; value: string; note: string; warning?: boolean }) {
-  return <section className="card stat-card"><div className="stat-top"><span>{title}</span></div><strong className="stat-value">{value}</strong><div className={`stat-note ${warning ? "warning" : ""}`}>{note}</div></section>;
+function Stat({ title, value, note, warning, icon }: { title: string; value: string; note: string; warning?: boolean; icon: React.ReactNode }) {
+  return <section className="card stat-card"><div className="stat-top"><span>{title}</span><span className="dashboard-stat-icon" aria-hidden="true">{icon}</span></div><strong className="stat-value">{value}</strong><div className={`stat-note ${warning ? "warning" : ""}`}>{note}</div></section>;
 }
 
 function MonthlyChart({ data, month, currentOnly = false }: { data: AppData; month: string; currentOnly?: boolean }) {
