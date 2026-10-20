@@ -1,3 +1,4 @@
+import { productDisplayName } from "./product-name.ts";
 import type { AppData, Batch, MonthlyPoint, MonthSummary, Order, OrderItem } from "./types.ts";
 
 const rupiah = new Intl.NumberFormat("id-ID", {
@@ -11,7 +12,10 @@ export function formatCurrency(value: number): string {
 }
 
 export function itemLabel(item: OrderItem): string {
-  return [item.product, item.variant, item.color, item.size].filter((value) => value.trim()).join(" · ");
+  return [
+    [productDisplayName(item.product), item.variant.trim()].filter(Boolean).join(" "),
+    item.color.trim(), item.size.trim(),
+  ].filter(Boolean).join(" · ");
 }
 
 export function orderLabel(order: Order): string {

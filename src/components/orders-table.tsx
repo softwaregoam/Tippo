@@ -10,15 +10,10 @@ import { RefundDialog, type RefundHandler } from "@/components/refund-dialog";
 import { refundedTotal } from "@/lib/refund";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDialog } from "@/components/invoice-dialog";
-import { formatCurrency, orderHpp, orderQuantity, orderRevenue, outstanding, isPersonalOrder, personalExpense } from "@/lib/finance";
+import { formatCurrency, itemLabel as itemDisplayLabel, orderHpp, orderQuantity, orderRevenue, outstanding, isPersonalOrder, personalExpense } from "@/lib/finance";
 import {MobileDataList,DataDetailDialog} from "@/components/mobile-data-list";
 import { productDisplayName } from "@/lib/product-name";
-import type { AppData, Order, OrderItem } from "@/lib/types";
-
-const itemDisplayLabel = (item: OrderItem) => [
-  [productDisplayName(item.product), item.variant.trim()].filter(Boolean).join(" "),
-  item.color.trim(), item.size.trim(),
-].filter(Boolean).join(" · ");
+import type { AppData, Order } from "@/lib/types";
 
 type OrdersTableProps = {
   data: AppData;

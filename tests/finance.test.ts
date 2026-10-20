@@ -117,7 +117,7 @@ test("one order totals several item snapshots but fees and shipping are charged 
   ], serviceFee: 5000, shippingCharge: 10000, paid: 50000 });
   const other = makeOrder({ id: "b" });
   assert.equal(itemLabel(order.items[1]), "Kaos · Navy · L");
-  assert.equal(orderLabel(order), "Nasi · Pedas, Kaos · Navy · L");
+  assert.equal(orderLabel(order), "Nasi Pedas, Kaos · Navy · L");
   assert.equal(orderQuantity(order), 3);
   assert.equal(orderRevenue(order), 155000);
   assert.deepEqual(allocatedBatchCosts(batch, [order, other]), { a: 75, b: 25 });
