@@ -12,7 +12,7 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  const quantity:Column={header:"Qty",key:"quantity",width:12};
  function prepare(name:string,columns:Column[]) {
   const sheet=book.addWorksheet(name);sheet.columns=columns.map(({key,width,money})=>({key,width,style:{numFmt:money?'#,##0;[Red]-#,##0':'General'}}));
-  for(const text of [`Rekap ${po?"Open PO":"Jastip"} · ${name}`,report.batch.name+(kind==="orders"&&report.orders.some(order=>hasEstimatedCost(order))?" · HPP/margin mencakup kurs estimasi":"")]){const row=sheet.addRow([text]);sheet.mergeCells(row.number,1,row.number,columns.length);row.alignment={vertical:"middle",wrapText:true};row.height=26;}
+  for(const text of [`Rekap ${po?"Open PO":"Jastip"} · ${name}`,report.batch.name+(report.orders.some(order=>hasEstimatedCost(order))?(kind==="orders"?" · HPP/margin mencakup kurs estimasi":" · Harga beli mencakup kurs estimasi"):"")]){const row=sheet.addRow([text]);sheet.mergeCells(row.number,1,row.number,columns.length);row.alignment={vertical:"middle",wrapText:true};row.height=26;}
   const header=sheet.addRow(columns.map(column=>column.header));header.font={bold:true,color:{argb:"FFFFFFFF"}};header.fill={type:"pattern",pattern:"solid",fgColor:{argb:color}};header.alignment={wrapText:true,vertical:"middle"};header.height=32;
   // ExcelJS emits outlinePr after pageSetUpPr when outlineProperties is set; that order is invalid in XLSX.
   sheet.views=[{state:"frozen",ySplit:3,activeCell:"A4"}];
@@ -27,8 +27,8 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  if(kind==="products"){
  const products=prepare("Per produk",[
   {header:po?"Kategori":"Toko / brand",key:"group",width:25},{header:"Produk",key:"product",width:48},quantity,
-  {header:"Harga jual / unit",key:"unitPrice",width:22,money:true},{header:"Total",key:"value",width:22,money:true},
-  {header:"Total qty grup",key:"groupQuantity",width:18},{header:"Total harga grup",key:"groupValue",width:25,money:true},
+  {header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"cost",width:22,money:true},
+  {header:"Total qty grup",key:"groupQuantity",width:18},{header:"Total beli grup",key:"groupValue",width:25,money:true},
  ]);
  products.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}};
  products.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
@@ -39,13 +39,13 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  const groups=po?report.categories:[...storeGroups.values()];
  for(const [index,group] of groups.entries()){
   const start=products.rowCount+1,fill=palette[index%palette.length];
-  const groupQuantity=group.items.reduce((sum,product)=>sum+product.quantity,0),groupValue=group.items.reduce((sum,product)=>sum+product.value,0);
+  const groupQuantity=group.items.reduce((sum,product)=>sum+product.quantity,0),groupValue=group.items.some(product=>product.cost===null)?null:group.items.reduce((sum,product)=>sum+product.knownCost,0);
   for(const [line,product] of group.items.entries()){
    const label=[[product.product,product.variant].filter(Boolean).join(" "),product.color,product.size,...(po&&product.store!=="Tanpa toko / brand"?[`Toko: ${product.store}`]:[])].filter(Boolean).join(" · ");
-   const row=products.addRow({group:line===0?group.name:undefined,product:label,quantity:product.quantity,unitPrice:product.unitPrice,value:product.value,groupQuantity:line===0?groupQuantity:undefined,groupValue:line===0?groupValue:undefined});
+   const row=products.addRow({group:line===0?group.name:undefined,product:label,quantity:product.quantity,unitCost:product.unitCost??missing,cost:product.cost??missing,groupQuantity:line===0?groupQuantity:undefined,groupValue:line===0?(groupValue??missing):undefined});
    row.height=Math.max(28,Math.ceil(label.length/48)*16+8,Math.ceil((Math.ceil(group.name.length/22)*16+8)/group.items.length));
    for(let column=1;column<=7;column++){
-    const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:"FF25312E"},bold:[1,6,7].includes(column)};
+    const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,6,7].includes(column)};
     cell.alignment={vertical:"middle",horizontal:[1,3,6].includes(column)?"center":[4,5,7].includes(column)?"right":"left",wrapText:true};
     cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};
     cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===3?"FFFFF3B0":column===5?"FFD9EEE2":column===4?"FFFFFFFF":fill}};
@@ -53,7 +53,7 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
   }
   const end=products.rowCount;if(end>start)for(const column of [1,6,7])products.mergeCells(start,column,end,column);
  }
- const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:report.totals.quantity,groupValue:report.totals.value},true);
+ const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:report.totals.quantity,groupValue:report.totals.cost??missing},true);
  products.mergeCells(total.number,1,total.number,5);total.height=30;total.alignment={vertical:"middle",horizontal:"right"};total.getCell(6).alignment={vertical:"middle",horizontal:"center"};
  }
  if(kind==="orders"){

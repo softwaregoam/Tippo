@@ -52,7 +52,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
       steps: [
         "Buka Batch PO atau Perjalanan, lalu pilih ikon rekap pada kolom Aksi. Di ponsel, buka detail batch untuk melihat tombol rekap.",
         "Rekap menjumlahkan kebutuhan produk dari pesanan aktif, beserta varian, warna, ukuran, dan toko. Buka Lihat pelanggan untuk melihat pembagiannya.",
-        "Pilih Per produk atau Per pesanan sebelum Unduh Excel. Rekap per produk tanpa HPP; rekap per pesanan memuat harga jual, HPP, dan margin jika lengkap.",
+        "Pilih Per produk atau Per pesanan sebelum Unduh Excel. Rekap per produk memakai harga beli dan total belanja; rekap per pesanan memuat harga jual, HPP, dan margin jika lengkap.",
       ], destination: "batches", action: "Buka rekap batch",
     },
     {

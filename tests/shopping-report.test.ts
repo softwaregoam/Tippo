@@ -17,23 +17,23 @@ test("purchase report combines quantities but calculates each saved purchase pri
  assert.equal(report.orders[0].totals.value,250);assert.equal(report.orders[1].totals.cost,150);assert.equal(report.products.some(p=>p.product==="Nama master berubah"),false);
 });
 test("purchase grouping separates options, categories and stores and never treats unknown costs as zero",()=>{
- const workspace=data();workspace.orders=[order("1",[item({unitCost:0}),item({id:"unknown",unitCost:null}),item({id:"size",size:"M"}),item({id:"store",store:"Other"}),item({id:"category",productId:null})])];const report=buildShoppingReport(workspace,"b");assert.equal(report.products.length,4);const product=report.products.find(p=>p.size==="L"&&p.store==="Toko"&&p.category==="Pakaian")!;assert.equal(product.quantity,4);assert.equal(product.knownCost,0);assert.equal(product.cost,null);assert.equal(product.unitCost,null);
+ const workspace=data();workspace.orders=[order("1",[item({unitCost:0}),item({id:"unknown",unitCost:null}),item({id:"size",size:"M"}),item({id:"store",store:"Other"}),item({id:"category",productId:null})])];const report=buildShoppingReport(workspace,"b");assert.equal(report.products.length,5);const product=report.products.find(p=>p.size==="L"&&p.store==="Toko"&&p.category==="Pakaian")!;assert.equal(product.quantity,2);assert.equal(product.knownCost,0);assert.equal(product.cost,0);assert.equal(product.unitCost,0);assert.equal(report.products.find(p=>p.unitCost===null)!.cost,null);
  workspace.orders=[order("zero",[item({unitCost:0})])];assert.equal(buildShoppingReport(workspace,"b").totals.cost,0);
 });
 test("empty batches export zero totals and unknown batches are rejected",()=>{
  const workspace=data();workspace.orders=[];const report=buildShoppingReport(workspace,"b");assert.equal(report.totals.quantity,0);assert.equal(report.totals.cost,0);assert.equal(report.products.length,0);assert.throws(()=>buildShoppingReport(workspace,"missing"));
 });
-for(const mode of ["po","jastip"] as const)test(`workbook ${mode} uses mode-specific groups and keeps HPP only in order sheet`,async()=>{
+for(const mode of ["po","jastip"] as const)test(`workbook ${mode} uses purchase prices in product sheets and preserves order calculations`,async()=>{
  const workspace=data();workspace.batches[0].type=mode;const report=buildShoppingReport(workspace,"b"),book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(report,"products")).buffer);
  assert.deepEqual(book.worksheets.map(s=>s.name),["Per produk"]);
  const orderBook=new ExcelJS.Workbook();await orderBook.xlsx.load(new Uint8Array(await createShoppingReportExcel(report,"orders")).buffer);assert.deepEqual(orderBook.worksheets.map(s=>s.name),["Per pesanan"]);
  const products=book.getWorksheet("Per produk")!,orders=orderBook.getWorksheet("Per pesanan")!;
  const cell=(sheet:ExcelJS.Worksheet,row:number,header:string)=>{let column=0;sheet.getRow(3).eachCell((cell,index)=>{if(cell.value===header)column=index;});assert.ok(column,header);return sheet.getCell(row,column).value;};
- assert.match(String(cell(products,4,"Produk")),/^Kaos Airism/);assert.equal(cell(products,4,"Qty"),2);assert.equal(cell(products,4,"Harga jual / unit"),100);assert.equal(cell(products,4,"Total"),200);assert.equal(cell(products,4,"Total qty grup"),mode==="po"?5:6);assert.equal(cell(products,4,"Total harga grup"),mode==="po"?530:580);assert.equal(cell(products,products.rowCount,"Total qty grup"),6);assert.equal(cell(products,products.rowCount,"Total harga grup"),580);
+ assert.match(String(cell(products,4,"Produk")),/^Kaos Airism/);assert.equal(cell(products,4,"Qty"),2);assert.equal(cell(products,4,"Harga beli / unit"),40);assert.equal(cell(products,4,"Subtotal beli"),80);assert.equal(cell(products,4,"Total qty grup"),mode==="po"?5:6);assert.equal(cell(products,4,"Total beli grup"),mode==="po"?230:"Belum lengkap");assert.equal(cell(products,products.rowCount,"Total qty grup"),6);assert.equal(cell(products,products.rowCount,"Total beli grup"),"Belum lengkap");
  assert.equal(products.getCell(`A${products.rowCount}`).value,"TOTAL KESELURUHAN");
  assert.equal(products.getCell("A3").value,mode==="po"?"Kategori":"Toko / brand");
  assert.equal(products.getCell("A4").value,mode==="po"?"Pakaian":"Toko");assert.ok(products.model.merges!.includes(mode==="po"?"A4:A5":"A4:A6"));assert.ok(products.model.merges!.includes(mode==="po"?"G4:G5":"G4:G6"));
- assert.doesNotMatch(JSON.stringify(products.getSheetValues()),/HPP|Harga beli|Bervariasi|Belum lengkap/);
+ assert.doesNotMatch(JSON.stringify(products.getSheetValues()),/Harga jual|Bervariasi/);assert.match(JSON.stringify(products.getSheetValues()),/Harga beli|Belum lengkap/);
  const text=JSON.stringify(orders.getSheetValues());assert.doesNotMatch(text,/Kategori mengikuti|Nilai jual hanya/);
  assert.deepEqual(orders.getCell("A4").value,{richText:[{text:"=SUM(1,2)",font:{bold:true,size:11}},{text:"\n15 Okt 2026",font:{size:10,color:{argb:"FF626862"}}}]});
  assert.equal(cell(orders,4,"Alamat kirim"),"Jalan Mawar 10\nBandung");assert.equal(cell(orders,4,"Harga jual / unit"),100);assert.equal(cell(orders,4,"Subtotal jual produk"),200);assert.equal(cell(orders,4,"Harga beli / unit"),40);assert.equal(cell(orders,4,"Subtotal beli"),80);assert.equal(cell(orders,4,"Total pesanan"),250);assert.equal(cell(orders,5,"Total HPP"),"Belum lengkap");assert.equal(cell(orders,4,"Margin"),"Belum lengkap");
@@ -54,4 +54,12 @@ test("all recap export modes retain valid Excel sheet-property order and ZIP con
   const workspace=data();workspace.batches[0].type=type;const bytes=await createShoppingReportExcel(buildShoppingReport(workspace,"b"),kind);await assertXlsxSheetProperties(bytes);
   const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(bytes).buffer);assert.equal(book.worksheets[0].views[0].activeCell,kind==="products"?"C4":"D4");
  }
+});
+
+for(const mode of ["po","jastip"] as const)test(`product purchase export ${mode} groups by saved cost and handles free and incomplete items`,async()=>{
+ const workspace=data();workspace.batches[0].type=mode;workspace.orders=[order("1",[item({id:"a",unitCost:40,quantity:2}),item({id:"b",unitCost:40,unitPrice:9999,quantity:1}),item({id:"c",unitCost:60,quantity:2}),item({id:"free",product:"Kue",unitCost:0,quantity:1})])];
+ let report=buildShoppingReport(workspace,"b");assert.equal(report.products.length,3);assert.equal(report.products[0].quantity,3);assert.equal(report.products[0].cost,120);assert.equal(report.products[1].cost,120);
+ const read=async()=>{const book=new ExcelJS.Workbook();await book.xlsx.load(new Uint8Array(await createShoppingReportExcel(buildShoppingReport(workspace,"b"),"products")).buffer);return book.worksheets[0];};
+ let sheet=await read();assert.equal(sheet.getCell("D4").value,40);assert.equal(sheet.getCell("E4").value,120);assert.equal(sheet.getCell("D5").value,60);assert.equal(sheet.getCell("E5").value,120);assert.equal(sheet.getCell("D6").value,0);assert.equal(sheet.getCell("E6").value,0);assert.equal(sheet.getCell(`G${sheet.rowCount}`).value,240);assert.doesNotMatch(JSON.stringify(sheet.getSheetValues()),/9999|80000|Harga jual/);
+ workspace.orders[0].items.push(item({id:"missing",product:"Kue",unitCost:null,quantity:1}));report=buildShoppingReport(workspace,"b");assert.equal(report.products.length,4);sheet=await read();assert.equal(sheet.getCell("D7").value,"Belum lengkap");assert.equal(sheet.getCell("E7").value,"Belum lengkap");assert.equal(sheet.getCell("G4").value,"Belum lengkap");assert.equal(sheet.getCell(`G${sheet.rowCount}`).value,"Belum lengkap");assert.equal(sheet.getCell(`F${sheet.rowCount}`).value,7);
 });

@@ -2,14 +2,14 @@
 
 Buka rekap pada Batch PO atau Perjalanan, pilih **Per produk** atau **Per pesanan** pada pilihan jenis rekap, lalu klik **Unduh Excel**. Satu file hanya berisi satu sheet sesuai pilihan:
 
-- **Per produk:** grup, produk beserta varian/warna/ukuran, qty, harga jual/unit, total baris, total qty grup, dan total harga grup. Open PO memakai kategori katalog; Jastip memakai toko/brand. Nama dan total grup memakai sel gabungan dengan warna latar bergantian. Total keseluruhan di bagian bawah. Harga beli dan HPP tidak disertakan. Produk dengan harga jual berbeda dipisah per baris.
+- **Per produk:** grup, produk beserta varian/warna/ukuran, qty, harga beli/unit, subtotal beli, total qty grup, dan total beli grup. Open PO memakai kategori katalog; Jastip memakai toko/brand. Nama dan total grup memakai sel gabungan dengan warna latar bergantian. Total keseluruhan di bagian bawah. Produk dengan harga beli berbeda dipisah per baris; harga jual yang berbeda tidak memisahkan kebutuhan belanja dengan harga beli yang sama.
 - **Per pesanan:** pemesan dan tanggal pesanan, produk/varian, qty, harga jual/unit, subtotal jual, total pesanan, alamat kirim, harga beli/unit, subtotal beli, total HPP, dan margin produk. Nama, alamat, dan total digabung per pesanan; warna lembut bergantian. Total qty, penjualan produk, HPP dan margin berada di bawah.
 
 Produk, harga, dan jumlah berasal dari snapshot pesanan. Kategori Open PO mengikuti master produk yang terhubung saat ekspor; tanpa tautan/kategori masuk **Tanpa kategori**. Produk arsip tetap dapat menjadi sumber kategori. Perubahan master tidak mengganti nama atau harga pada laporan.
 
 Pesanan dibatalkan dan pesanan batch lain dikecualikan. Nilai jual hanya produk, tanpa fee, ongkir, diskon, refund, atau biaya langsung batch. HPP produk = qty × harga beli/unit yang dicatat pada masing-masing pesanan, termasuk jika produk yang sama dibeli dengan harga berbeda.
 
-Pada sheet Per pesanan, harga beli kosong menghasilkan **Belum lengkap**, bukan nol. Total HPP dan margin pesanan ditandai **Belum lengkap** jika salah satu harga beli kosong. Total HPP dan margin keseluruhan juga belum ditampilkan sebagai angka hingga seluruh harga beli lengkap. Harga beli nol adalah nilai yang sudah diketahui.
+Pada kedua jenis rekap, harga beli kosong menghasilkan **Belum lengkap**, bukan nol. Subtotal beli dan total beli grup/keseluruhan ditandai **Belum lengkap** jika harga beli belum lengkap. Pada sheet Per pesanan, total HPP dan margin pesanan ditandai **Belum lengkap** jika salah satu harga beli kosong. Total HPP dan margin keseluruhan juga belum ditampilkan sebagai angka hingga seluruh harga beli lengkap. Harga beli nol adalah nilai yang sudah diketahui.
 
 Dua teks penjelasan panjang tidak ditampilkan dalam workbook.
 
