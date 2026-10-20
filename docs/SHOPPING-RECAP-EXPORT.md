@@ -3,7 +3,7 @@
 Buka rekap pada Batch PO atau Perjalanan, pilih **Per produk** atau **Per pesanan** pada pilihan jenis rekap, lalu klik **Unduh Excel**. Satu file hanya berisi satu sheet sesuai pilihan:
 
 - **Per produk:** grup, produk beserta varian/warna/ukuran, qty, harga beli/unit, subtotal beli, total qty grup, dan total beli grup. Open PO memakai kategori katalog; Jastip memakai toko/brand. Nama dan total grup memakai sel gabungan dengan warna latar bergantian. Total keseluruhan di bagian bawah. Produk dengan harga beli berbeda dipisah per baris; harga jual yang berbeda tidak memisahkan kebutuhan belanja dengan harga beli yang sama.
-- **Per pesanan:** pemesan dan tanggal pesanan, produk/varian, qty, harga jual/unit, subtotal jual, total pesanan, alamat kirim, harga beli/unit, subtotal beli, total HPP, dan margin produk. Nama, alamat, dan total digabung per pesanan; warna lembut bergantian. Total qty, penjualan produk, HPP dan margin berada di bawah.
+- **Per pesanan:** pemesan dan tanggal pesanan, produk/varian, qty, harga jual/unit, subtotal jual, total pesanan, alamat kirim, harga beli/unit, subtotal beli, HPP pelanggan, dan margin usaha. Nama, alamat, dan total digabung per pesanan; warna lembut bergantian. Total qty, penjualan produk, subtotal beli, HPP pelanggan dan margin usaha berada di bawah. Belanja sendiri dicantumkan terpisah; baris Untuk sendiri memiliki margin —.
 
 Produk, harga, dan jumlah berasal dari snapshot pesanan. Kategori Open PO mengikuti master produk yang terhubung saat ekspor; tanpa tautan/kategori masuk **Tanpa kategori**. Produk arsip tetap dapat menjadi sumber kategori. Perubahan master tidak mengganti nama atau harga pada laporan.
 

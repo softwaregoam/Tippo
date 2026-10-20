@@ -36,10 +36,10 @@ for(const mode of ["po","jastip"] as const)test(`workbook ${mode} uses purchase 
  assert.doesNotMatch(JSON.stringify(products.getSheetValues()),/Harga jual|Bervariasi/);assert.match(JSON.stringify(products.getSheetValues()),/Harga beli|Belum lengkap/);
  const text=JSON.stringify(orders.getSheetValues());assert.doesNotMatch(text,/Kategori mengikuti|Nilai jual hanya/);
  assert.deepEqual(orders.getCell("A4").value,{richText:[{text:"=SUM(1,2)",font:{bold:true,size:11}},{text:"\n15 Okt 2026",font:{size:10,color:{argb:"FF626862"}}}]});
- assert.equal(cell(orders,4,"Alamat kirim"),"Jalan Mawar 10\nBandung");assert.equal(cell(orders,4,"Harga jual / unit"),100);assert.equal(cell(orders,4,"Subtotal jual produk"),200);assert.equal(cell(orders,4,"Harga beli / unit"),40);assert.equal(cell(orders,4,"Subtotal beli"),80);assert.equal(cell(orders,4,"Total pesanan"),250);assert.equal(cell(orders,5,"Total HPP"),"Belum lengkap");assert.equal(cell(orders,4,"Margin"),"Belum lengkap");
+ assert.equal(cell(orders,4,"Alamat kirim"),"Jalan Mawar 10\nBandung");assert.equal(cell(orders,4,"Harga jual / unit"),100);assert.equal(cell(orders,4,"Subtotal jual produk"),200);assert.equal(cell(orders,4,"Harga beli / unit"),40);assert.equal(cell(orders,4,"Subtotal beli"),80);assert.equal(cell(orders,4,"Total pesanan"),250);assert.equal(cell(orders,5,"HPP pelanggan"),"Belum lengkap");assert.equal(cell(orders,4,"Margin usaha"),"Belum lengkap");
  for(const merge of ["A4:A5","F4:F5","G4:G5","J4:J5","K4:K5"])assert.ok(orders.model.merges!.includes(merge));
- assert.equal(cell(orders,6,"Total HPP"),150);assert.equal(cell(orders,6,"Margin"),180);
- assert.equal(cell(orders,orders.rowCount,"Qty"),6);assert.equal(cell(orders,orders.rowCount,"Total pesanan"),580);assert.equal(cell(orders,orders.rowCount,"Total HPP"),"Belum lengkap");assert.equal(cell(orders,orders.rowCount,"Margin"),"Belum lengkap");
+ assert.equal(cell(orders,6,"HPP pelanggan"),150);assert.equal(cell(orders,6,"Margin usaha"),180);
+ assert.equal(cell(orders,orders.rowCount,"Qty"),6);assert.equal(cell(orders,orders.rowCount,"Total pesanan"),580);assert.equal(cell(orders,orders.rowCount,"HPP pelanggan"),"Belum lengkap");assert.equal(cell(orders,orders.rowCount,"Margin usaha"),"Belum lengkap");
  assert.equal(String(cell(orders,4,"Produk")).includes("Kategori: Pakaian"),mode==="po");assert.equal(text.includes("secret phone"),false);assert.equal(text.includes("private note"),false);
 });
 

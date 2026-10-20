@@ -55,14 +55,16 @@ export function ReportsPanel({ data, type, isPro, onUpgrade }: { data: AppData; 
       {error&&<p className="error-message report-plan-note" role="alert">{error}</p>}
     </section>
     {report && summary && <>
-      {report.rows.some(row=>hasEstimatedCost(row.order))&&<p className="fx-estimate-note" role="status">HPP dan margin mencakup kurs estimasi.</p>}
-    <section className="report-stats" aria-label="Ringkasan laporan">{[
+      {(report.rows.some(row=>hasEstimatedCost(row.order))||report.personalRows.some(hasEstimatedCost))&&<p className="fx-estimate-note" role="status">Biaya mencakup kurs estimasi.</p>}
+    <section className="report-stats sales-report-summary" aria-label="Ringkasan laporan">{[
         ["Total penjualan",formatCurrency(summary.revenue),"Setelah diskon, termasuk fee dan ongkir"],
-        ["HPP diketahui",known?formatCurrency(summary.hpp):"Belum lengkap",`${summary.orders-summary.unknownCosts} dari ${summary.orders} pesanan lengkap`],
-        [summary.unknownCosts?"Margin diketahui":"Estimasi margin",known?formatCurrency(summary.margin):"Belum lengkap","Tanpa ongkir · sebelum biaya umum"],
-        ["Jumlah pesanan",String(summary.orders),`${summary.quantity} unit produk`],
+        [summary.unknownCosts?"HPP pelanggan diketahui":"HPP pelanggan",known?formatCurrency(summary.hpp):"Belum lengkap",`${summary.orders-summary.unknownCosts} dari ${summary.orders} pesanan lengkap`],
+        [summary.unknownCosts?"Margin usaha diketahui":"Margin usaha",known?formatCurrency(summary.margin):"Belum lengkap","Tanpa ongkir · sebelum biaya umum"],
+        ["Jumlah pesanan",String(summary.orders),`${summary.quantity} unit produk pelanggan`],
+        ["Belanja sendiri",formatCurrency(report.personalExpenses),`${report.personalRows.length} pesanan Untuk sendiri`],
+        ["Total biaya belanja",report.totalPurchaseCosts===null?"Belum lengkap":formatCurrency(report.totalPurchaseCosts),"HPP pelanggan + belanja sendiri"],
       ].map(([label,value,note])=><div className="card stat-card" key={label}><p className="muted">{label}</p><strong className="report-stat-value">{value}</strong><p className="field-hint">{note}</p></div>)}</section>
-      {report.personalRows.length>0&&<p className="report-cost-note">Belanja pribadi: <strong>{formatCurrency(report.personalExpenses)}</strong> · terpisah dari penjualan dan margin.</p>}
+      <p className="field-hint">Penjualan tanpa ongkir − HPP pelanggan. Belanja sendiri tidak mengurangi margin.</p>
       {summary.unknownCosts>0&&<p className="report-cost-note" role="status">Margin belum mencakup {summary.unknownCosts} pesanan dengan HPP belum lengkap.</p>}
       <section ref={details} className="card workspace-list-card report-details" aria-label="Rincian laporan"><div className="card-header"><div><h2>Rincian pesanan</h2></div></div>
         {report.rows.length ? <><div className="table-wrap report-desktop-table"><table className="orders-table"><thead><tr>{["Tanggal / pelanggan",type==="po"?"Batch PO":"Perjalanan","Penjualan","HPP","Margin"].map((label,index)=><th key={label} scope="col" className={index>1?"numeric-cell":undefined}>{label}</th>)}</tr></thead><tbody>{visibleRows.map(row=><tr key={row.order.id}><td><strong>{row.customer}</strong><div className="field-hint">{formatCalendarDate(row.order.date)}</div></td><td>{row.batch}</td><td className="numeric-cell">{formatCurrency(row.revenue)}</td><td className="numeric-cell">{row.hpp===null?"Belum lengkap":formatCurrency(row.hpp)}{hasEstimatedCost(row.order)&&<small className="fx-estimate">Estimasi</small>}</td><td className="numeric-cell">{row.margin===null?"—":formatCurrency(row.margin)}{hasEstimatedCost(row.order)&&<small className="fx-estimate">Estimasi</small>}</td></tr>)}</tbody></table></div>

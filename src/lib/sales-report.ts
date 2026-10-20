@@ -37,6 +37,7 @@ export function buildSalesReport(data: AppData, filter: ReportFilter) {
   }
   const personalRows=data.orders.filter(order=>isPersonalOrder(order)&&order.status!=="cancelled"&&batchIds.has(order.batchId)&&order.date>=filter.from&&order.date<=filter.to).map(order=>({...order,batchName:batches.find(batch=>batch.id===order.batchId)!.name}));
   const personalExpenses=personalRows.reduce((sum,order)=>sum+personalExpense(order),0);
-  return { personalRows, personalExpenses, filter, batchLabel: filter.batchId ? batches[0]?.name ?? "Batch tidak ditemukan" : "Semua", summary, rows, products:[...products.values()].sort((a,b)=>b.quantity-a.quantity || a.name.localeCompare(b.name,"id")) };
+  const totalPurchaseCosts=summary.unknownCosts?null:summary.hpp+personalExpenses;
+  return { totalPurchaseCosts, personalRows, personalExpenses, filter, batchLabel: filter.batchId ? batches[0]?.name ?? "Batch tidak ditemukan" : "Semua", summary, rows, products:[...products.values()].sort((a,b)=>b.quantity-a.quantity || a.name.localeCompare(b.name,"id")) };
 }
 export type SalesReport = ReturnType<typeof buildSalesReport>;

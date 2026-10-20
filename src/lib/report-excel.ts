@@ -35,21 +35,23 @@ export async function createReportExcel(report: SalesReport): Promise<Uint8Array
   row.font={name:"Arial",size:11,bold:true,color:{argb:"FFFFFFFF"}};row.fill={type:"pattern",pattern:"solid",fgColor:{argb:color}};row.alignment={vertical:"middle",horizontal:"right",wrapText:true};row.getCell(1).alignment={vertical:"middle",wrapText:true};return row;
  }
  const s=report.summary,unknown=s.orders>0&&s.unknownCosts===s.orders;
+ const personalEstimated=report.personalRows.some(hasEstimatedCost);
  const estimated=report.rows.filter(row=>hasEstimatedCost(row.order)).length;
  const summary=prepare("Ringkasan",[{header:"Keterangan",key:"label",width:46},{header:"Nilai",key:"value",width:34}]);
  const summaryRows:[string,number|string,boolean][]=[
-  ["Total penjualan",s.revenue,true],["HPP diketahui",unknown?"Belum lengkap":s.hpp,true],[s.unknownCosts?"Margin diketahui":"Estimasi margin",unknown?"Belum lengkap":s.margin,true],
+  ["Total penjualan",s.revenue,true],[s.unknownCosts?"HPP pelanggan diketahui":"HPP pelanggan",unknown?"Belum lengkap":s.hpp,true],[s.unknownCosts?"Margin usaha diketahui":"Margin usaha",unknown?"Belum lengkap":s.margin,true],
+  ["Belanja sendiri",report.personalExpenses,true],["Total biaya belanja",report.totalPurchaseCosts??"Belum lengkap",true],
   ["Jumlah pesanan",s.orders,false],["Unit produk",s.quantity,false],["Pesanan dengan HPP belum lengkap",s.unknownCosts,false],["Penjualan dengan HPP lengkap",s.knownRevenue,true],
  ];
- if(report.personalRows.length)summaryRows.push([report.personalRows.some(order=>hasEstimatedCost(order))?"Belanja pribadi · kurs estimasi (di luar margin)":"Belanja pribadi (di luar margin usaha)",report.personalExpenses,true]);
+
  if(estimated)summaryRows.push(["Pesanan dengan kurs estimasi",estimated,false]);
  for(const [index,[label,value,currency]] of summaryRows.entries()){
   const row=summary.addRow({label,value});decorate(row,index);row.height=34;row.getCell(2).alignment={horizontal:"right",vertical:"middle",wrapText:true};row.getCell(2).numFmt=currency?money:"#,##0";
   if(index<3){row.fill={type:"pattern",pattern:"solid",fgColor:{argb:soft}};row.font={name:"Arial",size:12,bold:true,color:{argb:color}};if(value==="Belum lengkap")row.getCell(2).font={bold:true,color:{argb:"FFA75B1E"}};}
  }
  summary.addRow([]);
- for(const note of ["Pesanan dibatalkan tidak disertakan.","HPP dan margin hanya dari pesanan dengan harga beli lengkap.","Margin tidak termasuk ongkir.",...(estimated?["HPP dan margin mencakup kurs estimasi; bukan biaya final."]:[])]){const row=summary.addRow([note]);summary.mergeCells(row.number,1,row.number,2);row.height=28;row.font={name:"Arial",size:10,color:{argb:"FF626862"}};row.alignment={wrapText:true,vertical:"middle"};}
- const orders=prepare("Pesanan",[{header:"Nomor pesanan",key:"id",width:38},{header:"Tanggal",key:"date",width:16},{header:"Pelanggan",key:"customer",width:26},{header:po?"Batch PO":"Perjalanan",key:"batch",width:30},{header:"Unit",key:"quantity",width:12},...([['Subtotal termasuk fee','subtotal'],['Diskon','discount'],['Ongkir','shipping'],['Total tagihan','revenue'],['HPP','hpp'],['Margin','margin']] as const).map(([header,key])=>({header,key,width:22,money:true})),...(estimated?[{header:"Dasar HPP",key:"costStatus",width:22}]:[])]);
+ for(const note of ["Pesanan dibatalkan tidak disertakan.","HPP dan margin hanya dari pesanan dengan harga beli lengkap.","Margin tidak termasuk ongkir.","Belanja sendiri tidak mengurangi margin usaha.",...(estimated?["HPP dan margin mencakup kurs estimasi; bukan biaya final."]:[]),...(personalEstimated?["Belanja sendiri mencakup kurs estimasi; bukan biaya final."]:[])]){const row=summary.addRow([note]);summary.mergeCells(row.number,1,row.number,2);row.height=28;row.font={name:"Arial",size:10,color:{argb:"FF626862"}};row.alignment={wrapText:true,vertical:"middle"};}
+ const orders=prepare("Pesanan",[{header:"Nomor pesanan",key:"id",width:38},{header:"Tanggal",key:"date",width:16},{header:"Pelanggan",key:"customer",width:26},{header:po?"Batch PO":"Perjalanan",key:"batch",width:30},{header:"Unit",key:"quantity",width:12},...([['Subtotal termasuk fee','subtotal'],['Diskon','discount'],['Ongkir','shipping'],['Total tagihan','revenue'],['HPP pelanggan','hpp'],['Margin usaha','margin']] as const).map(([header,key])=>({header,key,width:22,money:true})),...(estimated?[{header:"Dasar HPP",key:"costStatus",width:22}]:[])]);
  for(const [index,row] of report.rows.entries()){
   const line=orders.addRow({costStatus:hasEstimatedCost(row.order)?"Kurs estimasi":row.hpp===null?"Belum lengkap":"Biaya tercatat",id:row.order.id,date:formatCalendarDate(row.order.date),customer:row.customer,batch:row.batch,quantity:row.quantity,subtotal:orderSubtotal(row.order),discount:orderDiscount(row.order),shipping:row.order.shippingCharge,revenue:row.revenue,hpp:row.hpp??"Belum lengkap",margin:row.margin??"Belum lengkap"});decorate(line,index);for(let column=5;column<=11;column++)line.getCell(column).alignment={horizontal:"right",vertical:"middle",wrapText:true};line.height=Math.max(36,Math.max(Math.ceil(row.customer.length/26),Math.ceil(row.batch.length/30),Math.ceil(row.order.id.length/38))*14+8);line.getCell(1).font={name:"Arial",size:10,color:{argb:"FF626862"}};
  }
@@ -62,9 +64,9 @@ export async function createReportExcel(report: SalesReport): Promise<Uint8Array
  }
  products.autoFilter={from:{row:4,column:1},to:{row:products.rowCount,column:4}};total(products,{rank:"TOTAL UNIT",quantity:s.quantity},3);
  if(report.personalRows.length){
-  const personal=prepare("Belanja pribadi",[{header:"Tanggal",key:"date",width:18},{header:po?"Batch PO":"Perjalanan",key:"batch",width:28},{header:"Produk",key:"product",width:48},{header:"Qty",key:"quantity",width:12},{header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"cost",width:22,money:true}]);
+  const personal=prepare("Belanja sendiri",[{header:"Tanggal",key:"date",width:18},{header:po?"Batch PO":"Perjalanan",key:"batch",width:28},{header:"Produk",key:"product",width:48},{header:"Qty",key:"quantity",width:12},{header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"cost",width:22,money:true}]);
   let index=0;for(const order of report.personalRows)for(const item of order.items){decorate(personal.addRow({date:formatCalendarDate(order.date),batch:order.batchName,product:[item.product,item.variant,item.color,item.size,item.store].filter(Boolean).join(" · "),quantity:item.quantity,unitCost:item.unitCost,cost:item.quantity*(item.unitCost??0)}),index++);}
-  total(personal,{date:"TOTAL BELANJA PRIBADI",cost:report.personalExpenses},5);
+  total(personal,{date:"TOTAL BELANJA SENDIRI",cost:report.personalExpenses},5);
  }
  return new Uint8Array(await workbook.xlsx.writeBuffer());
 }

@@ -60,7 +60,7 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  const orders=prepare("Per pesanan",[
   {header:"Pemesan",key:"customer",width:30},{header:"Produk",key:"product",width:48},quantity,
   {header:"Harga jual / unit",key:"unitPrice",width:22,money:true},{header:"Subtotal jual produk",key:"value",width:22,money:true},{header:"Total pesanan",key:"orderValue",width:24,money:true},
-  {header:"Alamat kirim",key:"address",width:38},{header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"itemCost",width:22,money:true},{header:"Total HPP",key:"cost",width:22,money:true},{header:"Margin",key:"margin",width:22,money:true},
+  {header:"Alamat kirim",key:"address",width:38},{header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"itemCost",width:22,money:true},{header:"HPP pelanggan",key:"cost",width:22,money:true},{header:"Margin usaha",key:"margin",width:22,money:true},
  ]);
  orders.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}};orders.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
  orders.views=[{state:"frozen",ySplit:3,xSplit:3,activeCell:"D4",showGridLines:false}];
@@ -83,8 +83,8 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
   }
   const end=orders.rowCount;if(end>start)for(const column of [1,6,7,10,11])orders.mergeCells(start,column,end,column);
  }
- const orderTotal=subtotal(orders,{customer:estimated?"TOTAL KESELURUHAN · ESTIMASI":"TOTAL KESELURUHAN",quantity:report.totals.quantity,orderValue:report.totals.value,cost:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+(order.totals.cost??0),0),margin:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+order.totals.value-(order.totals.cost??0),0)},true);
- if(report.orders.some(order=>order.personal))subtotal(orders,{customer:"BELANJA PRIBADI",itemCost:report.orders.filter(order=>order.personal).reduce((sum,order)=>sum+order.totals.knownCost,0)});
+ if(report.orders.some(order=>order.personal))subtotal(orders,{customer:"BELANJA SENDIRI",itemCost:report.orders.filter(order=>order.personal).reduce((sum,order)=>sum+order.totals.knownCost,0)});
+ const orderTotal=subtotal(orders,{customer:estimated?"TOTAL KESELURUHAN · ESTIMASI":"TOTAL KESELURUHAN",quantity:report.totals.quantity,itemCost:report.totals.cost??missing,orderValue:report.totals.value,cost:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+(order.totals.cost??0),0),margin:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+order.totals.value-(order.totals.cost??0),0)},true);
  orders.mergeCells(orderTotal.number,1,orderTotal.number,2);orderTotal.height=30;orderTotal.alignment={vertical:"middle",horizontal:"right"};orderTotal.getCell(3).alignment={vertical:"middle",horizontal:"center"};
  }
  return new Uint8Array(await book.xlsx.writeBuffer());
