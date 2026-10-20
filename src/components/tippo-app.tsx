@@ -106,7 +106,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     if(previousLogo!==next.appearance.logoUrl)invalidateInvoiceLogo(previousLogo);
     if(cloud&&client&&cloud.invoiceAppearance.logoUrl!==next.appearance.logoUrl){
       const base=client.storage.from("invoice-logos").getPublicUrl("placeholder").data.publicUrl.replace(/placeholder$/,""),old=cloud.invoiceAppearance.logoUrl;
-      if(old.startsWith(base)){const path=old.slice(base.length);if(path.startsWith(`${cloud.ownerId}/`) && /^[^/]+\/[a-zA-Z0-9-]+\.(?:webp|png|jpg)$/.test(path))await client.storage.from("invoice-logos").remove([path]).catch(()=>undefined);}
+      if(old!==cloud.invoiceAppearance.qrisUrl&&old.startsWith(base)){const path=old.slice(base.length);if(path.startsWith(`${cloud.ownerId}/`) && /^[^/]+\/[a-zA-Z0-9-]+\.(?:webp|png|jpg)$/.test(path))await client.storage.from("invoice-logos").remove([path]).catch(()=>undefined);}
     }
     return next;
   }

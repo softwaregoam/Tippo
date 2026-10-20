@@ -1,6 +1,9 @@
 "use client";
-import { useRef, useState } from "react";
-import { Landmark } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Landmark, QrCode, Upload, X } from "lucide-react";
+import { QrisImage } from "@/components/qris-image";
+import { validateQrisFile, qrisExtension } from "@/lib/qris";
+import { getSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { DEMO_PROFILE_KEY, readBusinessProfile, validateBusinessProfile, type BusinessProfile } from "@/lib/business-profile";
 import { readInvoiceAppearance, validateInvoiceTemplate, type InvoiceAppearance } from "@/lib/invoice-template";
@@ -19,21 +22,52 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const submitting = useRef(false);
+  const qrisInput=useRef<HTMLInputElement>(null),qrisRequest=useRef(0);
+  const [qris,setQris]=useState<{file:File;url:string}|null>(null),[processingQris,setProcessingQris]=useState(false);
+  const qrisSource=qris?.url||appearance.qrisUrl||"";
+  useEffect(()=>()=>{if(qris)URL.revokeObjectURL(qris.url);},[qris]);
+  useEffect(()=>()=>{qrisRequest.current++;},[]);
+  async function chooseQris(input:HTMLInputElement){
+    const file=input.files?.[0];input.value="";if(!file)return;
+    const request=++qrisRequest.current;setProcessingQris(true);setError("");
+    try{await validateQrisFile(file);if(request===qrisRequest.current)setQris({file,url:URL.createObjectURL(file)});}
+    catch(cause){if(request===qrisRequest.current)setError(cause instanceof Error?cause.message:"QRIS belum dapat dibaca.");}
+    finally{if(request===qrisRequest.current)setProcessingQris(false);}
+  }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (submitting.current) return;
+    event.preventDefault(); if (submitting.current || processingQris) return;
     submitting.current = true; setBusy(true); setError("");
+    let uploadedPath="",profileSaved=false;
+    const client=getSupabaseClient();
     try {
       const next = validateBusinessProfile(profile);
-      const {bankName,bankAccount,bankHolder}=validateInvoiceTemplate({...next,appearance}).appearance;
-      let savedAppearance={...appearance,bankName,bankAccount,bankHolder};
-      if (cloud) await cloud.saveProfile(next,{bankName,bankAccount,bankHolder});
+      const validated=validateInvoiceTemplate({...next,appearance}).appearance;
+      const {bankName,bankAccount,bankHolder}=validated;
+      let qrisUrl=validated.qrisUrl??"";
+      if(qris){
+        if(!cloud||!client)throw new Error("Masuk ke akun untuk menyimpan QRIS.");
+        uploadedPath=`${cloud.ownerId}/qris-${crypto.randomUUID()}.${qrisExtension(qris.file.type)}`;
+        const {error}=await client.storage.from("invoice-logos").upload(uploadedPath,qris.file,{contentType:qris.file.type,upsert:false});
+        if(error)throw new Error("QRIS belum terunggah. Periksa koneksi, lalu coba lagi.");
+        qrisUrl=client.storage.from("invoice-logos").getPublicUrl(uploadedPath).data.publicUrl;
+      }
+      let savedAppearance={...appearance,bankName,bankAccount,bankHolder,qrisUrl};
+      if (cloud) await cloud.saveProfile(next,{bankName,bankAccount,bankHolder,qrisUrl});
       else {
         const previous=JSON.parse(localStorage.getItem(DEMO_PROFILE_KEY) ?? "null");
-        savedAppearance={...readInvoiceAppearance(previous?.invoiceTemplate),bankName,bankAccount,bankHolder};
+        savedAppearance={...readInvoiceAppearance(previous?.invoiceTemplate),bankName,bankAccount,bankHolder,qrisUrl};
         localStorage.setItem(DEMO_PROFILE_KEY, JSON.stringify({...next,invoiceTemplate:savedAppearance}));
       }
+      profileSaved=true;
+      const previousQris=cloud?.invoiceAppearance.qrisUrl;
+      if(cloud&&client&&previousQris&&previousQris!==qrisUrl&&previousQris!==cloud.invoiceAppearance.logoUrl){
+        const base=client.storage.from("invoice-logos").getPublicUrl("placeholder").data.publicUrl.replace(/placeholder$/,"");
+        const path=previousQris.startsWith(base)?previousQris.slice(base.length):"";
+        if(path.startsWith(`${cloud.ownerId}/qris-`)&&/^[^/]+\/qris-[a-zA-Z0-9-]+\.(?:png|jpg|webp)$/.test(path))await client.storage.from("invoice-logos").remove([path]).catch(()=>undefined);
+      }
+      setQris(null);
       setProfile(next); setAppearance(savedAppearance); onSaved?.(next,savedAppearance); onNotify("Profil bisnis berhasil disimpan");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Profil belum tersimpan. Coba lagi."); }
+    } catch (cause) { if(!profileSaved&&uploadedPath&&client)await client.storage.from("invoice-logos").remove([uploadedPath]).catch(()=>undefined); setError(cause instanceof Error ? cause.message : "Profil belum tersimpan. Coba lagi."); }
     finally { submitting.current = false; setBusy(false); }
   }
   return <section className="card business-profile-card">
@@ -52,9 +86,20 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
           <div className="field"><label className="field-label" htmlFor="business-bank-holder">Atas nama</label><input id="business-bank-holder" className="input" maxLength={120} value={appearance.bankHolder??""} onChange={e=>setAppearance({...appearance,bankHolder:e.target.value})} placeholder="Nama pemilik rekening"/></div>
           </div>
         </fieldset>
+        <fieldset className="business-bank-settings business-qris-settings" disabled={busy||processingQris} aria-labelledby="business-qris-title">
+          <div className="business-bank-heading"><span className="business-bank-icon"><QrCode size={23} aria-hidden="true"/></span><div><h3 id="business-qris-title">QRIS pembayaran</h3><p>Dikirim terpisah lewat tab QRIS di Invoice.</p></div><span className="business-bank-optional">Opsional</span></div>
+          <div className="business-qris-picker">
+            {qrisSource?<QrisImage key={qrisSource} src={qrisSource} alt="QRIS usaha yang dipilih"/>:<div className="business-qris-empty"><QrCode size={34} aria-hidden="true"/><span>Belum ada QRIS</span></div>}
+            <div className="business-qris-controls"><div className="business-qris-buttons"><Button type="button" className="btn btn-secondary" disabled={!cloud} onClick={()=>qrisInput.current?.click()}><Upload size={16}/>{processingQris?"Memeriksa gambar…":qrisSource?"Ganti QRIS":"Unggah QRIS"}</Button>{qrisSource&&<Button type="button" className="btn btn-secondary" onClick={()=>{qrisRequest.current++;setQris(null);setAppearance({...appearance,qrisUrl:""});}}><X size={16}/>Hapus QRIS</Button>}</div>
+              <input ref={qrisInput} type="file" aria-label="Unggah gambar QRIS" accept="image/png,image/jpeg,image/webp" hidden onChange={event=>void chooseQris(event.target)}/>
+              <p className="field-hint">PNG, JPG, WebP · maks. 1 MB. Gunakan QRIS resmi usahamu.</p>
+              <p className="field-hint" role="status">{qris?"QRIS baru belum disimpan.":!qrisSource&&cloud?.invoiceAppearance.qrisUrl?"QRIS akan dihapus setelah profil disimpan.":"Pembayaran dikonfirmasi manual oleh owner."}</p>
+            </div>
+          </div>
+        </fieldset>
         {error && <p className="error-message" role="alert">{error}</p>}
       </div>
-      <div className="business-profile-footer"><Button type="submit" className="btn btn-primary" disabled={busy || cloud?.saving}>{busy ? "Menyimpan…" : "Simpan profil"}</Button></div>
+      <div className="business-profile-footer"><Button type="submit" className="btn btn-primary" disabled={busy || processingQris || cloud?.saving}>{busy ? "Menyimpan…" : "Simpan profil"}</Button></div>
     </form>
   </section>;
 }

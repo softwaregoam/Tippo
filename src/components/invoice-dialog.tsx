@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Copy, Download, FileImage, MessageSquare, Printer, X } from "lucide-react";
+import { Copy, Download, FileImage, MessageSquare, Printer, QrCode, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDocument, printInvoice } from "@/components/invoice-document";
 import { InvoicePhoto } from "@/components/invoice-photo";
 import { downloadInvoiceImage, prepareInvoiceImage } from "@/lib/invoice-image";
 import { buildInvoice, invoiceNumber, invoiceWhatsAppUrl } from "@/lib/invoice";
+import { QrisImage } from "@/components/qris-image";
+import { downloadQris, showQris } from "@/lib/qris";
+import { readInvoiceAppearance } from "@/lib/invoice-template";
+import { formatCurrency, outstanding } from "@/lib/finance";
 import type { AppData, Order } from "@/lib/types";
 
+type InvoiceTab="image"|"whatsapp"|"qris";
 const mobileQuery="(max-width:600px)";
 const subscribeMobile=(listener:()=>void)=>{const media=window.matchMedia(mobileQuery);media.addEventListener("change",listener);return()=>media.removeEventListener("change",listener);};
 const mobileSnapshot=()=>window.matchMedia(mobileQuery).matches;
@@ -20,8 +25,11 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
   const mobile=useSyncExternalStore(subscribeMobile,mobileSnapshot,serverSnapshot);
   const [photo,setPhoto]=useState<{key:string;url:string;error:string;width:number;height:number}|null>(null);
   const [previewAttempt,retryPreview]=useState(0);
-  const [tab, setTab] = useState<"image" | "whatsapp">("image");
-  function selectTab(next: "image" | "whatsapp") { setTab(next); setFeedback(""); }
+  const qrisUrl=readInvoiceAppearance(settings?.appearance).qrisUrl??"";
+  const hasQris=showQris(order,qrisUrl);
+  const [requestedTab, setTab] = useState<InvoiceTab>("image");
+  const tab=requestedTab==="qris"&&!hasQris?"image":requestedTab;
+  function selectTab(next: InvoiceTab) { setTab(next); setFeedback(""); }
   const body=useRef<HTMLDivElement>(null);
   const dialog=useRef<HTMLDialogElement>(null);
   const document = useRef<HTMLDivElement>(null);
@@ -59,6 +67,14 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
       const filename=invoiceNumber(order, settings).replace(/[^A-Za-z0-9_-]/g,"-")+".png";
       await downloadInvoiceImage(document.current,filename);
     } catch(error){setManualCopy(true);setFeedback(error instanceof Error?error.message:"Invoice belum dapat diunduh.");}
+    finally{downloadingRef.current=false;setDownloading(false);}
+  }
+
+  async function downloadQrisImage(){
+    if(downloadingRef.current||!hasQris)return;
+    downloadingRef.current=true;setDownloading(true);setFeedback("");setManualCopy(false);
+    try{await downloadQris(qrisUrl,invoiceNumber(order,settings));}
+    catch(error){setManualCopy(true);setFeedback(error instanceof Error?error.message:"QRIS belum dapat diunduh. Coba lagi.");}
     finally{downloadingRef.current=false;setDownloading(false);}
   }
 
@@ -103,10 +119,11 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
         const tabs=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
         const current=tabs.indexOf(event.target as HTMLButtonElement);
         const next=event.key==="Home"?0:event.key==="End"?tabs.length-1:event.key==="ArrowRight"?(current+1)%tabs.length:event.key==="ArrowLeft"?(current+tabs.length-1)%tabs.length:-1;
-        if(next<0)return;event.preventDefault();selectTab(next===0?"image":"whatsapp");tabs[next].focus();
+        if(next<0)return;event.preventDefault();selectTab((["image","whatsapp","qris"] as const)[next]);tabs[next].focus();
       }}>
         <button type="button" role="tab" id={`${id}-image-tab`} aria-controls={`${id}-image-panel`} aria-selected={tab==="image"} tabIndex={tab==="image"?0:-1} onClick={()=>selectTab("image")}><FileImage size={16}/>Invoice gambar</button>
         <button type="button" role="tab" id={`${id}-whatsapp-tab`} aria-controls={`${id}-whatsapp-panel`} aria-selected={tab==="whatsapp"} tabIndex={tab==="whatsapp"?0:-1} onClick={()=>selectTab("whatsapp")}><MessageSquare size={16}/>Teks WhatsApp</button>
+        {hasQris&&<button type="button" role="tab" id={`${id}-qris-tab`} aria-controls={`${id}-qris-panel`} aria-selected={tab==="qris"} tabIndex={tab==="qris"?0:-1} onClick={()=>selectTab("qris")}><QrCode size={16} aria-hidden="true"/>QRIS</button>}
       </div>
       <div key={tab} ref={body} className={`modal-body invoice-${tab}-body`}>
         <div role="tabpanel" id={`${id}-image-panel`} aria-labelledby={`${id}-image-tab`} hidden={tab!=="image"}>
@@ -125,14 +142,15 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
           spellCheck={false}
         />
         </div>
-        {!mobile&&printError&&<p role="alert">{printError}</p>}
+        {hasQris&&<div role="tabpanel" id={`${id}-qris-panel`} aria-labelledby={`${id}-qris-tab`} hidden={tab!=="qris"}>{tab==="qris"&&<div className="invoice-qris-panel"><div className="invoice-qris-amount"><span>Sisa pembayaran</span><strong>{formatCurrency(outstanding(order))}</strong><small>Isi nominal ini di aplikasi pembayaran.</small></div><QrisImage key={qrisUrl} src={qrisUrl} alt="QRIS pembayaran usaha"/><p className="field-hint">Simpan gambar QRIS, lalu pilih dari galeri aplikasi pembayaran yang mendukungnya. Pembayaran dikonfirmasi manual oleh owner.</p></div>}</div>}
+        {tab==="image"&&!mobile&&printError&&<p role="alert">{printError}</p>}
         {feedback && <p role="status" style={{ color: manualCopy ? "var(--warning, #aa762c)" : "var(--primary, #24756b)" }}>{feedback}</p>}
       </div>
       <div className="modal-footer">
         {tab==="image"?<>
           <Button type="button" className="btn btn-secondary" disabled={!readyPhoto&&!printError} onClick={printDocument}><Printer size={16}/>{printError?"Coba siapkan PDF":!readyPhoto?"Menyiapkan PDF…":"Cetak / PDF"}</Button>
           <Button type="button" className="btn btn-primary" disabled={downloading} onClick={downloadImage}><Download size={16}/>{downloading?"Menyiapkan gambar…":"Unduh gambar"}</Button>
-        </>:<>
+        </>:tab==="qris"?<Button type="button" className="btn btn-primary" disabled={downloading} onClick={()=>void downloadQrisImage()}><Download size={16}/>{downloading?"Mengunduh…":"Unduh QRIS"}</Button>:<>
           <Button type="button" className="btn btn-secondary" disabled={copying} onClick={copyInvoice}><Copy size={16} />{copying ? "Menyalin..." : "Salin invoice WhatsApp"}</Button>
           <a className="btn btn-primary" href={invoiceWhatsAppUrl(message,customer?.phone)} target="_blank" rel="noopener noreferrer"><MessageSquare size={16}/>Bagikan ke WhatsApp</a>
         </>}

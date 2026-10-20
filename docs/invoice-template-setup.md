@@ -29,3 +29,12 @@ Rekening lama otomatis tampil di Profil bisnis tanpa perlu diisi ulang atau migr
 Pada dialog invoice, tab **Invoice gambar** menyediakan Cetak/PDF dan **Unduh gambar** (PNG 2× dengan lebar tetap 794 px agar terbaca saat diunduh dari ponsel). Tab **Teks WhatsApp** menyediakan salin teks dan **Bagikan ke WhatsApp**. Tautan membuka chat pelanggan jika nomor valid tersedia, atau pemilih penerima jika kosong. Pesan tetap dikirim oleh pengguna dari WhatsApp. PNG dibuat di browser; kegagalan memuat logo ditampilkan agar unduhan tidak diam-diam menghilangkan logo.
 
 Khusus ponsel, tab Invoice gambar menampilkan PNG satu lembar utuh yang disesuaikan dengan ruang pratinjau. Gunakan cubitan dua jari, ketuk dua kali, atau tombol zoom untuk memperbesar; geser untuk membaca detail. Tombol sesuaikan mengembalikan seluruh lembar ke dalam pratinjau. Desktop tetap memakai dokumen langsung.
+
+
+## QRIS terpisah
+
+Di **Profil bisnis → QRIS pembayaran**, unggah QRIS resmi usaha dalam format PNG/JPG/WebP maksimal 1 MB, lalu **Simpan profil**. Ganti dan hapus juga berlaku setelah profil disimpan. File asli dipertahankan tanpa pemotongan atau kompresi ulang.
+
+Pada invoice dengan sisa tagihan, tab **QRIS** menampilkan gambar dan sisa pembayaran. Gunakan **Unduh QRIS**, lalu kirim gambar secara terpisah. Pelanggan dapat memilih gambar dari galeri jika aplikasi pembayarannya mendukung. QRIS tidak ditambahkan ke invoice gambar atau teks WhatsApp. Tab disembunyikan untuk invoice lunas, bernilai nol, atau dibatalkan. QRIS ini statis; owner tetap mencatat pembayaran setelah memeriksa dana masuk.
+
+Penyimpanan memakai bucket `invoice-logos` dan kebijakan pemilik yang sudah tersedia, dengan path `<owner-id>/qris-<uuid>.<ext>`. Tidak memerlukan migrasi baru jika migrasi bucket di atas sudah diterapkan. URL tersimpan di metadata akun `invoice_template.qrisUrl`, terpisah dari logo. Gagal menyimpan profil tidak menghapus QRIS lama; penggantian yang berhasil membersihkan berkas QRIS lama milik akun.

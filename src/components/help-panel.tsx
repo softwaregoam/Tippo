@@ -60,6 +60,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
       steps: [
         "Isi rekening bank di Profil bisnis. Di Template invoice, atur nama toko, awalan nomor invoice, logo, warna per usaha, dan catatan penutup.",
         "Buka Invoice dari pesanan. Tab Invoice gambar menyediakan Unduh gambar dan Cetak / PDF; tab Teks WhatsApp menyediakan salin dan bagikan ke WhatsApp.",
+        "Untuk QRIS, unggah gambar di Profil bisnis dan simpan. Tab QRIS tersedia pada invoice belum lunas; unduh dan kirim gambarnya terpisah. Catat pembayaran setelah dana diterima.",
         "Invoice menampilkan status pembayaran dan sisa tagihan jika belum lunas. Alamat, pengiriman, catatan, serta rekening muncul jika diisi. Harga beli dan HPP tidak ikut ditampilkan.",
       ], destination: "invoice-template", action: "Buka Template invoice",
     },
