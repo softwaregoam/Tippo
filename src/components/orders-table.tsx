@@ -103,7 +103,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
                   <span className="row-subtitle">{batch?.type === "jastip" ? "Jastip" : "Open PO"}</span>
                 </td>
                 <td className="numeric-cell"><span className="row-title" style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{formatCurrency(revenue)}</span></td>
-                {!compact && <td className="numeric-cell"><span className={hpp === null ? "row-subtitle" : "row-title"} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</span>{isPersonalOrder(order)&&<small className="row-subtitle">Belanja sendiri</small>}{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</td>}
+                {!compact && <td className="numeric-cell"><span className={hpp === null ? "row-subtitle" : "row-title"} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</span>{isPersonalOrder(order)&&<small className="row-subtitle order-hpp-note">Belanja sendiri</small>}{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</td>}
                 <td><OrderPaymentBadges order={order}/></td>
                 <td className="center-cell">
                   <span className={`status-tag order-status-${visibleOrderStatus(order.status)}`}>{statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label}</span>

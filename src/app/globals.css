@@ -250,6 +250,7 @@ svg { flex-shrink: 0; }
 .customer-cell { display: flex; align-items: center; gap: 10px; }
 .row-title { color: var(--ink); font-size: 14px; font-weight: 600; }
 .row-subtitle { color: var(--muted); font-size: 13px; margin-top: 5px; }
+.order-hpp-note { display:block; margin-top:4px; font-size:11px; line-height:1.4; white-space:nowrap; }
 .status-tag { display: inline-flex; align-items: center; padding: 6px 8px; border-radius: 4px; font-size: 12px; line-height: 1.4; font-weight: 600; }
 .status-new { background: var(--tone-surface-fff2de); color: var(--warning); }
 .status-purchased,.status-shipped,.status-cancelled { background: var(--tone-surface-eef1ee); color: var(--muted); }
