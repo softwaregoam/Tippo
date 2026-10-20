@@ -106,7 +106,6 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
                 </td>
                 <td>
                   <div className="row-title" style={{ fontWeight: 500 }}>{batch?.name ?? "Batch tidak ditemukan"}</div>
-                  <span className="row-subtitle">{batch?.type === "jastip" ? "Jastip" : "Open PO"}</span>
                 </td>
                 <td className="numeric-cell"><span className="row-title" style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{formatCurrency(revenue)}</span>{compact&&isPersonalOrder(order)&&<small className="row-subtitle order-hpp-note">Belanja sendiri</small>}</td>
                 {!compact && <td className="numeric-cell"><span className={hpp === null ? "row-subtitle" : "row-title"} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</span>{isPersonalOrder(order)&&<small className="row-subtitle order-hpp-note">Belanja sendiri</small>}{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</td>}
