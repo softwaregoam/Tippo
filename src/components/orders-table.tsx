@@ -10,9 +10,15 @@ import { RefundDialog, type RefundHandler } from "@/components/refund-dialog";
 import { refundedTotal } from "@/lib/refund";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDialog } from "@/components/invoice-dialog";
-import { formatCurrency, itemLabel, orderHpp, orderLabel, orderQuantity, orderRevenue, outstanding, isPersonalOrder, personalExpense } from "@/lib/finance";
+import { formatCurrency, orderHpp, orderQuantity, orderRevenue, outstanding, isPersonalOrder, personalExpense } from "@/lib/finance";
 import {MobileDataList,DataDetailDialog} from "@/components/mobile-data-list";
-import type { AppData, Order } from "@/lib/types";
+import { productDisplayName } from "@/lib/product-name";
+import type { AppData, Order, OrderItem } from "@/lib/types";
+
+const itemDisplayLabel = (item: OrderItem) => [
+  [productDisplayName(item.product), item.variant.trim()].filter(Boolean).join(" "),
+  item.color.trim(), item.size.trim(),
+].filter(Boolean).join(" · ");
 
 type OrdersTableProps = {
   data: AppData;
@@ -63,7 +69,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
   }
 
   return (
-    <><MobileDataList entries={orders.map(order=>({id:order.id,dialogClassName:"order-data-dialog",footer:detailFooter(order),title:isPersonalOrder(order)?"Belanja pribadi":data.customers.find(c=>c.id===order.customerId)?.name||"Pelanggan",subtitle:<>{order.items.slice(0,2).map(item=><span className="order-preview-product" key={item.id}>{itemLabel(item)} × {item.quantity}</span>)}{order.items.length>2&&<span className="order-more-products">+{order.items.length-2} produk lainnya</span>}</>,meta:<span className="order-mobile-payment"><strong>{formatCurrency(isPersonalOrder(order)?personalExpense(order):orderRevenue(order))}</strong><OrderPaymentBadges order={order}/></span>,status:statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label,statusClassName:`status-tag order-status-${visibleOrderStatus(order.status)}`,details:detailContent(order)}))}/><div className="table-wrap desktop-data-table">
+    <><MobileDataList entries={orders.map(order=>({id:order.id,dialogClassName:"order-data-dialog",footer:detailFooter(order),title:isPersonalOrder(order)?"Belanja pribadi":data.customers.find(c=>c.id===order.customerId)?.name||"Pelanggan",subtitle:<>{order.items.slice(0,2).map(item=><span className="order-preview-product" key={item.id}>{itemDisplayLabel(item)} × {item.quantity}</span>)}{order.items.length>2&&<span className="order-more-products">+{order.items.length-2} produk lainnya</span>}</>,meta:<span className="order-mobile-payment"><strong>{formatCurrency(isPersonalOrder(order)?personalExpense(order):orderRevenue(order))}</strong><OrderPaymentBadges order={order}/></span>,status:statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label,statusClassName:`status-tag order-status-${visibleOrderStatus(order.status)}`,details:detailContent(order)}))}/><div className="table-wrap desktop-data-table">
       <table className={`orders-table ${readOnly ? "orders-readonly" : ""}`}>
         <caption className="sr-only">Daftar pesanan jastip dan open PO</caption>
         <thead>
@@ -85,7 +91,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
             const revenue = isPersonalOrder(order)?personalExpense(order):orderRevenue(order);
             const customerName=isPersonalOrder(order)?"Belanja pribadi":customer?.name??"Pelanggan";
             const color = avatarColors[Math.max(0, data.customers.findIndex((entry) => entry.id === order.customerId)) % avatarColors.length];
-            const label = orderLabel(order);
+            const label = order.items.map(itemDisplayLabel).join(", ");
             return (
               <tr key={order.id} className="order-detail-row" tabIndex={0} aria-label={`Detail ${customerName}`} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))setDetailOrderId(order.id);}} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();setDetailOrderId(order.id);}}}>
                 <td>
@@ -93,7 +99,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
                     <span className={`avatar avatar-${color}`} aria-hidden="true">{initials(customerName)}</span>
                     <div>
                       <div className="row-title">{customerName}</div>
-                      {order.items.slice(0,2).map((item) => <div className="row-subtitle" key={item.id} title={itemLabel(item)} style={{ maxWidth: 270, overflow: "hidden", textOverflow: "ellipsis" }}>{itemLabel(item)} <span className="muted">× {item.quantity}</span></div>)}
+                      {order.items.slice(0,2).map((item) => <div className="row-subtitle" key={item.id} title={itemDisplayLabel(item)} style={{ maxWidth: 270, overflow: "hidden", textOverflow: "ellipsis" }}>{itemDisplayLabel(item)} <span className="muted">× {item.quantity}</span></div>)}
                       {order.items.length>2&&<div className="row-subtitle order-more-products">+{order.items.length-2} produk lainnya</div>}
                     </div>
                   </div>
@@ -125,7 +131,7 @@ function MobileOrderDetail({order,data}:{order:Order;data:AppData}) {
   const list=useRef<HTMLDivElement>(null);
   const normalize=(value:string)=>value.normalize("NFKC").toLocaleLowerCase("id").trim();
   const tokens=normalize(search).split(/\s+/).filter(Boolean);
-  const products=order.items.filter(item=>tokens.every(token=>normalize([itemLabel(item),item.store].filter(Boolean).join(" ")).includes(token)));
+  const products=order.items.filter(item=>tokens.every(token=>normalize([itemDisplayLabel(item),item.store].filter(Boolean).join(" ")).includes(token)));
   const [scrollbar,setScrollbar]=useState({visible:false,height:0,top:0});
   useLayoutEffect(()=>{
     const area=list.current;if(!area||products.length<=5)return;
@@ -146,7 +152,7 @@ function MobileOrderDetail({order,data}:{order:Order;data:AppData}) {
       <div className="order-detail-product-heading"><h3>Produk</h3><span aria-live="polite">{tokens.length?`${products.length} dari ${order.items.length} produk`:`${order.items.length} produk · ${orderQuantity(order)} unit`}</span></div>
       {order.items.length>5&&<div className="search-field order-detail-search"><Search size={17} aria-hidden="true"/><input aria-label="Cari produk di detail pesanan" placeholder="Cari produk, varian, atau toko…" value={search} onChange={event=>{setSearch(event.target.value);if(list.current)list.current.scrollTop=0;}}/></div>}
       <div className={`order-detail-products-frame ${products.length>5?"has-scroll-indicator":""}`}><div ref={list} className="order-detail-products-scroll" role="region" aria-label="Daftar produk pesanan" tabIndex={0}>
-        <ul className="order-detail-products" aria-label="Produk pesanan">{products.map(item => <li key={item.id}><div><strong>{item.product}</strong>{[item.variant, item.color, item.size, item.store].filter(Boolean).length > 0 && <small>{[item.variant, item.color, item.size, item.store].filter(Boolean).join(" · ")}</small>}</div><span>× {item.quantity}</span></li>)}</ul>
+        <ul className="order-detail-products" aria-label="Produk pesanan">{products.map(item => <li key={item.id}><div><strong>{productDisplayName(item.product)}</strong>{[item.variant, item.color, item.size, item.store].filter(Boolean).length > 0 && <small>{[item.variant, item.color, item.size, item.store].filter(Boolean).join(" · ")}</small>}</div><span>× {item.quantity}</span></li>)}</ul>
         {!products.length&&<p className="order-detail-products-empty" role="status">Produk tidak ditemukan.</p>}
       </div>
       {products.length>5&&scrollbar.visible&&<span className="order-detail-scrollbar" aria-hidden="true"><span style={{height:scrollbar.height,transform:`translateY(${scrollbar.top}px)`}}/></span>}
