@@ -22,11 +22,21 @@ export function orderQuantity(order: Order): number {
   return order.items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
+export function isPersonalOrder(order: Pick<Order,"purpose">): boolean { return order.purpose === "personal"; }
+export function personalExpense(order: Order): number {
+  return order.status === "cancelled" ? 0 : order.items.reduce((sum,item)=>sum+item.quantity*(item.unitCost??0),0);
+}
+/** Normalize hidden billing fields so personal purchases cannot create receivables. */
+export function preparePersonalOrder(order: Order, personal: boolean): Order {
+  return personal ? {...order,purpose:"personal",customerId:"",items:order.items.map(item=>({...item,unitPrice:0})),serviceFee:0,shippingCharge:0,paid:0,discount:undefined,refunds:undefined} : order;
+}
+
 export function orderSubtotal(order: Order): number {
-  return order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) + order.serviceFee;
+  return isPersonalOrder(order) ? 0 : order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) + order.serviceFee;
 }
 
 export function orderDiscount(order: Order): number {
+  if (isPersonalOrder(order)) return 0;
   const base = orderSubtotal(order), discount = order.discount;
   if (!discount || !Number.isSafeInteger(base) || base < 0 || !Number.isSafeInteger(discount.value) || discount.value < 0) return 0;
   if (discount.type === "amount") return Math.min(base + order.shippingCharge, discount.value);
@@ -42,7 +52,7 @@ export function orderNetSales(order: Order): number {
 }
 
 export function orderRevenue(order: Order): number {
-  return orderSubtotal(order) - orderDiscount(order) + order.shippingCharge;
+  return isPersonalOrder(order) ? 0 : orderSubtotal(order) - orderDiscount(order) + order.shippingCharge;
 }
 
 /**
@@ -52,7 +62,7 @@ export function orderRevenue(order: Order): number {
  */
 export function allocatedBatchCosts(batch: Batch, orders: Order[]): Record<string, number> {
   const activeOrders = orders.filter(
-    (order) => order.batchId === batch.id && order.status !== "cancelled" && orderQuantity(order) > 0,
+    (order) => order.batchId === batch.id && order.status !== "cancelled" && !isPersonalOrder(order) && orderQuantity(order) > 0,
   );
   const totalQuantity = activeOrders.reduce((sum, order) => sum + orderQuantity(order), 0);
   if (!totalQuantity) return {};
@@ -72,7 +82,7 @@ export function allocatedBatchCosts(batch: Batch, orders: Order[]): Record<strin
 }
 
 export function orderHpp(order: Order, orders: Order[], batches: Batch[]): number | null {
-  if (order.status === "cancelled") return 0;
+  if (order.status === "cancelled" || isPersonalOrder(order)) return 0;
   if (order.items.some((item) => item.unitCost === null)) return null;
   const batch = batches.find((candidate) => candidate.id === order.batchId);
   const batchCost = batch ? (allocatedBatchCosts(batch, orders)[order.id] ?? 0) : 0;
@@ -80,7 +90,7 @@ export function orderHpp(order: Order, orders: Order[], batches: Batch[]): numbe
 }
 
 export function orderMargin(order: Order, orders: Order[], batches: Batch[]): number | null {
-  if (order.status === "cancelled") return 0;
+  if (order.status === "cancelled" || isPersonalOrder(order)) return 0;
   const hpp = orderHpp(order, orders, batches);
   return hpp === null ? null : orderNetSales(order) - hpp;
 }
@@ -91,6 +101,7 @@ export function outstanding(order: Order): number {
 
 export function getMonthSummary(data: AppData, month: string): MonthSummary {
   const summary: MonthSummary = {
+    personalExpenses: 0,
     revenue: 0,
     hpp: 0,
     profit: 0,
@@ -102,6 +113,7 @@ export function getMonthSummary(data: AppData, month: string): MonthSummary {
 
   for (const order of data.orders) {
     if (order.status === "cancelled" || !order.date.startsWith(`${month}-`)) continue;
+    if (isPersonalOrder(order)) { summary.personalExpenses += personalExpense(order); continue; }
     const revenue = orderRevenue(order);
     const hpp = orderHpp(order, data.orders, data.batches);
     summary.revenue += revenue;

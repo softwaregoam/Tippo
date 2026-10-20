@@ -1,4 +1,5 @@
 "use client";
+import { preparePersonalOrder, personalExpense } from "@/lib/finance";
 import { CustomerPicker } from "./customer-picker";
 
 import { ProductPicker, type ProductChoice } from "@/components/product-picker";
@@ -40,9 +41,9 @@ type Fields = {
   shippingTime: string;
   shippingMethod: string;
 };
-type ItemFields = { id: string; productId: string; quantity: string };
+type ItemFields = { id: string; productId: string; quantity: string; unitCost?:string };
 type FieldErrors = Partial<Record<keyof Fields | "items", string>>;
-type ItemErrors = Record<string, Partial<Record<"productId" | "quantity", string>>>;
+type ItemErrors = Record<string, Partial<Record<"productId" | "quantity" | "unitCost", string>>>;
 const textLimits = { customerName: 120, customerPhone: 30, customerAddress: 1000, notes: 1000 };
 
 function originalProductValue(item: OrderItem) {
@@ -58,7 +59,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
   const poBatches = data.batches.filter((batch) => batch.type === "po");
   const [fields, setFields] = useState<Fields>(() => ({
     batchId: order?.batchId ?? (poBatches.filter(batch=>batch.status === "open").length === 1 ? poBatches.find(batch=>batch.status === "open")?.id : "") ?? "",
-    customerId: order?.customerId ?? "",
+    customerId: order?.purpose === "personal" ? "personal" : order?.customerId ?? "",
     customerName: "", customerPhone: "", customerAddress: "",
     paid: order ? String(order.paid) : "", shippingCharge: order ? String(order.shippingCharge) : "", serviceFee: order ? String(order.serviceFee) : "",
     discountType: order?.discount?.type ?? "amount", discountValue: order?.discount ? String(order.discount.value) : "",
@@ -131,22 +132,23 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
       : "Buat atau buka batch PO sebelum menambahkan pesanan."
     : undefined;
 
-  const draft = useMemo<Order>(() => ({
+  const personal=fields.customerId==="personal";
+  const draft = useMemo<Order>(() => preparePersonalOrder({
     id: order?.id ?? "draft-po-order-preview", batchId: fields.batchId, customerId: fields.customerId,
     items: items.map((item) => {
       const original = order?.items.find((entry) => entry.id === item.id);
-      if (original && item.productId === originalProductValue(original)) return { ...original, quantity: previewAmount(item.quantity) };
+      if (original && item.productId === originalProductValue(original)) return { ...original, quantity: previewAmount(item.quantity),...(personal&&item.unitCost!==undefined?{unitCost:item.unitCost.trim()===""?null:previewAmount(item.unitCost)}:{}) };
       const product = data.products.find((entry) => entry.id === item.productId);
       return {
         id: item.id, productId: product?.id ?? null, product: product?.name ?? "", variant: product?.variant ?? "", store: product?.store ?? "", color: product?.color ?? "", size: product?.size ?? "",
-        quantity: previewAmount(item.quantity), unitPrice: product?.unitPrice ?? 0, unitCost: product?.unitCost ?? null,
+        quantity: previewAmount(item.quantity), unitPrice: product?.unitPrice ?? 0, unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):product?.unitCost ?? null,
       };
     }),
     serviceFee: previewAmount(fields.serviceFee), shippingCharge: previewAmount(fields.shippingCharge), paid: previewAmount(fields.paid),
     discount: { type: fields.discountType, value: previewAmount(fields.discountValue) }, refunds: order?.refunds,
     date: fields.date, createdAt, status: order?.status ?? "new", notes: fields.notes.trim(),
     shippingDate:fields.shippingDate||undefined,shippingTime:fields.shippingTime||undefined,shippingMethod:fields.shippingMethod.trim()||undefined,
-  }), [fields, items, order, data.products, createdAt]);
+  },personal), [fields, items, order, data.products, createdAt,personal]);
   const revenue = orderRevenue(draft);
   const previewOrders = [...data.orders.filter((entry) => entry.id !== draft.id), draft];
   const hpp = orderHpp(draft, previewOrders, data.batches);
@@ -161,8 +163,8 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     });
   }
 
-  function updateItem(id: string, name: "productId" | "quantity", value: string) {
-    setItems((current) => current.map((item) => item.id === id ? { ...item, [name]: value } : item));
+  function updateItem(id: string, name: "productId" | "quantity" | "unitCost", value: string) {
+    setItems((current) => current.map((item) => item.id === id ? { ...item, [name]: value, ...(name==="productId"?{unitCost:undefined}:{}) } : item));
     setItemErrors((current) => { const next = { ...current, [id]: { ...current[id] } }; delete next[id][name]; return next; });
     setErrors((current) => { const next = { ...current }; delete next.items; return next; });
   }
@@ -187,21 +189,24 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     else if (!canUseSelectedBatch) nextErrors.batchId = "Batch sudah ditutup. Pilih batch PO yang masih aktif.";
     if (fields.customerId === "new") {
       if (!fields.customerName.trim()) nextErrors.customerName = "Isi nama pelanggan.";
-    } else if (!data.customers.some((customer) => customer.id === fields.customerId)) nextErrors.customerId = "Pilih pelanggan.";
+    } else if (!personal && !data.customers.some((customer) => customer.id === fields.customerId)) nextErrors.customerId = "Pilih pelanggan.";
+    if(personal&&(order?.paid||order?.refunds?.length))nextErrors.customerId="Pesanan dengan riwayat pembayaran tetap memakai pelanggan.";
     for (const [name, limit] of Object.entries(textLimits)) {
       const field = name as keyof typeof textLimits;
       if (fields[field].length > limit) nextErrors[field] = `Maksimal ${limit} karakter.`;
     }
     if (items.length < 1 || items.length > 100) nextErrors.items = "Isi 1 sampai 100 produk dalam satu pesanan.";
     for (const item of items) {
-      const rowErrors: Partial<Record<"productId" | "quantity", string>> = {};
+      const rowErrors: Partial<Record<"productId" | "quantity" | "unitCost", string>> = {};
       if (!canUseProduct(item)) rowErrors.productId = "Pilih produk aktif dari master produk.";
       const quantity = Number(item.quantity);
       if (item.quantity.trim() === "" || !Number.isSafeInteger(quantity) || quantity < 1) rowErrors.quantity = "Jumlah harus berupa angka bulat minimal 1.";
       const itemDraft = draft.items.find((entry) => entry.id === item.id)!;
+      if(personal&&(itemDraft.unitCost===null||item.unitCost!==undefined&&(!item.unitCost.trim()||!Number.isSafeInteger(Number(item.unitCost))||Number(item.unitCost)<0)))rowErrors.unitCost="Isi harga beli produk untuk belanja pribadi.";
       if (!rowErrors.quantity && (!Number.isSafeInteger(quantity * itemDraft.unitPrice) || (itemDraft.unitCost !== null && !Number.isSafeInteger(quantity * itemDraft.unitCost)))) rowErrors.quantity = "Total harga terlalu besar. Kurangi jumlah produk.";
       if (Object.keys(rowErrors).length) nextItemErrors[item.id] = rowErrors;
     }
+    if(!personal){
     for (const name of ["paid", "shippingCharge", "serviceFee"] as const) {
       const value = Number(fields[name]);
       if (!Number.isSafeInteger(value) || value < 0) nextErrors[name] = "Masukkan angka bulat minimal 0.";
@@ -212,6 +217,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     else if (fields.discountType === "amount" && discountValue > orderSubtotal(draft) + draft.shippingCharge) nextErrors.discountValue = "Diskon tidak boleh melebihi total tagihan sebelum diskon.";
     if (!nextErrors.paid && Number(fields.paid) > revenue) nextErrors.paid = "Pembayaran tidak boleh melebihi total tagihan setelah diskon.";
     if (order?.status === "cancelled" && Number(fields.paid) > 0) nextErrors.paid = "Untuk pesanan yang dibatalkan, pembayaran harus 0.";
+    }
     Object.assign(nextErrors,shippingFieldErrors(fields));
     const parsedDate = new Date(`${fields.date}T00:00:00Z`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.date) || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== fields.date) nextErrors.date = "Pilih tanggal yang valid.";
@@ -230,7 +236,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     const customer: Customer | undefined = fields.customerId === "new" ? {
       id: crypto.randomUUID(), name: fields.customerName.trim(), phone: fields.customerPhone.trim(), address: fields.customerAddress.trim(),
     } : undefined;
-    onSave({ ...draft, id: order?.id ?? crypto.randomUUID(), customerId: customer?.id ?? fields.customerId }, customer);
+    onSave({ ...draft, id: order?.id ?? crypto.randomUUID(), customerId: personal?"":customer?.id ?? fields.customerId }, customer);
   }
 
   function amountField(name: "paid" | "shippingCharge" | "serviceFee", label: string) {
@@ -266,10 +272,11 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
             </div>
             <div className="field">
               <label className="field-label" htmlFor="po-order-customerId">Pelanggan<span className="required-mark" aria-hidden="true"> *</span></label>
-              <CustomerPicker customers={data.customers} aria-label="Pelanggan" aria-required="true" id="po-order-customerId" name="customerId" className="input" value={fields.customerId} onValueChange={(value) => update("customerId", value)} aria-invalid={Boolean(errors.customerId)} aria-describedby={errors.customerId ? "po-error-customerId" : undefined}/>
+              <CustomerPicker personalDisabled={Boolean(order?.paid||order?.refunds?.length)} customers={data.customers} aria-label="Pelanggan" aria-required="true" id="po-order-customerId" name="customerId" className="input" value={fields.customerId} onValueChange={(value) => update("customerId", value)} aria-invalid={Boolean(errors.customerId)} aria-describedby={errors.customerId ? "po-error-customerId" : undefined}/>
               {errors.customerId && <span id="po-error-customerId" className="error-message">{errors.customerId}</span>}
             </div>
             <div className="field"><label className="field-label" htmlFor="po-order-date">Tanggal pesanan<span className="required-mark" aria-hidden="true"> *</span></label><DatePicker aria-label="Tanggal pesanan" required id="po-order-date" name="date" value={fields.date} onValueChange={value => update("date", value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? "po-error-date" : undefined} />{errors.date && <span id="po-error-date" className="error-message">{errors.date}</span>}</div>
+            {personal&&<p className="field-hint order-full-width">Belanja pribadi, terpisah dari penjualan dan margin usaha.</p>}
             {fields.customerId === "new" && <>
               <details open className="order-optional-fields order-full-width" onInvalidCapture={event => { event.currentTarget.open = true; }}>
                 <summary><span>Kontak pelanggan</span><ChevronDown size={18} aria-hidden="true" /></summary>
@@ -290,9 +297,9 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               const needsOriginalOption = original && !available.some((product) => product.id === originalProductValue(original));
               const productOptions: ProductChoice[] = available.map(product => {
                 const snapshot = original?.productId === product.id ? original : undefined;
-                return { value: product.id, name: snapshot?.product ?? product.name, variant: snapshot ? snapshot.variant : product.variant, size: snapshot ? snapshot.size : product.size, supplier: snapshot ? snapshot.store : product.store, detail: (snapshot ? snapshot.color : product.color) ?? "", sku: product.sku, category: product.category ?? "", price: snapshot?.unitPrice ?? product.unitPrice, searchText: [product.name, product.variant, product.color, product.size, product.store, product.sku, product.category, snapshot ? itemLabel(snapshot) : ""].filter(Boolean).join(" "), note: snapshot ? "Data pesanan asal" : !product.active ? "Diarsipkan" : undefined };
+                return { value: product.id, name: snapshot?.product ?? product.name, variant: snapshot ? snapshot.variant : product.variant, size: snapshot ? snapshot.size : product.size, supplier: snapshot ? snapshot.store : product.store, detail: (snapshot ? snapshot.color : product.color) ?? "", sku: product.sku, category: product.category ?? "", price: personal?(snapshot?.unitCost??product.unitCost??null):snapshot?.unitPrice ?? product.unitPrice, searchText: [product.name, product.variant, product.color, product.size, product.store, product.sku, product.category, snapshot ? itemLabel(snapshot) : ""].filter(Boolean).join(" "), note: snapshot ? "Data pesanan asal" : !product.active ? "Diarsipkan" : undefined };
               });
-              if (needsOriginalOption) productOptions.unshift({ value: originalProductValue(original), name: original.product, variant: original.variant, size: original.size, supplier: original.store, detail: original.color ?? "", sku: "", category: "", price: original.unitPrice, searchText: itemLabel(original), note: "Data pesanan asal" });
+              if (needsOriginalOption) productOptions.unshift({ value: originalProductValue(original), name: original.product, variant: original.variant, size: original.size, supplier: original.store, detail: original.color ?? "", sku: "", category: "", price: personal?original.unitCost:original.unitPrice, searchText: itemLabel(original), note: "Data pesanan asal" });
               const itemDraft = draft.items[index];
               const productId = index === 0 ? "po-order-productId" : `po-order-${item.id}-productId`;
               const pricesId = index === 0 ? "po-product-prices" : `po-product-prices-${item.id}`;
@@ -301,7 +308,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               return <fieldset key={item.id} className="order-item-card">
                 <legend className="field-label" style={{ padding: "0 6px" }}>Produk {index + 1}</legend>
                 <div className="order-item-heading">
-                  <div className="order-item-subtotal"><span>Subtotal</span><strong>{formatCurrency(itemDraft.quantity * itemDraft.unitPrice)}</strong></div>
+                  <div className="order-item-subtotal"><span>Subtotal</span><strong>{formatCurrency(itemDraft.quantity * (personal?itemDraft.unitCost??0:itemDraft.unitPrice))}</strong></div>
                   <button type="button" className="icon-button delete-item" aria-label={`Hapus produk ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
                 </div>
                 <div className="form-grid">
@@ -316,10 +323,11 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
                     <NumberInput aria-label="Jumlah produk" required id={quantityId} name={`item-${item.id}-quantity`} className="input" inputMode="numeric" min="1" step="1" placeholder="Contoh: 2" value={item.quantity} onValueChange={(value) => updateItem(item.id, "quantity", value)} aria-invalid={Boolean(rowErrors?.quantity)} aria-describedby={rowErrors?.quantity ? `${quantityId}-error` : undefined} />
                     {rowErrors?.quantity && <span id={`${quantityId}-error`} className="error-message">{rowErrors.quantity}</span>}
                   </div>
-                    <dl id={pricesId} className="po-product-prices order-full-width" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, padding: "10px 12px", borderRadius: 6 }}>
-                      <div><dt className="field-hint">Harga jual / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{canUseProduct(item) ? formatCurrency(itemDraft.unitPrice) : "Pilih produk"}</dd></div>
+                    {!personal&&<dl id={pricesId} className="po-product-prices order-full-width" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, padding: "10px 12px", borderRadius: 6 }}>
+                      {!personal&&<div><dt className="field-hint">Harga jual / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{canUseProduct(item) ? formatCurrency(itemDraft.unitPrice) : "Pilih produk"}</dd></div>}
                       <div><dt className="field-hint">Harga beli / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{!canUseProduct(item) ? "Pilih produk" : itemDraft.unitCost === null ? "Belum diisi" : formatCurrency(itemDraft.unitCost)}</dd></div>
-                    </dl>
+                    </dl>}
+                    {personal&&<div className="field order-full-width"><label className="field-label" htmlFor={`${productId}-cost`}>Harga beli / produk<span className="required-mark" aria-hidden="true"> *</span></label><NumberInput id={`${productId}-cost`} name={`item-${item.id}-unitCost`} aria-label="Harga beli / produk" required className="input" value={item.unitCost??(itemDraft.unitCost===null?"":String(itemDraft.unitCost))} onValueChange={value=>updateItem(item.id,"unitCost",value)} aria-invalid={Boolean(rowErrors?.unitCost)} aria-describedby={rowErrors?.unitCost?`${productId}-cost-error`:undefined}/>{rowErrors?.unitCost&&<span id={`${productId}-cost-error`} className="error-message">{rowErrors.unitCost}</span>}</div>}
                 </div>
               </fieldset>;
             })}
@@ -327,17 +335,19 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
             {items.length >= 100 && <p className="field-hint">Maksimal 100 produk per pesanan.</p>}
           </div>
           <details ref={detailsRef} className="order-section order-extra-details" onInvalidCapture={event=>{event.currentTarget.open=true;}}><summary><span><span className="order-section-number">3</span>Detail tambahan</span><ChevronDown size={18}/></summary><div className="order-extra-body">
-            <OrderDiscountFields id="po-order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} total={orderSubtotal(draft) + draft.shippingCharge} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />
+            {!personal&&<OrderDiscountFields id="po-order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} total={orderSubtotal(draft) + draft.shippingCharge} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />}
             <div className="form-grid" style={{ marginTop: 14 }}>
-              {amountField("shippingCharge", "Ongkir yang ditagihkan")}
+              {!personal&&amountField("shippingCharge", "Ongkir yang ditagihkan")}
 
-              {Boolean(order?.serviceFee) && amountField("serviceFee", "Fee tambahan pesanan asal")}
-              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="po-order-notes">Catatan invoice <span className="muted">(opsional)</span></label><input id="po-order-notes" name="notes" className="input" value={fields.notes} maxLength={textLimits.notes} placeholder="Contoh: Simpan roti di tempat sejuk" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "po-error-notes" : undefined} />{errors.notes && <span id="po-error-notes" className="error-message">{errors.notes}</span>}</div>
+              {!personal&&Boolean(order?.serviceFee) && amountField("serviceFee", "Fee tambahan pesanan asal")}
+              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="po-order-notes">{personal?"Catatan":"Catatan invoice"} <span className="muted">(opsional)</span></label><input id="po-order-notes" name="notes" className="input" value={fields.notes} maxLength={textLimits.notes} placeholder="Contoh: Simpan roti di tempat sejuk" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "po-error-notes" : undefined} />{errors.notes && <span id="po-error-notes" className="error-message">{errors.notes}</span>}</div>
             </div>
             <OrderShippingFields id="po-order" values={fields} onChange={update} errors={errors}/>
           </div></details>
+          {personal?<div className="summary-strip" aria-live="polite"><div className="summary-cell"><span>Total belanja pribadi</span><strong>{draft.items.some(item=>item.unitCost===null)?"Belum lengkap":formatCurrency(personalExpense(draft))}</strong></div></div>:<>
           <section className="order-section"><h3><span className="order-section-number">4</span>Pembayaran</h3><div className="order-payment"><p className="payment-total">Total tagihan <strong>{formatCurrency(revenue)}</strong></p><div className="form-grid">{amountField("paid", "Sudah dibayar (DP / lunas)")}</div></div></section>
           <div className="summary-strip" aria-live="polite"><div className="summary-cell"><span>Total tagihan</span><strong>{formatCurrency(revenue)}</strong></div><div className="summary-cell"><span>Estimasi HPP</span><strong>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</strong></div><div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div></div>
+          </>}
         </div>
         <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || (!order && (!hasOpenBatch || !hasActiveProducts))}>{order ? <Check size={17} /> : <Plus size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
       </form>

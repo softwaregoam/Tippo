@@ -26,7 +26,7 @@ export function shoppingRecap(data:AppData,batchId:string) {
   group.quantity+=item.quantity;line.quantity+=item.quantity;
   const customerKey=JSON.stringify([key,order.customerId]);
   let customer=customersByKey.get(customerKey);
-  if(!customer){customer={id:order.customerId,name:names.get(order.customerId)??"Pelanggan",quantity:0,orders:0};line.customers.push(customer);customersByKey.set(customerKey,customer);}
+  if(!customer){customer={id:order.customerId,name:order.purpose==="personal"?"Untuk sendiri":names.get(order.customerId)??"Pelanggan",quantity:0,orders:0};line.customers.push(customer);customersByKey.set(customerKey,customer);}
   customer.quantity+=item.quantity;
   let ids=customerOrders.get(customerKey);if(!ids){ids=new Set();customerOrders.set(customerKey,ids);}ids.add(order.id);customer.orders=ids.size;
  }

@@ -21,6 +21,7 @@ before(async () => {
   const batchFxSql=await readFile(new URL("../supabase/migrations/202610180002_batch_purchase_fx.sql",import.meta.url),"utf8");await db.exec(batchFxSql);await db.exec(batchFxSql);
   await db.exec(exchangeSql);await db.exec(exchangeSql);
   const currenciesSql=await readFile(new URL("../supabase/migrations/202610190002_all_currencies.sql",import.meta.url),"utf8");await db.exec(currenciesSql);await db.exec(currenciesSql);
+  const personalSql=await readFile(new URL("../supabase/migrations/202610200001_personal_purchases.sql",import.meta.url),"utf8");await db.exec(personalSql);await db.exec(personalSql);
 });
 after(async () => { await db.close(); });
 async function login(user: string) { await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${user}',false);`); }
@@ -167,4 +168,15 @@ test("all supported national currencies pass database item and batch validation,
   const result=await db.query<{valid:boolean}>("select public.tippo_valid_workspace($1::jsonb) valid",[JSON.stringify(data)]);
   assert.equal(result.rows[0].valid,FX_CURRENCIES.includes(code),code);
  }
+});
+
+test("personal purchase validation requires zero billing, known costs and never changes quota or stored customers",async()=>{
+ await db.exec("reset role");const personal={...order("personal-check","jastip"),purpose:"personal" as const,customerId:"",serviceFee:0,shippingCharge:0,paid:0,items:order("personal-check","jastip").items.map(item=>({...item,unitPrice:0,unitCost:12000}))};
+ const data=workspace([personal]);data.customers=[];
+ const valid=async(value:AppData)=>(await db.query<{valid:boolean}>("select public.tippo_valid_workspace($1::jsonb) valid",[JSON.stringify(value)])).rows[0].valid;
+ assert.equal(await valid(data),true);
+ for(const patch of [{purpose:"customer"},{purpose:null},{customerId:"a"},{paid:1},{shippingCharge:1},{serviceFee:1},{discount:{type:"amount",value:0}},{refunds:[{amount:1}]}]){const invalid=structuredClone(data);Object.assign(invalid.orders[0],patch);assert.equal(await valid(invalid),false);}
+ for(const patch of [{unitPrice:1},{unitCost:null},{unitCost:-1}]){const invalid=structuredClone(data);Object.assign(invalid.orders[0].items[0],patch);assert.equal(await valid(invalid),false);}
+ const fresh="00000000-0000-0000-0000-000000000009";await db.exec(`insert into auth.users values('${fresh}') on conflict do nothing`);await login(fresh);const first=await get();const saved=await save(data,first.version);assert.deepEqual(saved.data.customers,[]);assert.equal(saved.data.orders[0].purpose,"personal");assert.equal(saved.data.orders[0].customerId,"");assert.equal(saved.usage.length,1);
+ const full=structuredClone(data);full.orders=Array.from({length:6},(_,i)=>({...personal,id:`personal-quota-${i}`,items:personal.items.map(item=>({...item,id:`personal-item-${i}`}))}));await assert.rejects(save(full,saved.version),/TIPPO_ORDER_LIMIT/);assert.equal((await get()).version,saved.version);
 });

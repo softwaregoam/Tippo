@@ -2,7 +2,7 @@ import type { AppData, OrderItem } from "./types.ts";
 
 export interface PurchaseTotals { quantity:number; value:number; knownCost:number; missingQuantity:number; cost:number|null; }
 export interface PurchaseProduct extends PurchaseTotals { category:string;store:string;product:string;variant:string;color:string;size:string;unitCost:number|null; }
-export interface PurchaseOrder { id:string;customer:string;address:string;date:string;items:(OrderItem & {category:string})[];totals:PurchaseTotals; }
+export interface PurchaseOrder { id:string;personal:boolean;customer:string;address:string;date:string;items:(OrderItem & {category:string})[];totals:PurchaseTotals; }
 const clean=(value:string|undefined)=>(value??"").trim().replace(/\s+/g," ");
 const normalize=(value:string)=>value.normalize("NFKC").toLocaleLowerCase("id-ID");
 export function purchaseTotals(items:Pick<OrderItem,"quantity"|"unitPrice"|"unitCost">[]):PurchaseTotals {
@@ -16,7 +16,7 @@ export function buildShoppingReport(data:AppData,batchId:string) {
  if(!batch)throw new Error("Batch tidak ditemukan.");
  const categories=new Map(data.products.map(product=>[product.id,clean(product.category)]));
  const customers=new Map(data.customers.map(customer=>[customer.id,customer]));
- const orders:PurchaseOrder[]=data.orders.filter(order=>order.batchId===batchId&&order.status!=="cancelled").sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).map(order=>({id:order.id,customer:customers.get(order.customerId)?.name||"Pelanggan",address:customers.get(order.customerId)?.address?.trim()||"",date:order.date,items:order.items.map(item=>({...item,category:batch.type==="po"?(categories.get(item.productId??"")||"Tanpa kategori"):"Tanpa kategori"})),totals:purchaseTotals(order.items)}));
+ const orders:PurchaseOrder[]=data.orders.filter(order=>order.batchId===batchId&&order.status!=="cancelled").sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).map(order=>({id:order.id,personal:order.purpose==="personal",customer:order.purpose==="personal"?"Untuk sendiri":customers.get(order.customerId)?.name||"Pelanggan",address:customers.get(order.customerId)?.address?.trim()||"",date:order.date,items:order.items.map(item=>({...item,category:batch.type==="po"?(categories.get(item.productId??"")||"Tanpa kategori"):"Tanpa kategori"})),totals:purchaseTotals(order.items)}));
  const groups=new Map<string,{labels:string[];items:OrderItem[]}>();
  for(const order of orders)for(const item of order.items){
   const labels=[item.category,clean(item.store)||"Tanpa toko / brand",clean(item.product),clean(item.variant),clean(item.color),clean(item.size)];

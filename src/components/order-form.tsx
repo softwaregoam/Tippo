@@ -3,6 +3,7 @@ import { BatchCurrencyFields } from "./batch-currency-fields";
 import { PurchaseCostFields } from "./purchase-cost-fields";
 import { PriceAssistant } from "./price-assistant";
 import { batchFxDraft, convertedCost, type BatchPurchaseFx, draftFromFx, fxFromDraft, fxDraftError, hasEstimatedCost, type FxDraft } from "@/lib/purchase-fx";
+import { preparePersonalOrder, personalExpense } from "@/lib/finance";
 import { CustomerPicker } from "./customer-picker";
 
 import { NumberInput } from "@/components/ui/number-input";
@@ -78,7 +79,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
     batchId: order?.batchId
       ?? jastipBatches.find((batch) => batch.id === defaultBatchId && batch.status === "open")?.id
       ?? (jastipBatches.filter(batch=>batch.status === "open").length === 1 ? jastipBatches.find(batch=>batch.status === "open")?.id : "") ?? "",
-    customerId: order?.customerId ?? "",
+    customerId: order?.purpose === "personal" ? "personal" : order?.customerId ?? "",
     customerName: "", customerPhone: "", customerAddress: "",
     serviceFee: String(order?.serviceFee ?? 0),
     shippingCharge: String(order?.shippingCharge ?? 0),
@@ -141,7 +142,8 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
     };
   }, []);
 
-  const draft = useMemo<Order>(() => ({
+  const personal=fields.customerId==="personal";
+  const draft = useMemo<Order>(() => preparePersonalOrder({
     id: order?.id ?? "draft-order-preview", batchId: fields.batchId, customerId: fields.customerId,
     items: items.map((item) => ({
       ...(purchaseFx[item.id] ? { purchaseFx: fxFromDraft(purchaseFx[item.id]!) } : {}),
@@ -153,7 +155,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
     discount: { type: fields.discountType, value: previewAmount(fields.discountValue) }, refunds: order?.refunds,
     date: fields.date, createdAt, status: order?.status ?? "new", notes: fields.notes.trim(),
     shippingDate:fields.shippingDate||undefined,shippingTime:fields.shippingTime||undefined,shippingMethod:fields.shippingMethod.trim()||undefined,
-  }), [fields, items, order, createdAt, purchaseFx]);
+  },personal), [fields, items, order, createdAt, purchaseFx,personal]);
   const revenue = orderRevenue(draft);
   const previewOrders = [...data.orders.filter((entry) => entry.id !== draft.id), draft];
   const hpp = orderHpp(draft, previewOrders, data.batches);
@@ -218,7 +220,8 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
     else if (!canUseSelectedBatch) nextErrors.batchId = "Batch sudah ditutup. Pilih batch yang masih aktif.";
     if (fields.customerId === "new") {
       if (!fields.customerName.trim()) nextErrors.customerName = "Isi nama pelanggan.";
-    } else if (!data.customers.some((customer) => customer.id === fields.customerId)) nextErrors.customerId = "Pilih pelanggan.";
+    } else if (!personal && !data.customers.some((customer) => customer.id === fields.customerId)) nextErrors.customerId = "Pilih pelanggan.";
+    if(personal&&(order?.paid||order?.refunds?.length))nextErrors.customerId="Pesanan dengan riwayat pembayaran tetap memakai pelanggan.";
     for (const [name, limit] of Object.entries(textLimits)) {
       const field = name as keyof typeof textLimits;
       if (fields[field].length > limit) nextErrors[field] = `Maksimal ${limit} karakter.`;
@@ -232,6 +235,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
         if (item[field].length > limit) rowErrors[field] = `Maksimal ${limit} karakter.`;
       }
       for (const name of ["quantity", "unitPrice", "unitCost"] as const) {
+        if(personal&&name==="unitPrice")continue;
         if (name === "unitCost" && item[name].trim() === "") { rowErrors.unitCost = purchaseFx[item.id]?.amount.trim() ? "Lengkapi kurs di bagian 1." : "Isi harga beli / HPP produk."; continue; }
         const value = Number(item[name]);
         if (item[name].trim() === "" || !Number.isSafeInteger(value) || value < 0) rowErrors[name] = "Masukkan angka bulat minimal 0.";
@@ -242,6 +246,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
       const fxError = fxDraftError(purchaseFx[item.id]); if (fxError) rowErrors.unitCost = fxError;
       if (Object.keys(rowErrors).length) nextItemErrors[item.id] = rowErrors;
     }
+    if(!personal){
     for (const name of ["serviceFee", "shippingCharge", "paid"] as const) {
       const value = Number(fields[name]);
       if (fields[name].trim() === "" || !Number.isSafeInteger(value) || value < 0) nextErrors[name] = "Masukkan angka bulat minimal 0.";
@@ -252,6 +257,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
     else if (fields.discountType === "amount" && discountValue > orderSubtotal(draft) + draft.shippingCharge) nextErrors.discountValue = "Diskon tidak boleh melebihi total tagihan sebelum diskon.";
     if (!nextErrors.paid && Number(fields.paid) > revenue) nextErrors.paid = "Pembayaran tidak boleh melebihi total tagihan setelah diskon.";
     if (order?.status === "cancelled" && Number(fields.paid) > 0) nextErrors.paid = "Untuk pesanan yang dibatalkan, pembayaran harus 0.";
+    }
     Object.assign(nextErrors,shippingFieldErrors(fields));
     const parsedDate = new Date(`${fields.date}T00:00:00Z`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.date) || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== fields.date) nextErrors.date = "Pilih tanggal yang valid.";
@@ -270,7 +276,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
     const customer: Customer | undefined = fields.customerId === "new" ? {
       id: crypto.randomUUID(), name: fields.customerName.trim(), phone: fields.customerPhone.trim(), address: fields.customerAddress.trim(),
     } : undefined;
-    onSave({ ...draft, id: order?.id ?? crypto.randomUUID(), customerId: customer?.id ?? fields.customerId }, customer, batchQuote);
+    onSave({ ...draft, id: order?.id ?? crypto.randomUUID(), customerId: personal?"":customer?.id ?? fields.customerId }, customer, batchQuote);
   }
 
   function amountField(name: "serviceFee" | "shippingCharge" | "paid", label: string, hint?: string) {
@@ -321,10 +327,11 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
             </div>
             <div className="field">
               <label className="field-label" htmlFor="order-customerId">Pelanggan<span className="required-mark" aria-hidden="true"> *</span></label>
-              <CustomerPicker customers={data.customers} aria-label="Pelanggan" aria-required="true" id="order-customerId" name="customerId" className="input" value={fields.customerId} onValueChange={(value) => update("customerId", value)} aria-invalid={Boolean(errors.customerId)} aria-describedby={errors.customerId ? "error-customerId" : undefined}/>
+              <CustomerPicker personalDisabled={Boolean(order?.paid||order?.refunds?.length)} customers={data.customers} aria-label="Pelanggan" aria-required="true" id="order-customerId" name="customerId" className="input" value={fields.customerId} onValueChange={(value) => update("customerId", value)} aria-invalid={Boolean(errors.customerId)} aria-describedby={errors.customerId ? "error-customerId" : undefined}/>
               {errors.customerId && <span id="error-customerId" className="error-message">{errors.customerId}</span>}
             </div>
               <div className="field"><label className="field-label" htmlFor="order-date">Tanggal pesanan<span className="required-mark" aria-hidden="true"> *</span></label><DatePicker aria-label="Tanggal pesanan" required id="order-date" name="date" value={fields.date} onValueChange={value => update("date", value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? "error-date" : undefined} />{errors.date && <span id="error-date" className="error-message">{errors.date}</span>}</div>
+            {personal&&<p className="field-hint order-full-width">Belanja pribadi, terpisah dari penjualan dan margin usaha.</p>}
             {fields.customerId === "new" && <>
               <details open className="order-optional-fields order-full-width" onInvalidCapture={event => { event.currentTarget.open = true; }}>
                 <summary><span>Kontak pelanggan</span><ChevronDown size={18} aria-hidden="true" /></summary>
@@ -342,7 +349,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
             {items.map((item, index) => <fieldset key={item.id} className="order-item-card">
               <legend className="field-label" style={{ padding: "0 6px" }}>Produk {index + 1}</legend>
               <div className="order-item-heading">
-                <div className="order-item-subtotal"><span>Subtotal</span><strong>{formatCurrency(previewAmount(item.quantity) * previewAmount(item.unitPrice))}</strong></div>
+                <div className="order-item-subtotal"><span>Subtotal</span><strong>{formatCurrency(previewAmount(item.quantity) * previewAmount(personal?item.unitCost:item.unitPrice))}</strong></div>
                 <button type="button" className="icon-button delete-item" aria-label={`Hapus produk ${index + 1}`} disabled={items.length === 1} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
               </div>
               <div className="form-grid jastip-item-grid">
@@ -351,9 +358,9 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
                 <div className="order-product-pricing">
                   <div className="order-product-prices">
                     <PurchaseCostFields required compact={compactPurchase} disabled={!order && loadingRate} allowForeign={!compactPurchase} lockCurrency={!order} id={`order-item-${item.id}-unitCost`} name={`item-${item.id}-unitCost`} cost={item.unitCost} fx={purchaseFx[item.id]} error={itemErrors[item.id]?.unitCost} onChange={(cost, fx) => { updateItem(item.id, "unitCost", cost); setPurchaseFx(current => ({ ...current, [item.id]: fx })); }} />
-                    {itemField(item, index, "unitPrice", "Harga jual / produk")}
+                    {!personal&&itemField(item, index, "unitPrice", "Harga jual / produk")}
                   </div>
-                  <div className="field order-price-assistant"><PriceAssistant cost={item.unitCost.trim() && Number.isSafeInteger(Number(item.unitCost)) && Number(item.unitCost) >= 0 ? Number(item.unitCost) : null} estimated={purchaseFx[item.id]?.status === "estimate"} onUse={value => updateItem(item.id, "unitPrice", String(value))} /></div>
+                  {!personal&&<div className="field order-price-assistant"><PriceAssistant cost={item.unitCost.trim() && Number.isSafeInteger(Number(item.unitCost)) && Number(item.unitCost) >= 0 ? Number(item.unitCost) : null} estimated={purchaseFx[item.id]?.status === "estimate"} onUse={value => updateItem(item.id, "unitPrice", String(value))} /></div>}
                 </div>
               </div>
               <details className="order-optional-fields" open={Boolean(order?.items.some(row => row.id === item.id && (row.store || row.variant || row.color || row.size)))} onInvalidCapture={event => { event.currentTarget.open = true; }}>
@@ -370,16 +377,17 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
             {items.length >= 100 && <p className="field-hint">Maksimal 100 produk per pesanan.</p>}
           </div>
           <details ref={detailsRef} className="order-section order-extra-details" onInvalidCapture={event=>{event.currentTarget.open=true;}}><summary><span><span className="order-section-number">3</span>Detail tambahan</span><ChevronDown size={18}/></summary><div className="order-extra-body">
-            <OrderDiscountFields id="order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} total={orderSubtotal(draft) + draft.shippingCharge} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />
+            {!personal&&<OrderDiscountFields id="order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} total={orderSubtotal(draft) + draft.shippingCharge} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />}
             <div className="form-grid jastip-charges-grid" style={{ marginTop: 12 }}>
-              {amountField("serviceFee", "Fee jastip / pesanan", "Total fee untuk semua produk pada pesanan ini.")}
-              {amountField("shippingCharge", "Ongkir yang ditagihkan")}
+              {!personal&&amountField("serviceFee", "Fee jastip / pesanan", "Total fee untuk semua produk pada pesanan ini.")}
+              {!personal&&amountField("shippingCharge", "Ongkir yang ditagihkan")}
 
 
-              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="order-notes">Catatan invoice <span className="muted">(opsional)</span></label><input id="order-notes" name="notes" className="input" maxLength={textLimits.notes} value={fields.notes} placeholder="Catatan untuk pelanggan" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "error-notes" : undefined} />{errors.notes && <span id="error-notes" className="error-message">{errors.notes}</span>}</div>
+              <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="order-notes">{personal?"Catatan":"Catatan invoice"} <span className="muted">(opsional)</span></label><input id="order-notes" name="notes" className="input" maxLength={textLimits.notes} value={fields.notes} placeholder={personal?"Catatan belanja pribadi":"Catatan untuk pelanggan"} onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "error-notes" : undefined} />{errors.notes && <span id="error-notes" className="error-message">{errors.notes}</span>}</div>
             </div>
             <OrderShippingFields id="order" values={fields} onChange={update} errors={errors}/>
           </div></details>
+          {personal?<div className="summary-strip" aria-live="polite"><div className="summary-cell"><span>Total belanja pribadi</span><strong>{draft.items.some(item=>item.unitCost===null)?"Belum lengkap":formatCurrency(personalExpense(draft))}</strong></div></div>:<>
           <section className="order-section"><h3><span className="order-section-number">4</span>Pembayaran</h3><div className="order-payment"><p className="payment-total">Total tagihan <strong>{formatCurrency(revenue)}</strong></p>{amountField("paid", "Sudah dibayar (DP / lunas)")}</div></section>
           <div className="summary-strip" aria-live="polite" style={{ marginTop: 20 }}>
             <div className="summary-cell"><span>Total tagihan</span><strong>{formatCurrency(revenue)}</strong></div>
@@ -387,6 +395,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
             <div className="summary-cell"><span>{hasEstimatedCost(draft) ? "Laba · Kurs estimasi" : "Estimasi laba"}</span><strong style={margin !== null && margin < 0 ? { color: "var(--danger)" } : undefined}>{margin === null ? "Belum lengkap" : formatCurrency(margin)}</strong></div>
             <div className="summary-cell"><span>Sisa tagihan</span><strong>{formatCurrency(outstanding(draft))}</strong></div>
           </div>
+          </>}
         </div>
         <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || loadingRate || !canUseSelectedBatch}>{order ? <Check size={17} /> : <Plus size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
       </form>

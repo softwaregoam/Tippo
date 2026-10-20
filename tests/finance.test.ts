@@ -88,6 +88,7 @@ test("monthly totals exclude cancelled orders and disclose partial profit", () =
   const data: AppData = { batches: [batch], customers: [], orders, products: [] };
   // Three active units share the cost across the whole batch, including September.
   assert.deepEqual(getMonthSummary(data, "2026-10"), {
+    personalExpenses:0,
     revenue: 2600, hpp: 634, profit: 466, received: 700,
     outstanding: 1900, ordersCount: 2, unknownCostCount: 1,
   });
@@ -131,6 +132,7 @@ test("an unknown cost on any line keeps the whole order HPP and margin unknown",
   assert.equal(orderHpp(order, [order], [batch]), null);
   const data: AppData = { batches: [batch], customers: [], products: [], orders: [order] };
   assert.deepEqual(getMonthSummary(data, "2026-10"), {
+    personalExpenses:0,
     revenue: 2300, hpp: 0, profit: 0, received: 500, outstanding: 1800, ordersCount: 1, unknownCostCount: 1,
   });
 });

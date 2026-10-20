@@ -67,7 +67,10 @@ function validRefunds(order: Record<string, unknown>) {
 function validOrderHeader(order: Record<string, unknown>, batchIds: Set<string>, customerIds: Set<string>) {
   if(!["shippingDate","shippingTime","shippingMethod"].every(key=>order[key]===undefined||typeof order[key]==="string"))return false;
   if(Object.keys(shippingFieldErrors({shippingDate:(order.shippingDate as string|undefined)??"",shippingTime:(order.shippingTime as string|undefined)??"",shippingMethod:(order.shippingMethod as string|undefined)??""})).length)return false;
-  return validRefunds(order) && id(order.id) && typeof order.batchId === "string" && batchIds.has(order.batchId) && typeof order.customerId === "string" && customerIds.has(order.customerId) && money(order.serviceFee) && money(order.shippingCharge) && money(order.paid) && validDate(order.date) && ["new", "purchased", "ready", "shipped", "done", "cancelled"].includes(order.status as string) && text(order.notes) && (order.status !== "cancelled" || order.paid === 0);
+  const personal = order.purpose === "personal";
+  if (order.purpose !== undefined && !personal) return false;
+  if (personal && (order.customerId !== "" || order.serviceFee !== 0 || order.shippingCharge !== 0 || order.paid !== 0 || order.discount !== undefined || (order.refunds !== undefined && (!Array.isArray(order.refunds) || order.refunds.length)))) return false;
+  return validRefunds(order) && id(order.id) && typeof order.batchId === "string" && batchIds.has(order.batchId) && typeof order.customerId === "string" && (personal ? order.customerId === "" : customerIds.has(order.customerId)) && money(order.serviceFee) && money(order.shippingCharge) && money(order.paid) && validDate(order.date) && ["new", "purchased", "ready", "shipped", "done", "cancelled"].includes(order.status as string) && text(order.notes) && (order.status !== "cancelled" || order.paid === 0);
 }
 
 /** Aggregate bounds protect all revenue, HPP and largest-remainder arithmetic. */
@@ -121,6 +124,7 @@ export function isAppData(value: unknown): value is AppData {
   const aggregates: { batchId: string; quantity: number; revenue: number; purchase: number }[] = [];
   for (const order of value.orders) {
     if (!record(order) || !validOrderHeader(order, batchIds, customerIds) || !timestamp(order.createdAt) || !Array.isArray(order.items) || !order.items.length || order.items.length > MAX_ORDER_ITEMS) return false;
+    if (order.purpose === "personal" && order.items.some(item=>!record(item)||item.unitPrice!==0||item.unitCost===null)) return false;
     totalRefunds += (order.refunds as {amount:number}[] | undefined)?.reduce((sum,entry)=>sum+entry.amount,0) ?? 0;
     if (!Number.isSafeInteger(totalRefunds)) return false;
     // Reject ambiguous mixed scalar/current snapshots rather than picking one silently.

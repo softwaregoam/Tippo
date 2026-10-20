@@ -67,6 +67,8 @@ export interface OrderItem {
 }
 
 export interface Order {
+  /** Personal purchases stay in shopping recaps, outside business sales and HPP. */
+  purpose?: "personal";
   id: string;
   batchId: string;
   customerId: string;
@@ -101,6 +103,7 @@ export interface AppData {
 }
 
 export interface MonthSummary {
+  personalExpenses: number;
   /** Booked revenue of all noncancelled orders dated in this month. */
   revenue: number;
   /** HPP subtotal for orders whose purchase cost is known. */

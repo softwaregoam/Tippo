@@ -39,7 +39,7 @@ import { hasEstimatedCost, type BatchPurchaseFx } from "@/lib/purchase-fx";
 import { SubscriptionPanel } from "@/components/subscription-panel";
 import { useAppData, saveAppData, normalizeAppData } from "@/lib/store";
 import { seedData } from "@/lib/seed";
-import { formatCurrency, getMonthlySeries, getMonthSummary, outstanding } from "@/lib/finance";
+import { formatCurrency, getMonthlySeries, getMonthSummary, outstanding, isPersonalOrder } from "@/lib/finance";
 import { canCreateOrders, canCreateProduct, canRestoreOrders, effectivePlan, jakartaMonth, monthlyOrderUsage, recordOrderUsage, useSubscription } from "@/lib/subscription";
 import type { AppData, Batch, Customer, Order, Product } from "@/lib/types";
 import type { AccountWorkspace } from "./cloud-workspace";
@@ -397,7 +397,8 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                 <div className="stats-grid">
                   <Stat title="Total penjualan" value={formatCurrency(summary.revenue)} note={`${summary.ordersCount} pesanan di ${monthNames[Number(month.slice(5)) - 1]}`} />
                   <Stat title="Estimasi margin" value={formatCurrency(summary.profit)} note={summary.unknownCostCount ? `${summary.unknownCostCount} pesanan belum lengkap HPP` : "Tanpa ongkir, sebelum biaya umum"} warning={summary.unknownCostCount > 0} />
-                  <Stat title="Pesanan bulan ini" value={`${summary.ordersCount}`} note={`${monthOrders.filter((o) => o.status === "done").length} selesai · ${monthOrders.filter((o) => !["done", "cancelled"].includes(o.status)).length} dalam proses`} />
+                  <Stat title="Pesanan bulan ini" value={`${summary.ordersCount}`} note={`${monthOrders.filter((o) => !isPersonalOrder(o)&&o.status === "done").length} selesai · ${monthOrders.filter((o) => !isPersonalOrder(o)&&!["done", "cancelled"].includes(o.status)).length} dalam proses`} />
+                  {summary.personalExpenses>0&&<Stat title="Belanja pribadi" value={formatCurrency(summary.personalExpenses)} note={monthOrders.some(order=>isPersonalOrder(order)&&hasEstimatedCost(order))?"Mencakup kurs estimasi · di luar margin":"Terpisah dari penjualan dan margin"}/>}
                   <Stat title="Sisa tagihan" value={formatCurrency(summary.outstanding)} note="Piutang pesanan bulan terpilih" />
                 </div>
                 <div className="dashboard-middle">

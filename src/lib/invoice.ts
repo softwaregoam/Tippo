@@ -35,6 +35,7 @@ export function isInvoicePaid(order: Order): boolean {
 
 /** A customer-facing WhatsApp message. Purchase costs stay private. Order notes are customer-facing. */
 export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, settings?: Partial<InvoiceSettings>): string {
+  if(order.purpose==="personal")return "";
   const profile = readBusinessProfile(settings);
   const appearance=readInvoiceAppearance(settings?.appearance),footer=appearance.footer,bank=invoiceBankDetails(appearance);
   const cancelled = order.status === "cancelled";

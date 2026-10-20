@@ -6,7 +6,7 @@ import { PurchaseCostFields } from "@/components/purchase-cost-fields";
 import { draftFromFx, fxFromDraft, fxDraftError, hasEstimatedCost, type FxDraft } from "@/lib/purchase-fx";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { allocatedBatchCosts, formatCurrency, itemLabel, orderHpp, orderQuantity, orderNetSales } from "@/lib/finance";
+import { allocatedBatchCosts, formatCurrency, itemLabel, orderHpp, orderQuantity, orderNetSales, isPersonalOrder } from "@/lib/finance";
 import { formatCalendarDate } from "@/lib/calendar-date";
 import { isAppData } from "@/lib/validation";
 import type { AppData, Batch, Order } from "@/lib/types";
@@ -49,7 +49,7 @@ function HppOrderDialog({order,batch,data,onSave,onClose}:{order:Order;batch:Bat
 }
 
 export function HppPanel({ batch, data, onSave }: { batch: Batch; data: AppData; onSave: SaveHpp }) {
-  const orders=data.orders.filter(order=>order.batchId===batch.id&&order.status!=="cancelled");
+  const orders=data.orders.filter(order=>order.batchId===batch.id&&!isPersonalOrder(order)&&order.status!=="cancelled");
   const totals=orders.reduce((sum,order)=>{
     const cost=orderHpp(order,data.orders,data.batches);
     if(cost===null)sum.incomplete+=1;

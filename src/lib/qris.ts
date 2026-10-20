@@ -10,7 +10,7 @@ export function validQrisUrl(value: unknown): value is string {
   try { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password; } catch { return false; }
 }
 export function showQris(order: Order, url: unknown): boolean {
-  return validQrisUrl(url) && !!url && order.status !== "cancelled" && outstanding(order) > 0;
+  return order.purpose !== "personal" && validQrisUrl(url) && !!url && order.status !== "cancelled" && outstanding(order) > 0;
 }
 export function qrisExtension(type: string): string {
   if (!types.includes(type)) throw new Error("Pilih gambar QRIS PNG, JPG, atau WebP.");

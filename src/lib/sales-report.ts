@@ -1,4 +1,4 @@
-import { orderHpp, orderQuantity, orderRevenue, orderNetSales } from "./finance.ts";
+import { orderHpp, orderQuantity, orderRevenue, orderNetSales, isPersonalOrder, personalExpense } from "./finance.ts";
 import type { AppData, Batch } from "./types.ts";
 
 export type ReportFilter = { type: Batch["type"]; from: string; to: string; batchId?: string };
@@ -19,7 +19,7 @@ export function buildSalesReport(data: AppData, filter: ReportFilter) {
   if (!validReportDate(filter.from) || !validReportDate(filter.to) || filter.from > filter.to) throw new Error("Pilih rentang tanggal yang valid.");
   const batches = data.batches.filter(batch => batch.type === filter.type && (!filter.batchId || batch.id === filter.batchId));
   const batchIds = new Set(batches.map(batch => batch.id));
-  const rows = data.orders.filter(order => batchIds.has(order.batchId) && order.status !== "cancelled" && order.date >= filter.from && order.date <= filter.to).sort((a,b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id)).map(order => {
+  const rows = data.orders.filter(order => batchIds.has(order.batchId) && !isPersonalOrder(order) && order.status !== "cancelled" && order.date >= filter.from && order.date <= filter.to).sort((a,b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id)).map(order => {
     const revenue = orderRevenue(order);
     // Always allocate shared costs against the full batch, before date filtering.
     const hpp = orderHpp(order, data.orders, data.batches);
@@ -35,6 +35,8 @@ export function buildSalesReport(data: AppData, filter: ReportFilter) {
     if (existing) existing.quantity += item.quantity;
     else products.set(key,{key,name:item.product,detail:[item.variant,item.color,item.size,item.store].filter(Boolean).join(" · "),quantity:item.quantity});
   }
-  return { filter, batchLabel: filter.batchId ? batches[0]?.name ?? "Batch tidak ditemukan" : "Semua", summary, rows, products:[...products.values()].sort((a,b)=>b.quantity-a.quantity || a.name.localeCompare(b.name,"id")) };
+  const personalRows=data.orders.filter(order=>isPersonalOrder(order)&&order.status!=="cancelled"&&batchIds.has(order.batchId)&&order.date>=filter.from&&order.date<=filter.to).map(order=>({...order,batchName:batches.find(batch=>batch.id===order.batchId)!.name}));
+  const personalExpenses=personalRows.reduce((sum,order)=>sum+personalExpense(order),0);
+  return { personalRows, personalExpenses, filter, batchLabel: filter.batchId ? batches[0]?.name ?? "Batch tidak ditemukan" : "Semua", summary, rows, products:[...products.values()].sort((a,b)=>b.quantity-a.quantity || a.name.localeCompare(b.name,"id")) };
 }
 export type SalesReport = ReturnType<typeof buildSalesReport>;

@@ -129,6 +129,7 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
     }
   }
 
+  if(order.purpose==="personal")return null;
   return (
     <dialog
       ref={(element) => { dialog.current=element; if (element && !element.open) element.showModal(); }}
