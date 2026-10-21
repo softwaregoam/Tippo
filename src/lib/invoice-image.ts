@@ -6,10 +6,14 @@ export async function renderInvoiceImage(preview: HTMLElement): Promise<Blob> {
   const copy=invoice.cloneNode(true) as HTMLElement;
   // iOS can insert phone/date links into the source before it is cloned.
   for(const link of copy.querySelectorAll("a[x-apple-data-detectors]"))link.replaceWith(document.createTextNode(link.textContent??""));
-  await Promise.all(Array.from(copy.querySelectorAll<HTMLElement>("[data-invoice-logo-url]")).map(async holder=>{
-    const image=document.createElement("img");image.alt="Logo toko";
-    image.src=await loadInvoiceLogo(holder.dataset.invoiceLogoUrl!);
-    holder.removeAttribute("aria-busy");holder.replaceChildren(image);
+  const assets="[data-invoice-logo-url],[data-invoice-qris-url]";
+  const assetError=(element:Element)=>element.closest("[data-invoice-qris-url]")?"QRIS invoice belum dapat dimuat. Coba unduh kembali.":"Logo invoice belum dapat dimuat. Coba unduh kembali.";
+  await Promise.all(Array.from(copy.querySelectorAll<HTMLElement>(assets)).map(async holder=>{
+    try{
+      const image=document.createElement("img");image.alt=holder.dataset.invoiceQrisUrl?"QRIS pembayaran invoice":"Logo toko";
+      image.src=await loadInvoiceLogo((holder.dataset.invoiceQrisUrl??holder.dataset.invoiceLogoUrl)!);
+      holder.removeAttribute("aria-busy");holder.replaceChildren(image);
+    }catch{throw new Error(assetError(holder));}
   }));
   const frame=document.createElement("iframe");
   frame.title="Menyiapkan gambar invoice";
@@ -29,24 +33,29 @@ export async function renderInvoiceImage(preview: HTMLElement): Promise<Blob> {
       try {
         image.src=await loadInvoiceLogo(image.src);
         await image.decode();
-      } catch {throw new Error("Logo invoice belum dapat dimuat. Coba unduh kembali.");}
+      } catch {throw new Error(assetError(image));}
     }));
-    // WebKit can omit decoded images nested inside SVG foreignObject on the first
-    // render. Rasterize the document without its logo, then draw the decoded logo
-    // directly on the final canvas so previews, downloads and print share it.
-    const logos=Array.from(output.querySelectorAll<HTMLImageElement>("[data-invoice-logo-url] img"));
+    // Preserve the uploaded image's aspect ratio and occupied space when its
+    // pixels are omitted from the SVG pass below (QRIS uploads can be portrait).
+    for(const holder of output.querySelectorAll<HTMLElement>(assets)){
+      const box=holder.getBoundingClientRect();
+      holder.style.width=`${box.width}px`;holder.style.height=`${box.height}px`;
+    }
+    // Draw uploaded images directly on the canvas: WebKit can omit images inside
+    // SVG foreignObject. This keeps both logos and payment codes in every export.
+    const images=Array.from(output.querySelectorAll<HTMLImageElement>("[data-invoice-logo-url] img,[data-invoice-qris-url] img"));
     const bounds=output.getBoundingClientRect();
-    const placements=logos.map(image=>({image,bounds:image.getBoundingClientRect()}));
+    const placements=images.map(image=>({image,bounds:image.getBoundingClientRect()}));
     const {toCanvas}=await import("html-to-image");
     const canvas=await toCanvas(output,{
       pixelRatio:2,backgroundColor:"#ffffff",skipFonts:true,
-      filter:node=>!(node.nodeType===1&&(node as Element).matches("[data-invoice-logo-url] img")),
+      filter:node=>!(node.nodeType===1&&(node as Element).matches("[data-invoice-logo-url] img,[data-invoice-qris-url] img")),
     });
     const context=canvas.getContext("2d");
     if(!context)throw new Error("Gambar invoice belum dapat dibuat. Coba kembali.");
     const scaleX=canvas.width/bounds.width,scaleY=canvas.height/bounds.height;
     for(const {image,bounds:box} of placements){
-      if(!image.naturalWidth||!image.naturalHeight)throw new Error("Logo invoice belum dapat dimuat. Coba kembali.");
+      if(!image.naturalWidth||!image.naturalHeight)throw new Error(assetError(image));
       const fit=Math.min(box.width/image.naturalWidth,box.height/image.naturalHeight);
       const width=image.naturalWidth*fit,height=image.naturalHeight*fit;
       context.drawImage(image,(box.left-bounds.left+(box.width-width)/2)*scaleX,(box.top-bounds.top+(box.height-height)/2)*scaleY,width*scaleX,height*scaleY);
