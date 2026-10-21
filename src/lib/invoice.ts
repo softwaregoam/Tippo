@@ -1,3 +1,4 @@
+import { productDisplayName } from "./product-name.ts";
 import { invoiceBankDetails, readInvoiceAppearance } from "./invoice-template.ts";
 import { refundedTotal } from "./refund.ts";
 import { formatCurrency, orderDiscount, orderRevenue, outstanding } from "./finance.ts";
@@ -14,7 +15,7 @@ export function invoiceNumber(order: Pick<Order, "id">, settings?: Partial<Invoi
 }
 
 export function invoiceItemLabel(item: OrderItem): string {
-  const name=[item.product,item.variant].map(value=>value.trim()).filter(Boolean).join(" ");
+  const name=[productDisplayName(item.product),item.variant].map(value=>value.trim()).filter(Boolean).join(" ");
   return [name,item.color.trim(),item.size.trim()].filter(Boolean).join(" · ");
 }
 

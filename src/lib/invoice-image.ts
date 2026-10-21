@@ -4,6 +4,8 @@ export async function renderInvoiceImage(preview: HTMLElement): Promise<Blob> {
   const invoice=preview.querySelector<HTMLElement>(".invoice-document");
   if(!invoice)throw new Error("Invoice belum siap diunduh.");
   const copy=invoice.cloneNode(true) as HTMLElement;
+  // iOS can insert phone/date links into the source before it is cloned.
+  for(const link of copy.querySelectorAll("a[x-apple-data-detectors]"))link.replaceWith(document.createTextNode(link.textContent??""));
   await Promise.all(Array.from(copy.querySelectorAll<HTMLElement>("[data-invoice-logo-url]")).map(async holder=>{
     const image=document.createElement("img");image.alt="Logo toko";
     image.src=await loadInvoiceLogo(holder.dataset.invoiceLogoUrl!);
@@ -19,7 +21,7 @@ export async function renderInvoiceImage(preview: HTMLElement): Promise<Blob> {
     const page=frame.contentDocument;
     if(!page)throw new Error("Gambar invoice belum dapat dibuat.");
     page.open();
-    page.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><style>body{margin:0;background:white}</style></head><body>${copy.outerHTML}</body></html>`);
+    page.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=794"><meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no"><style>html,body{margin:0;background:white;-webkit-text-size-adjust:100%;text-size-adjust:100%}</style></head><body>${copy.outerHTML}</body></html>`);
     page.close();
     const output=page.querySelector<HTMLElement>(".invoice-document");
     if(!output)throw new Error("Invoice belum siap diunduh.");
