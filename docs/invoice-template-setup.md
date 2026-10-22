@@ -31,13 +31,11 @@ Pada dialog invoice, tab **Invoice gambar** menyediakan Cetak/PDF dan **Unduh ga
 Khusus ponsel, tab Invoice gambar menampilkan PNG satu lembar utuh yang disesuaikan dengan ruang pratinjau. Gunakan cubitan dua jari, ketuk dua kali, atau tombol zoom untuk memperbesar; geser untuk membaca detail. Tombol sesuaikan mengembalikan seluruh lembar ke dalam pratinjau. Desktop tetap memakai dokumen langsung.
 
 
-## QRIS pada invoice
+## QRIS terpisah
 
 Di **Profil bisnis → QRIS pembayaran**, unggah QRIS resmi usaha dalam format PNG/JPG/WebP maksimal 1 MB, lalu **Simpan profil**. Ganti dan hapus juga berlaku setelah profil disimpan. File asli dipertahankan tanpa pemotongan atau kompresi ulang.
 
-Pada invoice dengan sisa tagihan, area pembayaran memakai tiga kolom jika rekening dan QRIS tersedia: rekening di kiri, QRIS di tengah, dan total tagihan di kanan. QRIS tanpa rekening memakai dua kolom bersama total tagihan. Tanpa QRIS, susunan dua kolom rekening dan total tetap digunakan; tidak ada kotak QRIS kosong. Gambar ditampilkan utuh di atas latar putih, beserta nominal sisa tagihan. Pratinjau template, PNG yang diunduh/dibagikan, dan cetak/PDF memakai gambar yang sama. Kegagalan memuat QRIS menghentikan ekspor dan dapat dicoba kembali. Teks WhatsApp tetap tidak memuat tambahan QRIS.
-
-Tab **QRIS**, **Unduh QRIS**, dan **Bagikan QRIS** tetap tersedia untuk mengirim gambar asli secara terpisah. Pelanggan dapat memilih gambar invoice atau QRIS dari galeri jika aplikasi pembayarannya mendukung; keberhasilan deteksi bergantung pada aplikasi dan kualitas gambar QRIS yang diunggah. QRIS dan tabnya disembunyikan untuk invoice lunas, bernilai nol, atau dibatalkan. QRIS ini statis; pelanggan mengisi nominal sesuai sisa tagihan dan owner tetap mencatat pembayaran setelah memeriksa dana masuk.
+Pada invoice dengan sisa tagihan, tab **QRIS** menampilkan gambar dan sisa pembayaran. Gunakan **Unduh QRIS**, lalu kirim gambar secara terpisah. Pelanggan dapat memilih gambar dari galeri jika aplikasi pembayarannya mendukung. QRIS tidak ditambahkan ke invoice gambar atau teks WhatsApp. Tab disembunyikan untuk invoice lunas, bernilai nol, atau dibatalkan. QRIS ini statis; owner tetap mencatat pembayaran setelah memeriksa dana masuk.
 
 Penyimpanan memakai bucket `invoice-logos` dan kebijakan pemilik yang sudah tersedia, dengan path `<owner-id>/qris-<uuid>.<ext>`. Tidak memerlukan migrasi baru jika migrasi bucket di atas sudah diterapkan. URL tersimpan di metadata akun `invoice_template.qrisUrl`, terpisah dari logo. Gagal menyimpan profil tidak menghapus QRIS lama; penggantian yang berhasil membersihkan berkas QRIS lama milik akun.
 

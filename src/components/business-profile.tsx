@@ -87,7 +87,7 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
           </div>
         </fieldset>
         <fieldset className="business-bank-settings business-qris-settings" disabled={busy||processingQris} aria-labelledby="business-qris-title">
-          <div className="business-bank-heading"><span className="business-bank-icon"><QrCode size={23} aria-hidden="true"/></span><div><h3 id="business-qris-title">QRIS pembayaran</h3><p>Tampil di invoice gambar untuk pesanan belum lunas.</p></div><span className="business-bank-optional">Opsional</span></div>
+          <div className="business-bank-heading"><span className="business-bank-icon"><QrCode size={23} aria-hidden="true"/></span><div><h3 id="business-qris-title">QRIS pembayaran</h3><p>Dikirim terpisah lewat tab QRIS di Invoice.</p></div><span className="business-bank-optional">Opsional</span></div>
           <div className="business-qris-picker">
             {qrisSource?<QrisImage key={qrisSource} src={qrisSource} alt="QRIS usaha yang dipilih"/>:<div className="business-qris-empty"><QrCode size={34} aria-hidden="true"/><span>Belum ada QRIS</span></div>}
             <div className="business-qris-controls"><div className="business-qris-buttons"><Button type="button" className="btn btn-secondary" disabled={!cloud} onClick={()=>qrisInput.current?.click()}><Upload size={16}/>{processingQris?"Memeriksa gambar…":qrisSource?"Ganti QRIS":"Unggah QRIS"}</Button>{qrisSource&&<Button type="button" className="btn btn-secondary" onClick={()=>{qrisRequest.current++;setQris(null);setAppearance({...appearance,qrisUrl:""});}}><X size={16}/>Hapus QRIS</Button>}</div>
