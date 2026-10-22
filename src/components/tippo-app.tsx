@@ -1,5 +1,6 @@
 "use client";
 import {cacheInvoiceLogo,invalidateInvoiceLogo} from "@/lib/invoice-logo-cache";
+import { scrollToTopAfterSave } from "@/lib/after-save";
 
 import { TippoLogo } from "./tippo-logo";
 
@@ -219,6 +220,10 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     setToast(message);
     toastTimer.current = setTimeout(() => setToast(null), 4500);
   }
+  function notifySaved(message: string) {
+    scrollToTopAfterSave();
+    notify(message);
+  }
   async function persist(next: AppData, message: string) {
     setSaveError("");
     const invalidBatch = next.batches.find(batch => {
@@ -230,11 +235,14 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
       setSaveError(error); notify(error); return false;
     }
     try {
-      if (cloud) { const saved = await cloud.commit(next); if (saved && message) notify(message); return saved; }
+      if (cloud) { const saved = await cloud.commit(next); if (saved && message) notifySaved(message); return saved; }
       const previousUsageSaved = recordOrderUsage(data.orders.filter((order) => !sampleOrderIds.has(order.id)), data.batches);
       const saved = saveAppData(next);
       const usageSaved = recordOrderUsage(next.orders.filter((order) => !sampleOrderIds.has(order.id)), next.batches);
-      if (message) notify(saved && previousUsageSaved && usageSaved ? message : "Perubahan sementara: penyimpanan browser tidak tersedia. Ekspor data sebelum menutup.");
+      if (message) {
+        if (saved && previousUsageSaved && usageSaved) notifySaved(message);
+        else notify("Perubahan sementara: penyimpanan browser tidak tersedia. Ekspor data sebelum menutup.");
+      }
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Data belum tersimpan.";
@@ -441,9 +449,9 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
               {page === "subscription" && <SubscriptionPanel data={data} subscription={subscription} account={cloud ? { id: cloud.ownerId, name: cloud.name, email: cloud.email } : undefined} onNotify={notify} onSubscriptionChanged={cloud?.refreshSubscription} />}
 
               {page === "reports" && <ReportsPanel key={mode} data={data} type={mode} isPro={isPro} onUpgrade={()=>go("subscription")} />}
-              {page === "invoice-template" && <InvoiceTemplatePanel key={mode} type={mode} settings={invoiceSettings} onSave={saveInvoiceTemplate} onNotify={notify}/>}
-              {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notify} onSaved={(profile,appearance)=>{setDemoProfile(profile);if(!cloud)setDemoAppearance(appearance);}} />}
-              {page === "feedback" && <FeedbackPanel key={cloud?.ownerId ?? "local"} onNotify={notify} />}
+              {page === "invoice-template" && <InvoiceTemplatePanel key={mode} type={mode} settings={invoiceSettings} onSave={saveInvoiceTemplate} onNotify={notifySaved}/>}
+              {page === "profile" && <BusinessProfilePanel cloud={cloud} onNotify={notifySaved} onSaved={(profile,appearance)=>{setDemoProfile(profile);if(!cloud)setDemoAppearance(appearance);}} />}
+              {page === "feedback" && <FeedbackPanel key={cloud?.ownerId ?? "local"} onNotify={notifySaved} />}
               {page === "help" && <HelpPanel mode={mode} onNavigate={go} />}
               {page === "settings" && <DataSettings data={data} cloud={!!cloud} onUpdate={replaceData} onNotify={notify} />}
             </div>
