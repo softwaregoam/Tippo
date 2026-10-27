@@ -397,7 +397,7 @@ export function OrderForm({ data, order, defaultBatchId, onSave, onClose, onBatc
           </div>
           </>}
         </div>
-        <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || loadingRate || !canUseSelectedBatch}>{order ? <Check size={17} /> : <Plus size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
+        <div className="modal-footer">{saveError && <p role="alert" className="auth-alert error" style={{flexBasis:"100%",margin:0}}>{saveError}</p>}<Button className="btn btn-secondary" variant="outline" type="button" onClick={onClose}>Batal</Button><Button className="btn btn-primary" type="submit" disabled={saving || loadingRate || !canUseSelectedBatch}>{order && <Check size={17} />}{saving ? "Menyimpan…" : "Simpan pesanan"}</Button></div>
       </form>
     </div>
   </div>;

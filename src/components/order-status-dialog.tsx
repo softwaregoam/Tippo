@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { visibleOrderStatus } from "@/lib/order-status";
 import { orderLabel } from "@/lib/finance";
@@ -45,6 +45,6 @@ export function OrderStatusDialog({ order, onClose, onSave }: { order: Order; on
       <fieldset className="order-status-options" disabled={busy}><legend>Status baru</legend>{orderStatuses.map(s => <label key={s.value} className="order-status-option"><input type="radio" name="order-status" value={s.value} checked={status === s.value} onChange={() => { setStatus(s.value); setError(""); }} /><span className={`status-tag order-status-${s.value}`}>{s.label}</span></label>)}</fieldset>
       {needsRefund && <p className="error-message">Catat refund seluruh pembayaran sebelum membatalkan pesanan ini.</p>}{error && <p role="alert" className="error-message">{error}</p>}
     </div>
-    <div className="modal-footer"><Button ref={cancelRef} className="btn btn-secondary" disabled={busy} onClick={onClose}>Batal</Button><Button className="btn btn-primary" disabled={busy || status === current || needsRefund} onClick={save}><ArrowLeftRight size={16} />{busy ? "Menyimpan…" : "Simpan status"}</Button></div>
+    <div className="modal-footer"><Button ref={cancelRef} className="btn btn-secondary" disabled={busy} onClick={onClose}>Batal</Button><Button className="btn btn-primary" disabled={busy || status === current || needsRefund} onClick={save}>{busy ? "Menyimpan…" : "Simpan status"}</Button></div>
   </dialog>;
 }
