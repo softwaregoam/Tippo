@@ -282,3 +282,7 @@ Status pesanan menjadi Diproses, Selesai, dan Dibatalkan. Status lama new/purcha
 ## Pembayaran langsung, 28 Oktober 2026
 
 Badge pembayaran belum lunas pada tabel pesanan menjadi tombol berbingkai dengan ikon pensil dan target sentuh minimal 44 piksel. Detail pesanan menyediakan Catat pembayaran di bawah ringkasan tagihan; daftar Ringkasan tetap hanya baca. Dialog menunjukkan total tagihan, sudah dibayar, dan sisa; nominal berupa pembayaran tambahan dalam rupiah dengan pemisah ribuan. Lunasi sisa tagihan hanya mengisi nominal, dan Simpan pembayaran menyimpan setelah validasi. Nominal tidak boleh melebihi sisa tagihan. Kegagalan mempertahankan isian. Pesanan selesai yang belum lunas tetap dapat dibayar; pesanan batal, lunas, dan belanja sendiri tidak menyediakan aksi ini. Tidak ada perubahan produk, status pesanan, riwayat refund, atau skema Supabase.
+
+## Kelompok aksi status pesanan
+
+Perubahan status kembali memakai satu tombol Ubah status di tabel dan satu tombol Status pada detail ponsel. Dialog mengelompokkan pilihan Tandai selesai dan Batalkan pesanan; tidak ada pilihan otomatis, dan perubahan baru disimpan lewat Simpan status. Status tetap Diproses/Selesai/Dibatalkan, pembayaran tetap terpisah, dan pembatalan berbayar tetap memerlukan refund penuh. Tombol pembayaran langsung tetap tersedia.

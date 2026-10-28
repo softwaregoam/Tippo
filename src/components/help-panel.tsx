@@ -35,7 +35,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
         "Pilih tanggal lewat kalender, lalu isi produk dan jumlahnya. Field bertanda bintang merah wajib diisi.",
         "Buka bagian tambahan untuk mengisi diskon, ongkir, catatan, tanggal kirim, jam 24 jam, dan metode kirim jika diperlukan.",
         "Gunakan Lunas untuk mengisi seluruh total tagihan atau Bayar sebagian untuk menulis nominal yang sudah diterima. Klik Simpan pesanan setelah datanya lengkap. Untuk pembayaran berikutnya, klik badge pembayaran di daftar atau Catat pembayaran di detail ponsel. Isi pembayaran tambahan atau pilih Lunasi sisa tagihan, lalu Simpan pembayaran.",
-        "Pesanan baru berstatus Diproses. Pilih Tandai selesai setelah barang diterima atau diambil pelanggan, atau Batalkan pesanan jika tidak dilanjutkan. Konfirmasi sebelum menyimpan. Pesanan yang sudah dibayar perlu refund seluruh pembayaran sebelum dibatalkan.",
+        "Pesanan baru berstatus Diproses. Buka Ubah status pada pesanan, lalu pilih Tandai selesai setelah barang diterima atau diambil pelanggan, atau Batalkan pesanan jika tidak dilanjutkan. Klik Simpan status untuk menerapkan. Pesanan yang sudah dibayar perlu refund seluruh pembayaran sebelum dibatalkan.",
       ], destination: "orders", action: "Buka Pesanan",
     },
     {

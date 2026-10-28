@@ -273,6 +273,12 @@
 .payment-paid { color:var(--success); }
 .payment-partial { color:var(--payment-partial); }
 .order-status-body > p { margin:16px 0 24px; }
+.order-status-options { display:grid; gap:10px; padding:0; border:0; min-width:0; }
+.order-status-options legend { margin-bottom:12px; font-size:14px; font-weight:600; }
+.order-status-option { display:flex; align-items:center; gap:10px; min-height:48px; padding:12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:14px; }
+.order-status-option:has(input:checked) { border-color:var(--primary); background:var(--tone-surface-f1eee5); }
+.order-status-option input { accent-color:var(--primary); flex-shrink:0; }
+.order-status-option:has(input:focus-visible) { outline:2px solid var(--primary); outline-offset:2px; }
 
 /* Set the token on ::backdrop as well for browsers that do not inherit its custom properties. */
 :root,::backdrop { --dialog-backdrop:#00000099; }
