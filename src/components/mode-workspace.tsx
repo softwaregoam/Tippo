@@ -3,6 +3,7 @@ import { productDisplayName } from "@/lib/product-name";
 import { BatchPicker } from "./batch-picker";
 import { CategoryFilter } from "./category-filter";
 import type { InvoiceSettings } from "@/lib/business-profile";
+import type { PaymentHandler } from "@/components/order-payment-dialog";
 import { visibleOrderStatus } from "@/lib/order-status";
 
 import { NumberInput } from "@/components/ui/number-input";
@@ -32,6 +33,7 @@ type Props = {
   onHpp: (batch: Batch) => void;
   onEditProduct: (product: Product) => void;
   onDuplicateProduct: (product: Product) => void;
+  onPayment: PaymentHandler;
   onRefund: (id: string, amount: number, date: string, reason: string, cancel: boolean) => Promise<boolean>;
   onImportProducts: (products: Product[]) => boolean | Promise<boolean>;
   onProductStatus: (product: Product) => boolean | Promise<boolean>;
@@ -41,7 +43,7 @@ type Props = {
   onUpgrade: () => void;
 };
 
-export function ModeWorkspace({ tab, type, data, invoiceSettings, onEditBatch, onEditOrder, onStatus, onBatchStatus, onEditProduct, onDuplicateProduct, onImportProducts, onRefund, onProductStatus, onImport, importAllowed, productLimit, onUpgrade }: Props) {
+export function ModeWorkspace({ tab, type, data, invoiceSettings, onEditBatch, onEditOrder, onStatus, onBatchStatus, onEditProduct, onDuplicateProduct, onImportProducts, onRefund, onPayment, onProductStatus, onImport, importAllowed, productLimit, onUpgrade }: Props) {
   const po = type === "po";
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -91,7 +93,7 @@ export function ModeWorkspace({ tab, type, data, invoiceSettings, onEditBatch, o
       {tab === "orders" && <section className="card workspace-list-card" aria-label="Daftar pesanan">
         <div className="card-header list-import-header"><div><h2>Pesanan {po ? "Open PO" : "Jastip"}</h2><p>{importAllowed ? "Isi satu per satu atau sekaligus dari Excel." : "Isi pesanan secara manual. Import template Excel tersedia di Pro."}</p></div><ExcelImportButton allowed={importAllowed} onClick={() => importAllowed ? setImportOpen(true) : onUpgrade()} /></div>
         <div className="list-toolbar"><div className="search-field"><Search size={18} /><input aria-label="Cari pesanan" placeholder={`Cari pesanan ${po ? "PO" : "jastip"}...`} value={search} onChange={e => setSearch(e.target.value)} /></div><div className="toolbar-filters"><Select className="input filter-input" aria-label="Filter status pesanan" value={status} onValueChange={setStatus}><SelectOption value="all">Semua status</SelectOption><SelectOption value="unpaid">Belum lunas</SelectOption><SelectOption value="new">Diproses</SelectOption><SelectOption value="done">Selesai</SelectOption><SelectOption value="cancelled">Dibatalkan</SelectOption></Select><BatchPicker purpose="orders" batches={batches} type={type} value={batchFilter==="all"?"":batchFilter} onValueChange={value=>setBatchFilter(value||"all")}/></div></div>
-        {filteredOrders.length > 0 ? <OrdersTable invoiceSettings={invoiceSettings} data={data} orders={filteredOrders} onEdit={onEditOrder} onStatus={onStatus} onRefund={onRefund} /> : <WorkspaceEmptyState kind="orders" hasData={orders.length > 0} onReset={() => { setSearch(""); setStatus("all"); setBatchFilter("all"); }} />}
+        {filteredOrders.length > 0 ? <OrdersTable invoiceSettings={invoiceSettings} data={data} orders={filteredOrders} onEdit={onEditOrder} onStatus={onStatus} onRefund={onRefund} onPayment={onPayment} /> : <WorkspaceEmptyState kind="orders" hasData={orders.length > 0} onReset={() => { setSearch(""); setStatus("all"); setBatchFilter("all"); }} />}
         <div className="table-footer">{listCount(filteredOrders.length, orders.length, `pesanan ${po ? "PO" : "jastip"}`)}{!po && <span>Produk bebas, sesuai titipan pelanggan</span>}</div>
       </section>}
 

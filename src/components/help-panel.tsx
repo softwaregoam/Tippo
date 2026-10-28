@@ -34,7 +34,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
         "Pilih batch yang masih dibuka. Jika hanya ada satu batch aktif, Tippo memilihnya otomatis. Cari pelanggan lewat nama atau WhatsApp, lalu pilih kontaknya. Gunakan + Pelanggan baru jika belum ada.",
         "Pilih tanggal lewat kalender, lalu isi produk dan jumlahnya. Field bertanda bintang merah wajib diisi.",
         "Buka bagian tambahan untuk mengisi diskon, ongkir, catatan, tanggal kirim, jam 24 jam, dan metode kirim jika diperlukan.",
-        "Gunakan Lunas untuk mengisi seluruh total tagihan atau Bayar sebagian untuk menulis nominal yang sudah diterima. Klik Simpan pesanan setelah datanya lengkap.",
+        "Gunakan Lunas untuk mengisi seluruh total tagihan atau Bayar sebagian untuk menulis nominal yang sudah diterima. Klik Simpan pesanan setelah datanya lengkap. Untuk pembayaran berikutnya, klik badge pembayaran di daftar atau Catat pembayaran di detail ponsel. Isi pembayaran tambahan atau pilih Lunasi sisa tagihan, lalu Simpan pembayaran.",
         "Pesanan baru berstatus Diproses. Pilih Tandai selesai setelah barang diterima atau diambil pelanggan, atau Batalkan pesanan jika tidak dilanjutkan. Konfirmasi sebelum menyimpan. Pesanan yang sudah dibayar perlu refund seluruh pembayaran sebelum dibatalkan.",
       ], destination: "orders", action: "Buka Pesanan",
     },

@@ -1573,6 +1573,23 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 /* Payment badges share the same states in desktop rows and phone cards. */
 .order-payment-badges { display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; max-width:100%; }
 .order-payment-badge { display:inline-flex; align-items:center; padding:5px 8px; border:1px solid transparent; border-radius:6px; font-size:12px; font-weight:600; line-height:1.5; overflow-wrap:anywhere; }
+.order-payment-trigger { gap:8px; min-height:44px; border-color:currentColor; cursor:pointer; text-align:left; }
+.order-payment-trigger:hover { text-decoration:underline; }
+.order-payment-trigger:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+.order-payment-trigger svg { flex-shrink:0; }
+.order-payment-dialog form { display:flex; flex-direction:column; min-height:0; }
+.order-payment-dialog[open] { display:flex; flex-direction:column; }
+.order-payment-dialog .modal-header,.order-payment-dialog .modal-footer { flex-shrink:0; }
+.order-payment-dialog .modal-body { overflow:auto; min-height:0; }
+.order-payment-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:0 0 20px; }
+.order-payment-summary div { min-width:0; }
+.order-payment-summary dt { font-size:13px; color:var(--muted); }
+.order-payment-summary dd { margin:4px 0 0; font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.order-payment-remaining { grid-column:1 / -1; padding-top:12px; border-top:1px solid var(--border); }
+.order-payment-remaining dd { font-size:22px; }
+.order-payment-settle { width:100%; margin-top:12px; }
+.order-payment-dialog .modal-footer { display:grid; grid-template-columns:auto minmax(0,1fr); }
+.order-payment-dialog .modal-footer .btn { min-width:0; white-space:normal; }
 .payment-badge-paid { color:var(--success); background:var(--success-soft); }
 .payment-badge-partial { color:var(--warning); background:var(--tone-surface-fff2de); }
 .payment-badge-unpaid,.payment-badge-cancelled { color:var(--muted); background:var(--tone-surface-eef1ee); }

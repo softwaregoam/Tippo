@@ -9,6 +9,7 @@ import { isAppData } from "@/lib/validation";
 import { FeedbackPanel } from "@/components/feedback-panel";
 import { HelpPanel } from "@/components/help-panel";
 import { CUSTOMER_SERVICE_WHATSAPP_URL } from "@/lib/support";
+import { addOrderPayment } from "@/lib/order-payment";
 import { applyRefund, refundedTotal } from "@/lib/refund";
 import { DEMO_PROFILE_KEY, readBusinessProfile } from "@/lib/business-profile";
 import { InvoiceTemplatePanel } from "@/components/invoice-template-panel";
@@ -304,6 +305,14 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     const type = data.batches.find((batch) => batch.id === order.batchId)?.type;
     if (type) setOrderModal({ type, order });
   }
+  async function recordPayment(id: string, amount: number) {
+    const order = data.orders.find(entry => entry.id === id);
+    if (!order) throw new Error("Pesanan tidak ditemukan. Muat ulang data.");
+    const next = addOrderPayment(order, amount);
+    const updated = { ...data, orders: data.orders.map(entry => entry.id === id ? next : entry) };
+    if (!isAppData(updated)) throw new Error("Data pembayaran tidak valid atau nominal gabungan terlalu besar.");
+    return persist(updated, "Pembayaran berhasil dicatat");
+  }
   async function refundOrder(id: string, amount: number, date: string, reason: string, cancel: boolean) {
     const order = data.orders.find(entry => entry.id === id);
     if (!order) throw new Error("Pesanan tidak ditemukan. Muat ulang data.");
@@ -427,14 +436,14 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                   </div>
                 </div>
                 <section className="batch-preview"><div className="section-heading"><div><h2>{mode === "po" ? "Batch PO aktif" : "Perjalanan aktif"} <span className="count-pill">{activeBatches.length}</span></h2><p>Jangan sampai ada pesanan yang terlewat.</p></div></div><div className="batch-preview-grid">{activeBatches.length ? activeBatches.map((batch, index) => <BatchCard key={batch.id} batch={batch} data={data} index={index} onOpen={() => { setSelectedHpp(batch.id); go("hpp"); }} />) : <div className="empty-state compact"><Layers3 size={28} /><p>{mode === "po" ? "Belum ada batch PO aktif." : "Belum ada perjalanan aktif."}</p><Button className="btn btn-secondary" onClick={() => setBatchModal({ type: mode })}>{mode === "po" ? "Buat batch PO" : "Buat perjalanan"}</Button></div>}<button className="new-batch-card" onClick={() => setBatchModal({ type: mode })}><span><Plus size={22} /></span><strong>{mode === "po" ? "Batch PO baru" : "Perjalanan baru"}</strong><p>{mode === "po" ? "Buka periode pesanan berikutnya" : "Siapkan perjalanan belanja berikutnya"}</p></button></div></section>
-                <section className="card recent-card"><div className="card-header"><div><h2>Pesanan terbaru</h2><p>Yang baru masuk, langsung tercatat.</p></div></div><OrdersTable data={data} orders={monthOrders.slice(0, 5)} onEdit={editOrder} onStatus={updateStatus} onRefund={refundOrder} compact readOnly /></section>
+                <section className="card recent-card"><div className="card-header"><div><h2>Pesanan terbaru</h2><p>Yang baru masuk, langsung tercatat.</p></div></div><OrdersTable data={data} orders={monthOrders.slice(0, 5)} onEdit={editOrder} onStatus={updateStatus} onRefund={refundOrder} onPayment={recordPayment} compact readOnly /></section>
               </>}
 
 
               {(page === "products" || page === "batches" || page === "orders") && <ModeWorkspace key={mode + page} tab={page} type={mode} data={data} invoiceSettings={invoiceSettings}
                 onEditBatch={(batch) => setBatchModal({ type: batch.type, batch })}
                 onNewOrder={(batchId, productId) => startOrder(mode, batchId, productId)}
-                onEditOrder={editOrder} onStatus={updateStatus} onRefund={refundOrder}
+                onEditOrder={editOrder} onStatus={updateStatus} onRefund={refundOrder} onPayment={recordPayment}
                 onBatchStatus={(batch, status) => persist({ ...data, batches: data.batches.map((b) => b.id === batch.id ? { ...b, status } : b) }, "Status batch diperbarui")}
                 onHpp={(batch) => { setSelectedHpp(batch.id); go("hpp"); }}
                 onEditProduct={setProductModal} onDuplicateProduct={(product) => { if (!isPro && data.products.length >= 5) go("subscription"); else setDuplicateProduct(product); }} onImportProducts={importProducts}

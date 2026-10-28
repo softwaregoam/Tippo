@@ -7,6 +7,7 @@ import { OrderStatusDialog, orderStatuses as statuses, type OrderStatusHandler }
 import { useLayoutEffect, useRef, useState } from "react";
 import { Check, FileText, Pencil, Search, ShoppingBag, RotateCcw, X } from "lucide-react";
 import { RefundDialog, type RefundHandler } from "@/components/refund-dialog";
+import { OrderPaymentDialog, type PaymentHandler } from "@/components/order-payment-dialog";
 import { refundedTotal } from "@/lib/refund";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDialog } from "@/components/invoice-dialog";
@@ -22,6 +23,7 @@ type OrdersTableProps = {
   onEdit: (order: Order) => void;
   onStatus: OrderStatusHandler;
   onRefund: RefundHandler;
+  onPayment: PaymentHandler;
   compact?: boolean;
   readOnly?: boolean;
 };
@@ -33,22 +35,24 @@ function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "?";
 }
 
-function OrderPaymentBadges({order}:{order:Order}) {
+function OrderPaymentBadges({order,onPayment}:{order:Order;onPayment?:()=>void}) {
   if(isPersonalOrder(order))return <span className="order-payment-badge payment-badge-unpaid">Untuk sendiri</span>;
   const remaining=outstanding(order),refund=refundedTotal(order);
   const state=order.status==="cancelled"?"cancelled":remaining===0?"paid":order.paid>0?"partial":"unpaid";
   const label={cancelled:"Dibatalkan",paid:"Lunas",partial:"Bayar sebagian",unpaid:"Belum dibayar"}[state];
   const detail=`${label} · Dibayar ${formatCurrency(order.paid)} · Sisa ${formatCurrency(remaining)}`;
-  return <span className="order-payment-badges"><span className={`order-payment-badge payment-badge-${state}`} title={detail} aria-label={detail}>{label}</span>{refund>0&&<span className="order-payment-badge payment-badge-refund">Refund {formatCurrency(refund)}</span>}</span>;
+  return <span className="order-payment-badges">{onPayment && remaining > 0 && order.status!=="cancelled" ? <button className={`order-payment-badge payment-badge-${state} order-payment-trigger`} type="button" title="Catat pembayaran" aria-label={`Catat pembayaran: ${detail}`} onClick={onPayment}>{label}<Pencil size={13} aria-hidden="true"/></button> : <span className={`order-payment-badge payment-badge-${state}`} title={detail} aria-label={detail}>{label}</span>}{refund>0&&<span className="order-payment-badge payment-badge-refund">Refund {formatCurrency(refund)}</span>}</span>;
 }
 
-export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, onRefund, compact = false, readOnly = false }: OrdersTableProps) {
+export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, onRefund, onPayment, compact = false, readOnly = false }: OrdersTableProps) {
   const [detailOrderId,setDetailOrderId]=useState<string|null>(null);
   const detailOrder=data.orders.find(order=>order.id===detailOrderId);
-  const detailContent=(order:Order)=><MobileOrderDetail order={order} data={data}/>;
+  const detailContent=(order:Order)=><MobileOrderDetail order={order} data={data} onPayment={readOnly?undefined:()=>setPaymentId(order.id)}/>;
   const detailFooter=(order:Order)=>readOnly?undefined:<OrderDetailActions order={order} onEdit={()=>onEdit(order)} onStatus={status=>setStatusAction({id:order.id,status})} onInvoice={()=>setInvoiceOrderId(order.id)} onRefund={()=>setRefundId(order.id)}/>;
   const [statusAction, setStatusAction] = useState<{id:string;status:"done"|"cancelled"}|null>(null);
   const statusOrder = data.orders.find(order => order.id === statusAction?.id);
+  const [paymentId,setPaymentId]=useState<string|null>(null);
+  const paymentOrder=data.orders.find(order=>order.id===paymentId);
   const [refundId,setRefundId]=useState<string|null>(null);
   const refundOrder=data.orders.find(order=>order.id===refundId);
   const [invoiceOrderId, setInvoiceOrderId] = useState<string | null>(null);
@@ -104,7 +108,7 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
                 </td>
                 <td className="numeric-cell"><span className="row-title" style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{formatCurrency(revenue)}</span>{compact&&isPersonalOrder(order)&&<small className="row-subtitle order-hpp-note">Belanja sendiri</small>}</td>
                 {!compact && <td className="numeric-cell"><span className={hpp === null ? "row-subtitle" : "row-title"} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</span>{isPersonalOrder(order)&&<small className="row-subtitle order-hpp-note">Belanja sendiri</small>}{hasEstimatedCost(order)&&<small className="fx-estimate">Kurs estimasi</small>}</td>}
-                <td><OrderPaymentBadges order={order}/></td>
+                <td><OrderPaymentBadges order={order} onPayment={readOnly?undefined:()=>setPaymentId(order.id)}/></td>
                 <td className="center-cell">
                   <span className={`status-tag order-status-${visibleOrderStatus(order.status)}`}>{statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label}</span>
                 </td>
@@ -114,12 +118,12 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
           })}
         </tbody>
       </table>
-    </div>{detailOrder&&<DataDetailDialog entry={{id:detailOrder.id,dialogClassName:"order-data-dialog",footer:detailFooter(detailOrder),title:isPersonalOrder(detailOrder)?"Belanja pribadi":data.customers.find(customer=>customer.id===detailOrder.customerId)?.name||"Pelanggan",meta:"",details:detailContent(detailOrder)}} onClose={()=>setDetailOrderId(null)}/ >}{statusOrder && statusAction && !readOnly && <OrderStatusDialog order={statusOrder} status={statusAction.status} onSave={onStatus} onClose={()=>setStatusAction(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && !isPersonalOrder(invoiceOrder) && <InvoiceDialog settings={invoiceSettings} order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
+    </div>{detailOrder&&<DataDetailDialog entry={{id:detailOrder.id,dialogClassName:"order-data-dialog",footer:detailFooter(detailOrder),title:isPersonalOrder(detailOrder)?"Belanja pribadi":data.customers.find(customer=>customer.id===detailOrder.customerId)?.name||"Pelanggan",meta:"",details:detailContent(detailOrder)}} onClose={()=>setDetailOrderId(null)}/ >}{statusOrder && statusAction && !readOnly && <OrderStatusDialog order={statusOrder} status={statusAction.status} onSave={onStatus} onClose={()=>setStatusAction(null)}/ >}{paymentOrder && !readOnly && <OrderPaymentDialog order={paymentOrder} customerName={data.customers.find(customer=>customer.id===paymentOrder.customerId)?.name??"Pelanggan"} onPayment={onPayment} onClose={()=>setPaymentId(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && !isPersonalOrder(invoiceOrder) && <InvoiceDialog settings={invoiceSettings} order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
   );
 }
 
 
-function MobileOrderDetail({order,data}:{order:Order;data:AppData}) {
+function MobileOrderDetail({order,data,onPayment}:{order:Order;data:AppData;onPayment?:()=>void}) {
   const hpp = orderHpp(order, data.orders, data.batches);
   const [search,setSearch]=useState("");
   const list=useRef<HTMLDivElement>(null);
@@ -154,6 +158,7 @@ function MobileOrderDetail({order,data}:{order:Order;data:AppData}) {
     </section>
     {isPersonalOrder(order)?<dl className="order-detail-payment"><div className="order-detail-total"><dt>{hasEstimatedCost(order)?"HPP belanja sendiri · Estimasi":"HPP belanja sendiri"}</dt><dd>{formatCurrency(personalExpense(order))}</dd></div><div><dt>Margin usaha</dt><dd>Di luar perhitungan</dd></div></dl>:<dl className="order-detail-payment"><div className="order-detail-total"><dt>Total tagihan</dt><dd>{formatCurrency(isPersonalOrder(order)?personalExpense(order):orderRevenue(order))}</dd></div><div><dt>Sudah dibayar</dt><dd>{formatCurrency(order.paid)}</dd></div><div><dt>Sisa tagihan</dt><dd>{formatCurrency(outstanding(order))}</dd></div><div><dt>{hasEstimatedCost(order)?"HPP · Estimasi":"HPP"}</dt><dd>{isPersonalOrder(order)?"—":hpp === null ? "Belum lengkap" : formatCurrency(hpp)}</dd></div></dl>}
 
+    {onPayment&&!isPersonalOrder(order)&&outstanding(order)>0&&<button data-close-detail className="btn btn-primary" onClick={onPayment}>Catat pembayaran</button>}
   </div>;
 }
 

@@ -278,3 +278,7 @@ Batch PO dan perjalanan Jastip memakai label status berwarna dan tombol Ubah sta
 ## Status pesanan ringkas, 28 Oktober 2026
 
 Status pesanan menjadi Diproses, Selesai, dan Dibatalkan. Status lama new/purchased/ready/shipped ditampilkan sebagai Diproses tanpa menulis ulang histori. Tabel, Ringkasan, dan filter memakai pemetaan yang sama. Aksi Tandai selesai dan Batalkan pesanan membuka konfirmasi dengan fokus awal pada Kembali; kegagalan simpan mempertahankan dialog. Pembayaran tidak diubah ketika selesai, dan pembatalan berbayar tetap memerlukan refund penuh. Pada detail ponsel, kedua aksi ditempatkan dalam baris tersendiri agar label tetap terbaca. Progres batch menghitung pesanan selesai. Status batch tetap terpisah.
+
+## Pembayaran langsung, 28 Oktober 2026
+
+Badge pembayaran belum lunas pada tabel pesanan menjadi tombol berbingkai dengan ikon pensil dan target sentuh minimal 44 piksel. Detail pesanan menyediakan Catat pembayaran di bawah ringkasan tagihan; daftar Ringkasan tetap hanya baca. Dialog menunjukkan total tagihan, sudah dibayar, dan sisa; nominal berupa pembayaran tambahan dalam rupiah dengan pemisah ribuan. Lunasi sisa tagihan hanya mengisi nominal, dan Simpan pembayaran menyimpan setelah validasi. Nominal tidak boleh melebihi sisa tagihan. Kegagalan mempertahankan isian. Pesanan selesai yang belum lunas tetap dapat dibayar; pesanan batal, lunas, dan belanja sendiri tidak menyediakan aksi ini. Tidak ada perubahan produk, status pesanan, riwayat refund, atau skema Supabase.
