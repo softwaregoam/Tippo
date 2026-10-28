@@ -4,23 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { visibleOrderStatus } from "@/lib/order-status";
-import { orderLabel } from "@/lib/finance";
+import { isPersonalOrder, orderLabel } from "@/lib/finance";
 import type { Order } from "@/lib/types";
 
 export const orderStatuses = [
-  { value: "new", label: "Tercatat" },
-  { value: "shipped", label: "Dikirim" },
+  { value: "new", label: "Diproses" },
   { value: "done", label: "Selesai" },
   { value: "cancelled", label: "Dibatalkan" },
 ] as const;
 export type OrderStatusHandler = (order: Order, status: Order["status"]) => boolean | Promise<boolean>;
 
-export function OrderStatusDialog({ order, onClose, onSave }: { order: Order; onClose: () => void; onSave: OrderStatusHandler }) {
+export function OrderStatusDialog({ order, status, onClose, onSave }: { order: Order; status: "done" | "cancelled"; onClose: () => void; onSave: OrderStatusHandler }) {
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const lock = useRef(false);
   const current = visibleOrderStatus(order.status);
-  const [status, setStatus] = useState(current);
+  const action = status === "done" ? "Tandai selesai" : "Batalkan pesanan";
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const needsRefund = status === "cancelled" && order.paid > 0;
@@ -39,12 +38,12 @@ export function OrderStatusDialog({ order, onClose, onSave }: { order: Order; on
     catch { setError("Status belum tersimpan. Coba lagi."); }
     finally { lock.current = false; setBusy(false); }
   }
-  return <dialog ref={ref} className="native-dialog" aria-labelledby="order-status-title" onCancel={e => { e.preventDefault(); if (!lock.current) onClose(); }}>
-    <div className="modal-header"><h2 id="order-status-title">Ubah status pesanan</h2><button className="icon-button" aria-label="Tutup perubahan status" disabled={busy} onClick={onClose}><X size={20} /></button></div>
+  return <dialog ref={ref} className="native-dialog" aria-labelledby="order-status-title" aria-describedby="order-status-impact" onCancel={e => { e.preventDefault(); if (!lock.current) onClose(); }}>
+    <div className="modal-header"><h2 id="order-status-title">{action}?</h2><button className="icon-button" aria-label="Tutup konfirmasi pesanan" disabled={busy} onClick={onClose}><X size={20} /></button></div>
     <div className="modal-body order-status-body"><strong>{orderLabel(order)}</strong><p>Status saat ini: <span className={`status-tag order-status-${current}`}>{orderStatuses.find(s => s.value === current)?.label}</span></p>
-      <fieldset className="order-status-options" disabled={busy}><legend>Status baru</legend>{orderStatuses.map(s => <label key={s.value} className="order-status-option"><input type="radio" name="order-status" value={s.value} checked={status === s.value} onChange={() => { setStatus(s.value); setError(""); }} /><span className={`status-tag order-status-${s.value}`}>{s.label}</span></label>)}</fieldset>
+      <p id="order-status-impact">{isPersonalOrder(order) ? status === "done" ? "Barang untuk sendiri sudah diterima atau diambil." : "Belanja sendiri ini tidak dilanjutkan." : status === "done" ? "Barang sudah diterima atau diambil pelanggan. Status pembayaran tetap terpisah." : "Pesanan tidak dilanjutkan dan dikeluarkan dari perhitungan penjualan serta margin."}</p>
       {needsRefund && <p className="error-message">Catat refund seluruh pembayaran sebelum membatalkan pesanan ini.</p>}{error && <p role="alert" className="error-message">{error}</p>}
     </div>
-    <div className="modal-footer"><Button ref={cancelRef} className="btn btn-secondary" disabled={busy} onClick={onClose}>Batal</Button><Button className="btn btn-primary" disabled={busy || status === current || needsRefund} onClick={save}>{busy ? "Menyimpan…" : "Simpan status"}</Button></div>
+    <div className="modal-footer"><Button ref={cancelRef} className="btn btn-secondary" disabled={busy} onClick={onClose}>Kembali</Button><Button className="btn btn-primary" disabled={busy || status === current || needsRefund} onClick={save}>{busy ? "Menyimpan…" : action}</Button></div>
   </dialog>;
 }

@@ -1,5 +1,5 @@
 import type { OrderStatus } from "./types.ts";
-/** Preserve legacy records while offering only four statuses. */
-export function visibleOrderStatus(status: OrderStatus): "new" | "shipped" | "done" | "cancelled" {
- return status === "purchased" || status === "ready" ? "new" : status;
+/** Keep unfinished legacy statuses readable without rewriting saved records. */
+export function visibleOrderStatus(status: OrderStatus): "new" | "done" | "cancelled" {
+ return status === "done" || status === "cancelled" ? status : "new";
 }

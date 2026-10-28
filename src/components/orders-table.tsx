@@ -5,7 +5,7 @@ import { visibleOrderStatus } from "@/lib/order-status";
 import { OrderStatusDialog, orderStatuses as statuses, type OrderStatusHandler } from "@/components/order-status-dialog";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { ArrowLeftRight, FileText, Pencil, Search, ShoppingBag, RotateCcw } from "lucide-react";
+import { Check, FileText, Pencil, Search, ShoppingBag, RotateCcw, X } from "lucide-react";
 import { RefundDialog, type RefundHandler } from "@/components/refund-dialog";
 import { refundedTotal } from "@/lib/refund";
 import type { InvoiceSettings } from "@/lib/business-profile";
@@ -46,9 +46,9 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
   const [detailOrderId,setDetailOrderId]=useState<string|null>(null);
   const detailOrder=data.orders.find(order=>order.id===detailOrderId);
   const detailContent=(order:Order)=><MobileOrderDetail order={order} data={data}/>;
-  const detailFooter=(order:Order)=>readOnly?undefined:<OrderDetailActions order={order} onEdit={()=>onEdit(order)} onStatus={()=>setStatusOrderId(order.id)} onInvoice={()=>setInvoiceOrderId(order.id)} onRefund={()=>setRefundId(order.id)}/>;
-  const [statusOrderId, setStatusOrderId] = useState<string | null>(null);
-  const statusOrder = data.orders.find(order => order.id === statusOrderId);
+  const detailFooter=(order:Order)=>readOnly?undefined:<OrderDetailActions order={order} onEdit={()=>onEdit(order)} onStatus={status=>setStatusAction({id:order.id,status})} onInvoice={()=>setInvoiceOrderId(order.id)} onRefund={()=>setRefundId(order.id)}/>;
+  const [statusAction, setStatusAction] = useState<{id:string;status:"done"|"cancelled"}|null>(null);
+  const statusOrder = data.orders.find(order => order.id === statusAction?.id);
   const [refundId,setRefundId]=useState<string|null>(null);
   const refundOrder=data.orders.find(order=>order.id===refundId);
   const [invoiceOrderId, setInvoiceOrderId] = useState<string | null>(null);
@@ -108,13 +108,13 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
                 <td className="center-cell">
                   <span className={`status-tag order-status-${visibleOrderStatus(order.status)}`}>{statuses.find(s=>s.value===visibleOrderStatus(order.status))?.label}</span>
                 </td>
-                {!readOnly && <td className="actions-cell"><div className="order-actions"><button className="icon-button" type="button" aria-label={`Ubah status pesanan ${label} untuk ${customer?.name ?? "pelanggan"}`} title="Ubah status" onClick={()=>setStatusOrderId(order.id)}><ArrowLeftRight size={16}/></button>{!isPersonalOrder(order)&&<button className="icon-button" type="button" onClick={() => setInvoiceOrderId(order.id)} aria-label={`Invoice ${label}`} title="Invoice WhatsApp"><FileText size={16} /></button>}<button className="icon-button" type="button" onClick={() => onEdit(order)} aria-label={`Edit pesanan ${label}`}><Pencil size={16} /></button>{!isPersonalOrder(order)&&<button className="icon-button" type="button" aria-label={`Refund ${label}`} title="Refund pesanan" disabled={order.paid===0 && !order.refunds?.length} onClick={()=>setRefundId(order.id)}><RotateCcw size={16}/></button>}</div></td>}
+                {!readOnly && <td className="actions-cell"><div className="order-actions">{visibleOrderStatus(order.status)==="new"&&<><button className="icon-button" type="button" aria-label={`Tandai selesai pesanan ${label} untuk ${customerName}`} title="Tandai selesai" onClick={()=>setStatusAction({id:order.id,status:"done"})}><Check size={16}/></button><button className="icon-button" type="button" aria-label={`Batalkan pesanan ${label} untuk ${customerName}`} title="Batalkan pesanan" onClick={()=>setStatusAction({id:order.id,status:"cancelled"})}><X size={16}/></button></>}{!isPersonalOrder(order)&&<button className="icon-button" type="button" onClick={() => setInvoiceOrderId(order.id)} aria-label={`Invoice ${label}`} title="Invoice WhatsApp"><FileText size={16} /></button>}<button className="icon-button" type="button" onClick={() => onEdit(order)} aria-label={`Edit pesanan ${label}`}><Pencil size={16} /></button>{!isPersonalOrder(order)&&<button className="icon-button" type="button" aria-label={`Refund ${label}`} title="Refund pesanan" disabled={order.paid===0 && !order.refunds?.length} onClick={()=>setRefundId(order.id)}><RotateCcw size={16}/></button>}</div></td>}
               </tr>
             );
           })}
         </tbody>
       </table>
-    </div>{detailOrder&&<DataDetailDialog entry={{id:detailOrder.id,dialogClassName:"order-data-dialog",footer:detailFooter(detailOrder),title:isPersonalOrder(detailOrder)?"Belanja pribadi":data.customers.find(customer=>customer.id===detailOrder.customerId)?.name||"Pelanggan",meta:"",details:detailContent(detailOrder)}} onClose={()=>setDetailOrderId(null)}/ >}{statusOrder && !readOnly && <OrderStatusDialog order={statusOrder} onSave={onStatus} onClose={()=>setStatusOrderId(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && !isPersonalOrder(invoiceOrder) && <InvoiceDialog settings={invoiceSettings} order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
+    </div>{detailOrder&&<DataDetailDialog entry={{id:detailOrder.id,dialogClassName:"order-data-dialog",footer:detailFooter(detailOrder),title:isPersonalOrder(detailOrder)?"Belanja pribadi":data.customers.find(customer=>customer.id===detailOrder.customerId)?.name||"Pelanggan",meta:"",details:detailContent(detailOrder)}} onClose={()=>setDetailOrderId(null)}/ >}{statusOrder && statusAction && !readOnly && <OrderStatusDialog order={statusOrder} status={statusAction.status} onSave={onStatus} onClose={()=>setStatusAction(null)}/ >}{refundOrder && <RefundDialog order={refundOrder} onRefund={onRefund} onClose={()=>setRefundId(null)}/ >}{invoiceOrder && !isPersonalOrder(invoiceOrder) && <InvoiceDialog settings={invoiceSettings} order={invoiceOrder} data={data} onClose={() => setInvoiceOrderId(null)} />}</>
   );
 }
 
@@ -157,6 +157,6 @@ function MobileOrderDetail({order,data}:{order:Order;data:AppData}) {
   </div>;
 }
 
-function OrderDetailActions({order,onEdit,onStatus,onInvoice,onRefund}:{order:Order;onEdit:()=>void;onStatus:()=>void;onInvoice:()=>void;onRefund:()=>void}) {
- return <div className="order-detail-actions"><button data-close-detail className="btn btn-primary" onClick={onEdit}><Pencil size={16} aria-hidden="true"/>Edit</button>{!isPersonalOrder(order)&&<button data-close-detail className="btn btn-secondary" onClick={onInvoice}><FileText size={16} aria-hidden="true"/>Invoice</button>}<button data-close-detail className="btn btn-secondary" aria-label="Ubah status" onClick={onStatus}><ArrowLeftRight size={16} aria-hidden="true"/>Status</button>{!isPersonalOrder(order)&&<button data-close-detail className="btn btn-secondary" disabled={order.paid === 0 && !order.refunds?.length} onClick={onRefund}><RotateCcw size={16} aria-hidden="true"/>Refund</button>}</div>;
+function OrderDetailActions({order,onEdit,onStatus,onInvoice,onRefund}:{order:Order;onEdit:()=>void;onStatus:(status:"done"|"cancelled")=>void;onInvoice:()=>void;onRefund:()=>void}) {
+ return <div className="order-detail-footer-actions"><div className="order-detail-actions"><button data-close-detail className="btn btn-primary" onClick={onEdit}><Pencil size={16} aria-hidden="true"/>Edit</button>{!isPersonalOrder(order)&&<button data-close-detail className="btn btn-secondary" onClick={onInvoice}><FileText size={16} aria-hidden="true"/>Invoice</button>}{!isPersonalOrder(order)&&<button data-close-detail className="btn btn-secondary" disabled={order.paid === 0 && !order.refunds?.length} onClick={onRefund}><RotateCcw size={16} aria-hidden="true"/>Refund</button>}</div>{visibleOrderStatus(order.status)==="new"&&<div className="order-detail-status-actions"><button data-close-detail className="btn btn-secondary" onClick={()=>onStatus("done")}>Tandai selesai</button><button data-close-detail className="btn btn-secondary" onClick={()=>onStatus("cancelled")}>Batalkan pesanan</button></div>}</div>;
 }

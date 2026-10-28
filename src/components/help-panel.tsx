@@ -35,7 +35,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
         "Pilih tanggal lewat kalender, lalu isi produk dan jumlahnya. Field bertanda bintang merah wajib diisi.",
         "Buka bagian tambahan untuk mengisi diskon, ongkir, catatan, tanggal kirim, jam 24 jam, dan metode kirim jika diperlukan.",
         "Gunakan Lunas untuk mengisi seluruh total tagihan atau Bayar sebagian untuk menulis nominal yang sudah diterima. Klik Simpan pesanan setelah datanya lengkap.",
-        "Untuk mengubah status pesanan, klik ikon panah dua arah pada kolom Aksi atau Ubah status pada detail ponsel. Pilih status baru, lalu klik Simpan status. Pesanan yang sudah dibayar perlu refund seluruh pembayaran sebelum dibatalkan.",
+        "Pesanan baru berstatus Diproses. Pilih Tandai selesai setelah barang diterima atau diambil pelanggan, atau Batalkan pesanan jika tidak dilanjutkan. Konfirmasi sebelum menyimpan. Pesanan yang sudah dibayar perlu refund seluruh pembayaran sebelum dibatalkan.",
       ], destination: "orders", action: "Buka Pesanan",
     },
     {
@@ -76,7 +76,7 @@ export function HelpPanel({ mode, onNavigate }: { mode: Batch["type"]; onNavigat
     {
       id: "status", title: "Kelola status dan refund",
       steps: [
-        "Ubah status pesanan dari halaman Pesanan: Tercatat, Dikirim, Selesai, atau Dibatalkan. Status pada Ringkasan hanya untuk dilihat.",
+        "Status pesanan terdiri dari Diproses, Selesai, dan Dibatalkan. Tandai selesai atau batalkan dari halaman Pesanan. Pembayaran tetap terpisah; pesanan selesai belum tentu lunas. Status pada Ringkasan hanya untuk dilihat.",
         "Untuk batch atau perjalanan, gunakan ikon ubah status. Alurnya Dibuka → Ditutup → Selesai. Setelah ditutup tidak bisa dibuka kembali; setelah selesai status terkunci.",
         "Jika ada uang yang dikembalikan, buka Refund pada pesanan dan isi nominal serta tanggalnya. Tippo mencatat pengembalian; transfer uang ke pelanggan dilakukan di luar Tippo.",
       ], destination: "orders", action: "Kelola Pesanan",
