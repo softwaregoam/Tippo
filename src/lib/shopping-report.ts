@@ -1,8 +1,8 @@
 import type { AppData, OrderItem } from "./types.ts";
 
-export interface PurchaseTotals { quantity:number; value:number; knownCost:number; missingQuantity:number; cost:number|null; }
+export interface PurchaseTotals { quantity:number; value:number; knownCost:number; missingQuantity:number; cost:number|null; shippingCharge?:number; }
 export interface PurchaseProduct extends PurchaseTotals { category:string;store:string;product:string;variant:string;color:string;size:string;unitCost:number|null; }
-export interface PurchaseOrder { id:string;personal:boolean;customer:string;address:string;date:string;items:(OrderItem & {category:string})[];totals:PurchaseTotals; }
+export interface PurchaseOrder { id:string;personal:boolean;customer:string;address:string;date:string;items:(OrderItem & {category:string})[];totals:PurchaseTotals; shippingCharge:number; }
 const clean=(value:string|undefined)=>(value??"").trim().replace(/\s+/g," ");
 const normalize=(value:string)=>value.normalize("NFKC").toLocaleLowerCase("id-ID");
 export function purchaseTotals(items:Pick<OrderItem,"quantity"|"unitPrice"|"unitCost">[]):PurchaseTotals {
@@ -16,7 +16,7 @@ export function buildShoppingReport(data:AppData,batchId:string) {
  if(!batch)throw new Error("Batch tidak ditemukan.");
  const categories=new Map(data.products.map(product=>[product.id,clean(product.category)]));
  const customers=new Map(data.customers.map(customer=>[customer.id,customer]));
- const orders:PurchaseOrder[]=data.orders.filter(order=>order.batchId===batchId&&order.status!=="cancelled").sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).map(order=>({id:order.id,personal:order.purpose==="personal",customer:order.purpose==="personal"?"Untuk sendiri":customers.get(order.customerId)?.name||"Pelanggan",address:customers.get(order.customerId)?.address?.trim()||"",date:order.date,items:order.items.map(item=>({...item,category:batch.type==="po"?(categories.get(item.productId??"")||"Tanpa kategori"):"Tanpa kategori"})),totals:purchaseTotals(order.items)}));
+  const orders:PurchaseOrder[]=data.orders.filter(order=>order.batchId===batchId&&order.status!=="cancelled").sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).map(order=>({id:order.id,personal:order.purpose==="personal",customer:order.purpose==="personal"?"Untuk sendiri":customers.get(order.customerId)?.name||"Pelanggan",address:customers.get(order.customerId)?.address?.trim()||"",date:order.date,items:order.items.map(item=>({...item,category:batch.type==="po"?(categories.get(item.productId??"")||"Tanpa kategori"):"Tanpa kategori"})),totals:purchaseTotals(order.items),shippingCharge:order.shippingCharge??0}));
  const groups=new Map<string,{labels:string[];items:OrderItem[]}>();
  for(const order of orders)for(const item of order.items){
   const labels=[item.category,clean(item.store)||"Tanpa toko / brand",clean(item.product),clean(item.variant),clean(item.color),clean(item.size)];
@@ -26,6 +26,6 @@ export function buildShoppingReport(data:AppData,batchId:string) {
  const categoryGroups=new Map<string,{name:string;items:PurchaseProduct[]}>();
  for(const product of products){const key=normalize(product.category);let group=categoryGroups.get(key);if(!group){group={name:product.category,items:[]};categoryGroups.set(key,group);}group.items.push(product);}
  const subtotals=(items:PurchaseProduct[]):PurchaseTotals=>{const quantity=items.reduce((s,p)=>s+p.quantity,0),value=items.reduce((s,p)=>s+p.value,0),knownCost=items.reduce((s,p)=>s+p.knownCost,0),missingQuantity=items.reduce((s,p)=>s+p.missingQuantity,0);return {quantity,value,knownCost,missingQuantity,cost:missingQuantity?null:knownCost};};
- return {batch,orders,products,categories:[...categoryGroups.values()].map(group=>({...group,totals:subtotals(group.items)})),totals:purchaseTotals(orders.flatMap(order=>order.items))};
+  return {batch,orders,products,categories:[...categoryGroups.values()].map(group=>({...group,totals:subtotals(group.items)})),totals:{...purchaseTotals(orders.flatMap(order=>order.items)),shippingCharge:orders.reduce((sum,order)=>sum+order.shippingCharge,0)}};
 }
 export type ShoppingReport=ReturnType<typeof buildShoppingReport>;

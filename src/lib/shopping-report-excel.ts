@@ -59,32 +59,32 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  if(kind==="orders"){
  const orders=prepare("Per pesanan",[
   {header:"Pemesan",key:"customer",width:30},{header:"Produk",key:"product",width:48},quantity,
-  {header:"Harga jual / unit",key:"unitPrice",width:22,money:true},{header:"Subtotal jual produk",key:"value",width:22,money:true},{header:"Total pesanan",key:"orderValue",width:24,money:true},
+  {header:"Harga jual / unit",key:"unitPrice",width:22,money:true},{header:"Subtotal jual produk",key:"value",width:22,money:true},{header:"Total pesanan",key:"orderValue",width:24,money:true},{header:"Ongkir",key:"shippingCharge",width:18,money:true},
   {header:"Alamat kirim",key:"address",width:38},{header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"itemCost",width:22,money:true},{header:"HPP pelanggan",key:"cost",width:22,money:true},{header:"Margin usaha",key:"margin",width:22,money:true},
  ]);
  orders.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}};orders.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
  orders.views=[{state:"frozen",ySplit:3,xSplit:3,activeCell:"D4",showGridLines:false}];
- for(const index of [4,5,6,8,9,10,11])orders.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
+  for(const index of [4,5,6,7,9,10,11,12])orders.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
  for(const [index,order] of report.orders.entries()){
   const start=orders.rowCount+1,fill=palette[index%palette.length];
   for(const [line,item] of order.items.entries()){
    const options=[item.color,item.size,...(po&&item.category!=="Tanpa kategori"?[`Kategori: ${item.category}`]:[]),...(item.store?[`Toko: ${item.store}`]:[]),...(item.purchaseFx?[`Harga beli: ${item.purchaseFx.amount??"?"} ${item.purchaseFx.currency}; 1 ${item.purchaseFx.currency} = Rp${item.purchaseFx.rate??"?"} (${item.purchaseFx.status==="estimate"?"estimasi":"final"})`]:[])].filter(Boolean).join(" · ");
    const label=[item.product,item.variant].filter(Boolean).join(" ")+(options?`\n${options}`:"");
-   const row=orders.addRow({customer:line===0?{richText:[{text:order.customer,font:{bold:true,size:11}},{text:`\n${formatCalendarDate(order.date)}`,font:{bold:false,size:10,color:{argb:"FF626862"}}}]}:undefined,product:label,quantity:item.quantity,unitPrice:item.unitPrice,value:item.quantity*item.unitPrice,orderValue:line===0?order.totals.value:undefined,address:line===0?order.address:undefined,unitCost:item.unitCost??missing,itemCost:item.unitCost===null?missing:item.quantity*item.unitCost,cost:line===0?(order.personal?"—":order.totals.cost??missing):undefined,margin:line===0?(order.personal?"—":order.totals.cost===null?missing:order.totals.value-order.totals.cost):undefined});
+    const row=orders.addRow({customer:line===0?{richText:[{text:order.customer,font:{bold:true,size:11}},{text:`\n${formatCalendarDate(order.date)}`,font:{bold:false,size:10,color:{argb:"FF626862"}}}]}:undefined,product:label,quantity:item.quantity,unitPrice:item.unitPrice,value:item.quantity*item.unitPrice,orderValue:line===0?order.totals.value:undefined,shippingCharge:line===0?order.shippingCharge:undefined,address:line===0?order.address:undefined,unitCost:item.unitCost??missing,itemCost:item.unitCost===null?missing:item.quantity*item.unitCost,cost:line===0?(order.personal?"—":order.totals.cost??missing):undefined,margin:line===0?(order.personal?"—":order.totals.cost===null?missing:order.totals.value-order.totals.cost):undefined});
    const identityHeight=(Math.ceil(order.customer.length/28)+1)*16+8;
    const addressHeight=order.address.split("\n").reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/36)),0)*16+8;
    row.height=Math.max(30,label.split("\n").reduce((sum,line)=>sum+Math.ceil(line.length/48),0)*16+8,Math.ceil(Math.max(identityHeight,addressHeight)/order.items.length));
-   for(let column=1;column<=11;column++){
-    const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,6,10,11].includes(column)};
-    cell.alignment={vertical:"middle",horizontal:column===3?"center":[4,5,6,8,9,10,11].includes(column)?"right":"left",wrapText:true};
-    cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};
-    cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===3?"FFFFF3B0":[4,5,7,8,9].includes(column)?"FFFFFFFF":fill}};
+    for(let column=1;column<=12;column++){
+     const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,6,11,12].includes(column)};
+     cell.alignment={vertical:"middle",horizontal:column===3?"center":[4,5,6,7,9,10,11,12].includes(column)?"right":"left",wrapText:true};
+     cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};
+     cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===3?"FFFFF3B0":[4,5,7,8,9,10].includes(column)?"FFFFFFFF":fill}};
+    }
    }
-  }
-  const end=orders.rowCount;if(end>start)for(const column of [1,6,7,10,11])orders.mergeCells(start,column,end,column);
+  const end=orders.rowCount;if(end>start)for(const column of [1,6,7,11,12])orders.mergeCells(start,column,end,column);
  }
  if(report.orders.some(order=>order.personal))subtotal(orders,{customer:"BELANJA SENDIRI",itemCost:report.orders.filter(order=>order.personal).reduce((sum,order)=>sum+order.totals.knownCost,0)});
- const orderTotal=subtotal(orders,{customer:estimated?"TOTAL KESELURUHAN · ESTIMASI":"TOTAL KESELURUHAN",quantity:report.totals.quantity,itemCost:report.totals.cost??missing,orderValue:report.totals.value,cost:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+(order.totals.cost??0),0),margin:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+order.totals.value-(order.totals.cost??0),0)},true);
+  const orderTotal=subtotal(orders,{customer:estimated?"TOTAL KESELURUHAN · ESTIMASI":"TOTAL KESELURUHAN",quantity:report.totals.quantity,itemCost:report.totals.cost??missing,orderValue:report.totals.value,shippingCharge:report.totals.shippingCharge,cost:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+(order.totals.cost??0),0),margin:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+order.totals.value-(order.totals.cost??0),0)},true);
  orders.mergeCells(orderTotal.number,1,orderTotal.number,2);orderTotal.height=30;orderTotal.alignment={vertical:"middle",horizontal:"right"};orderTotal.getCell(3).alignment={vertical:"middle",horizontal:"center"};
  }
  return new Uint8Array(await book.xlsx.writeBuffer());
