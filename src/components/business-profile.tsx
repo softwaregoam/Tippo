@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Landmark, QrCode, Settings, Upload, X } from "lucide-react";
+import { Landmark, QrCode, Upload, X } from "lucide-react";
 import { QrisImage } from "@/components/qris-image";
 import { validateQrisFile, qrisExtension } from "@/lib/qris";
-import { getSupabaseClient, authErrorMessage } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { DEMO_PROFILE_KEY, readBusinessProfile, validateBusinessProfile, type BusinessProfile } from "@/lib/business-profile";
 import { readInvoiceAppearance, validateInvoiceTemplate, type InvoiceAppearance } from "@/lib/invoice-template";
@@ -24,10 +24,6 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
   const submitting = useRef(false);
   const qrisInput=useRef<HTMLInputElement>(null),qrisRequest=useRef(0);
   const [qris,setQris]=useState<{file:File;url:string}|null>(null),[processingQris,setProcessingQris]=useState(false);
-  const [changePassword,setChangePassword]=useState({current:"",new:"",confirm:""});
-  const [changePasswordBusy,setChangePasswordBusy]=useState(false);
-  const [changePasswordMessage,setChangePasswordMessage]=useState("");
-  const [changePasswordError,setChangePasswordError]=useState("");
   const qrisSource=qris?.url||appearance.qrisUrl||"";
   useEffect(()=>()=>{if(qris)URL.revokeObjectURL(qris.url);},[qris]);
   useEffect(()=>()=>{qrisRequest.current++;},[]);
@@ -74,20 +70,6 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
     } catch (cause) { if(!profileSaved&&uploadedPath&&client)await client.storage.from("invoice-logos").remove([uploadedPath]).catch(()=>undefined); setError(cause instanceof Error ? cause.message : "Profil belum tersimpan. Coba lagi."); }
     finally { submitting.current = false; setBusy(false); }
   }
-  async function changePasswordSubmit(event: React.MouseEvent<HTMLButtonElement>) {
-    event.preventDefault(); if (changePasswordBusy) return;
-    setChangePasswordBusy(true); setChangePasswordError(""); setChangePasswordMessage("");
-    if (changePassword.new !== changePassword.confirm) { setChangePasswordError("Konfirmasi kata sandi baru tidak cocok."); setChangePasswordBusy(false); return; }
-    if (changePassword.new.length < 8) { setChangePasswordError("Kata sandi baru minimal 8 karakter."); setChangePasswordBusy(false); return; }
-    const client=getSupabaseClient();
-    if (!cloud || !client) { setChangePasswordError("Masuk ke akun untuk mengubah kata sandi."); setChangePasswordBusy(false); return; }
-    try {
-      const {error} = await client.auth.updateUser({ password: changePassword.new });
-      if (error) setChangePasswordError(authErrorMessage(error));
-      else { setChangePasswordMessage("Kata sandi akun berhasil diubah."); setChangePassword({current:"",new:"",confirm:""}); }
-    } catch { setChangePasswordError("Belum berhasil terhubung. Periksa koneksi internet dan coba lagi."); }
-    finally { setChangePasswordBusy(false); }
-  }
   return <section className="card business-profile-card">
     <div className="card-header"><div><h2>Identitas usaha</h2><p>{cloud ? "Lengkapi nama dan kontak usahamu." : "Profil demo tersimpan di browser ini."}</p></div></div>
     <form onSubmit={submit} aria-busy={busy}>
@@ -115,16 +97,6 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
             </div>
           </div>
         </fieldset>
-        {cloud && <fieldset className="business-bank-settings password-section" disabled={busy||changePasswordBusy} aria-labelledby="business-password-title">
-          <div className="business-bank-heading"><span className="business-bank-icon"><Settings size={23} aria-hidden="true" /></span><div><h3 id="business-password-title">Ubah kata sandi akun</h3><p>Digunakan untuk masuk ke Tippo.</p></div></div>
-          <div className="business-bank-fields password-fields">
-          <div className="field"><label className="field-label" htmlFor="password-new">Kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Kata sandi baru" id="password-new" className="input" required type="password" autoComplete="new-password" minLength={8} maxLength={128} disabled={busy||changePasswordBusy} value={changePassword.new} onChange={e=>setChangePassword({...changePassword,new:e.target.value})} placeholder="Minimal 8 karakter" /></div>
-          <div className="field"><label className="field-label" htmlFor="password-confirm">Konfirmasi kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Konfirmasi kata sandi baru" id="password-confirm" className="input" required type="password" autoComplete="new-password" disabled={busy||changePasswordBusy} value={changePassword.confirm} onChange={e=>setChangePassword({...changePassword,confirm:e.target.value})} placeholder="Masukkan ulang kata sandi baru" /></div>
-          </div>
-          {changePasswordError && <p className="error-message" role="alert">{changePasswordError}</p>}
-          {changePasswordMessage && <p className="auth-alert success" role="status">{changePasswordMessage}</p>}
-          <button type="button" className="btn btn-secondary change-password-button" disabled={busy||changePasswordBusy||!changePassword.new} onClick={changePasswordSubmit}>{changePasswordBusy ? "Mengubah…" : "Ubah kata sandi"}</button>
-        </fieldset>}
         {error && <p className="error-message" role="alert">{error}</p>}
       </div>
       <div className="business-profile-footer"><Button type="submit" className="btn btn-primary" disabled={busy || processingQris || cloud?.saving}>{busy ? "Menyimpan…" : "Simpan profil"}</Button></div>
