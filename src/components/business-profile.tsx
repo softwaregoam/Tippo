@@ -115,7 +115,7 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
             </div>
           </div>
         </fieldset>
-        {cloud && <fieldset className="business-bank-settings" disabled={busy||changePasswordBusy} aria-labelledby="business-password-title">
+        {cloud && <fieldset className="business-bank-settings password-section" disabled={busy||changePasswordBusy} aria-labelledby="business-password-title">
           <div className="business-bank-heading"><span className="business-bank-icon"><Settings size={23} aria-hidden="true" /></span><div><h3 id="business-password-title">Ubah kata sandi akun</h3><p>Digunakan untuk masuk ke Tippo.</p></div></div>
           <div className="business-bank-fields password-fields">
           <div className="field"><label className="field-label" htmlFor="password-new">Kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Kata sandi baru" id="password-new" className="input" required type="password" autoComplete="new-password" minLength={8} maxLength={128} disabled={busy||changePasswordBusy} value={changePassword.new} onChange={e=>setChangePassword({...changePassword,new:e.target.value})} placeholder="Minimal 8 karakter" /></div>
