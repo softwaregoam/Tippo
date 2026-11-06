@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { X } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient, authErrorMessage } from "@/lib/supabase";
 
@@ -10,6 +10,8 @@ export function ChangePasswordDialog({ open, onClose, onSuccess }: { open: boole
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,11 +44,17 @@ export function ChangePasswordDialog({ open, onClose, onSuccess }: { open: boole
           <div className="modal-body">
             <div className="field">
               <label className="field-label">Kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label>
-              <input aria-label="Kata sandi baru" className="input" required type="password" autoComplete="new-password" minLength={8} maxLength={128} disabled={busy} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimal 8 karakter" />
+              <div className="auth-input-wrap" style={{ display: "flex", alignItems: "center" }}>
+                <input aria-label="Kata sandi baru" className="input" required type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={8} maxLength={128} disabled={busy} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimal 8 karakter" style={{ flex: 1 }} />
+                <button type="button" aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"} className="icon-button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}</button>
+              </div>
             </div>
             <div className="field">
               <label className="field-label">Konfirmasi kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label>
-              <input aria-label="Konfirmasi kata sandi baru" className="input" required type="password" autoComplete="new-password" disabled={busy} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Masukkan ulang kata sandi baru" />
+              <div className="auth-input-wrap" style={{ display: "flex", alignItems: "center" }}>
+                <input aria-label="Konfirmasi kata sandi baru" className="input" required type={showConfirm ? "text" : "password"} autoComplete="new-password" disabled={busy} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Masukkan ulang kata sandi baru" style={{ flex: 1 }} />
+                <button type="button" aria-label={showConfirm ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"} className="icon-button" onClick={() => setShowConfirm(!showConfirm)}>{showConfirm ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}</button>
+              </div>
             </div>
             {error && <p className="error-message" role="alert">{error}</p>}
             {message && <p className="auth-alert success" role="status">{message}</p>}
