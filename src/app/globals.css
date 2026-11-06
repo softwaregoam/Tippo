@@ -413,15 +413,21 @@ input::placeholder, textarea::placeholder, .input::placeholder { color: var(--pl
 .quota-banner strong { display: block; font-size: 13px; font-weight: 600; }
 .quota-banner span { display: block; font-size: 12px; line-height: 1.8; color: var(--muted); margin-top: 3px; }
 .quota-banner .btn { flex-shrink: 0; }
-.expiry-reminder-banner { display: flex; align-items: center; justify-content: space-between; gap: 18px; background: var(--tone-surface-f7e4cb); border: 1px solid var(--warning); border-radius: 9px; padding: 14px 20px; margin-bottom: 28px; }
-.expiry-reminder-banner[role="alert"] { color: var(--warning); }
+.expiry-reminder-banner { display: flex; align-items: center; justify-content: space-between; gap: 18px; border: 1px solid var(--expiry-theme-color, var(--primary)); border-radius: 9px; padding: 14px 20px; margin-bottom: 28px; background: var(--expiry-theme-bg, var(--tone-surface-eaf0e8)); color: var(--expiry-theme-color, var(--primary)); }
+.expiry-reminder-banner[role="alert"] { color: var(--expiry-theme-color, var(--primary)); }
 .expiry-reminder-content { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
-.expiry-reminder-icon { flex-shrink: 0; color: var(--warning); }
+.expiry-reminder-icon { flex-shrink: 0; color: var(--expiry-theme-color, var(--primary)); }
 .expiry-reminder-body { min-width: 0; }
-.expiry-reminder-body strong { display: block; font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-.expiry-reminder-body p { display: block; font-size: 12px; line-height: 1.8; margin: 0; color: var(--warning); opacity: 0.9; }
-.expiry-reminder-button { flex-shrink: 0; border-color: var(--warning) !important; color: var(--warning) !important; background: var(--tone-surface-f7e4cb) !important; }
-.expiry-reminder-button:hover { background: var(--tone-surface-f2ddbf) !important; }
+.expiry-reminder-body strong { display: block; font-size: 13px; font-weight: 600; margin-bottom: 3px; color: var(--expiry-theme-color, var(--primary)); }
+.expiry-reminder-body p { display: block; font-size: 12px; line-height: 1.8; margin: 0; color: var(--expiry-theme-color, var(--primary)); opacity: 0.9; }
+.expiry-reminder-button { flex-shrink: 0; border: 1px solid var(--expiry-theme-color, var(--primary)) !important; color: var(--expiry-theme-color, var(--primary)) !important; background: var(--expiry-theme-bg, var(--tone-surface-eaf0e8)) !important; }
+.expiry-reminder-button:hover { background: var(--expiry-theme-hover, var(--tone-surface-e0eade)) !important; }
+@media(max-width:600px) {
+  .expiry-reminder-banner { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px 18px; }
+  .expiry-reminder-content { flex-direction: column; align-items: flex-start; gap: 10px; width: 100%; }
+  .expiry-reminder-body { width: 100%; }
+  .expiry-reminder-button { width: 100%; justify-content: center; }
+}
 .summary-upgrade { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; border: 1px solid var(--control-border); background: var(--canvas); color: var(--primary); border-radius: 6px; padding: 10px 14px; font-size: 14px; margin: 0 auto 16px; max-width: calc(100% - 32px); line-height: 1.7; }
 .current-month-chart { padding: 28px 24px 18px; }
 .current-bars { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 32px; max-width: 360px; margin: auto; text-align: center; }
