@@ -14,7 +14,7 @@ function daysUntil(dateString: string | null): number | null {
   return Math.ceil((expires - now) / (1000 * 60 * 60 * 24));
 }
 
-export function SubscriptionExpiryReminder({ subscription, onUpgrade }: { subscription: Subscription; onUpgrade: () => void }) {
+export function SubscriptionExpiryReminder({ subscription, mode, onUpgrade }: { subscription: Subscription; mode: "jastip" | "po"; onUpgrade: () => void }) {
   const [days, setDays] = useState(() => daysUntil(subscription.expiresAt));
 
   useEffect(() => {
@@ -27,6 +27,10 @@ export function SubscriptionExpiryReminder({ subscription, onUpgrade }: { subscr
 
   if (!shouldWarn) return null;
 
+  const isPo = mode === "po";
+  const themeColor = isPo ? "var(--warning)" : "var(--primary)";
+  const themeBg = isPo ? "var(--tone-surface-f7e4cb)" : "var(--tone-surface-eaf0e8)";
+  const themeHover = isPo ? "var(--tone-surface-f2ddbf)" : "var(--tone-surface-e0eade)";
   const expiryLabel = subscription.expiresAt
     ? new Date(subscription.expiresAt).toLocaleDateString("id-ID", {
         day: "numeric",
@@ -37,7 +41,16 @@ export function SubscriptionExpiryReminder({ subscription, onUpgrade }: { subscr
     : "—";
 
   return (
-    <div className="expiry-reminder-banner" role="alert" aria-label="Peringatan masa Pro akan berakhir">
+    <div
+      className="expiry-reminder-banner"
+      role="alert"
+      aria-label="Peringatan masa Pro akan berakhir"
+      style={{
+        "--expiry-theme-color": themeColor,
+        "--expiry-theme-bg": themeBg,
+        "--expiry-theme-hover": themeHover,
+      } as any}
+    >
       <div className="expiry-reminder-content">
         <div className="expiry-reminder-icon">
           <AlertTriangle size={20} aria-hidden="true" />
