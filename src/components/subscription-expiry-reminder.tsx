@@ -49,7 +49,7 @@ export function SubscriptionExpiryReminder({ subscription, mode, onUpgrade }: { 
         "--expiry-theme-color": themeColor,
         "--expiry-theme-bg": themeBg,
         "--expiry-theme-hover": themeHover,
-      } as any}
+      } as unknown as React.CSSProperties}
     >
       <div className="expiry-reminder-content">
         <div className="expiry-reminder-icon">
