@@ -39,6 +39,7 @@ import { HppPanel } from "@/components/hpp-panel";
 import { BatchCurrencyFields } from "./batch-currency-fields";
 import { hasEstimatedCost, type BatchPurchaseFx } from "@/lib/purchase-fx";
 import { SubscriptionPanel } from "@/components/subscription-panel";
+import { SubscriptionExpiryReminder } from "@/components/subscription-expiry-reminder";
 import { useAppData, saveAppData, normalizeAppData } from "@/lib/store";
 import { seedData } from "@/lib/seed";
 import { formatCurrency, getMonthlySeries, getMonthSummary, outstanding, isPersonalOrder } from "@/lib/finance";
@@ -409,6 +410,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
           <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && page !== "reports" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
 
           {!isPro && page !== "settings" && page !== "hpp" && page !== "invoice-template" && page !== "subscription" && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
+          {isPro && page !== "subscription" && <SubscriptionExpiryReminder subscription={subscription} onUpgrade={() => { go("subscription"); setProFocusRequest(value => value + 1); }} />}
             <div key={page} className={page === "dashboard" ? "dashboard-content" : undefined}>
               {page === "dashboard" && <>
                 <div className="stats-grid dashboard-stats">
