@@ -16,13 +16,14 @@ import { InvoiceTemplatePanel } from "@/components/invoice-template-panel";
 import { invoiceAppearanceForMode, readInvoiceAppearance, type InvoiceTemplate } from "@/lib/invoice-template";
 import { getSupabaseClient } from "@/lib/supabase";
 import { BusinessProfilePanel } from "@/components/business-profile";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   ArrowUpRight, CalendarDays, Crown,
   Check, ChevronDown, CircleHelp, Download, FileJson, Headset, Layers3,
-  FileBarChart2, LayoutDashboard, LogOut, MapPin, Menu, MessageSquare, Package, Palette, Pencil, Plus, ReceiptText, Search, Settings2,
+  FileBarChart2, LayoutDashboard, LogOut, Lock, MapPin, Menu, MessageSquare, Package, Palette, Pencil, Plus, ReceiptText, Search, Settings2,
   ShoppingBag, Trash2, Upload, UsersRound, Wallet, X,
 } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
@@ -76,6 +77,7 @@ const serverReady = () => false;
 
 export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const ready = useSyncExternalStore(subscribeReady, clientReady, serverReady);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const demoData = useAppData();
   const [demoProfile, setDemoProfile] = useState(() => {
     if (cloud) return readBusinessProfile(null);
@@ -400,6 +402,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
               }}>
                 <div className="account-menu-identity" role="presentation"><strong>{cloud?.name ?? "Usaha kamu"}</strong><span>{cloud?.email || "Mode demo"}</span></div>
                 <button role="menuitem" tabIndex={-1} onClick={() => { go("profile"); accountButton.current?.focus(); }}><UsersRound size={18} aria-hidden="true" />Profil bisnis</button>
+                {cloud && <button role="menuitem" tabIndex={-1} onClick={() => { setAccountOpen(false); setShowChangePassword(true); accountButton.current?.focus(); }}><Lock size={18} aria-hidden="true" />Ubah kata sandi</button>}
                 <ThemeToggle menu />
                 {cloud ? <button role="menuitem" tabIndex={-1} className="account-logout" disabled={cloud.saving} onClick={() => { setAccountOpen(false); accountButton.current?.focus(); void cloud.logout(); }}><LogOut size={18} aria-hidden="true" />Keluar</button> : <Link role="menuitem" tabIndex={-1} className="account-logout" href="/" onKeyDown={(event) => { if (event.key === " ") { event.preventDefault(); event.currentTarget.click(); } }}><LogOut size={18} aria-hidden="true" />Keluar demo</Link>}
               </div>}
@@ -481,6 +484,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
         return saved;
       }} />}
       {toast && <div role="status" className="toast"><Check size={18} /><span>{toast}</span><button aria-label="Tutup pemberitahuan" onClick={() => setToast(null)}><X size={16} /></button></div>}
+      {showChangePassword && <ChangePasswordDialog open={showChangePassword} onClose={() => setShowChangePassword(false)} />}
     </div>
   );
 }
