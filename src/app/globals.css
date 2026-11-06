@@ -776,11 +776,10 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .business-profile-footer { display: flex; justify-content: flex-end; border-top: 1px solid var(--border); padding: 20px 24px; }
 .change-password-button { margin-top: 12px; }
 .password-fields { display: flex; flex-direction: column; gap: 12px; }
-.password-fields > .field { flex: 1; }
-.password-fields > .field > .input { width: 100%; }
+.password-fields > .field { flex: 1; min-width: 0; }
+.password-section { background: var(--tone-surface-f7e4cb); border-radius: 9px; padding: 14px 16px; }
 @media (min-width: 601px) {
   .password-fields { flex-direction: row; gap: 16px; }
-  .password-fields > .field { flex: 1; }
 }
 @media (max-width: 600px) { .business-profile-fields { padding: 18px; } .business-profile-footer { padding: 18px; } }
 .refund-cancel { display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 20px 0 12px; }
