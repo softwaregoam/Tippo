@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient, authErrorMessage } from "@/lib/supabase";
 
-export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ChangePasswordDialog({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess: () => void }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,7 +24,7 @@ export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose
     try {
       const { error: err } = await client.auth.updateUser({ password });
       if (err) setError(authErrorMessage(err));
-      else { setMessage("Kata sandi akun berhasil diubah."); setPassword(""); setConfirm(""); }
+      else { setMessage("Kata sandi akun berhasil diubah."); setPassword(""); setConfirm(""); onSuccess(); }
     } catch { setError("Belum berhasil terhubung. Periksa koneksi internet dan coba lagi."); }
     finally { setBusy(false); }
   }

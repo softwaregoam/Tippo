@@ -484,7 +484,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
         return saved;
       }} />}
       {toast && <div role="status" className="toast"><Check size={18} /><span>{toast}</span><button aria-label="Tutup pemberitahuan" onClick={() => setToast(null)}><X size={16} /></button></div>}
-      {showChangePassword && <ChangePasswordDialog open={showChangePassword} onClose={() => setShowChangePassword(false)} />}
+      {showChangePassword && <ChangePasswordDialog open={showChangePassword} onClose={() => setShowChangePassword(false)} onSuccess={() => { setShowChangePassword(false); notify("Password berhasil diubah"); } } />}
     </div>
   );
 }
