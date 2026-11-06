@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Landmark, QrCode, Upload, X } from "lucide-react";
+import { Landmark, QrCode, Settings, Upload, X } from "lucide-react";
 import { QrisImage } from "@/components/qris-image";
 import { validateQrisFile, qrisExtension } from "@/lib/qris";
 import { getSupabaseClient, authErrorMessage } from "@/lib/supabase";
@@ -116,14 +116,14 @@ export function BusinessProfilePanel({ cloud, onNotify, onSaved }: { cloud?: Acc
           </div>
         </fieldset>
         {cloud && <fieldset className="business-bank-settings" disabled={busy||changePasswordBusy} aria-labelledby="business-password-title">
-          <div className="business-bank-heading"><span className="business-bank-icon"><X size={23} aria-hidden="true" /></span><div><h3 id="business-password-title">Ubah kata sandi akun</h3><p>Digunakan untuk masuk ke Tippo.</p></div></div>
-          <div className="business-bank-fields">
+          <div className="business-bank-heading"><span className="business-bank-icon"><Settings size={23} aria-hidden="true" /></span><div><h3 id="business-password-title">Ubah kata sandi akun</h3><p>Digunakan untuk masuk ke Tippo.</p></div></div>
+          <div className="business-bank-fields password-fields">
           <div className="field"><label className="field-label" htmlFor="password-new">Kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Kata sandi baru" id="password-new" className="input" required type="password" autoComplete="new-password" minLength={8} maxLength={128} disabled={busy||changePasswordBusy} value={changePassword.new} onChange={e=>setChangePassword({...changePassword,new:e.target.value})} placeholder="Minimal 8 karakter" /></div>
           <div className="field"><label className="field-label" htmlFor="password-confirm">Konfirmasi kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Konfirmasi kata sandi baru" id="password-confirm" className="input" required type="password" autoComplete="new-password" disabled={busy||changePasswordBusy} value={changePassword.confirm} onChange={e=>setChangePassword({...changePassword,confirm:e.target.value})} placeholder="Masukkan ulang kata sandi baru" /></div>
           </div>
           {changePasswordError && <p className="error-message" role="alert">{changePasswordError}</p>}
           {changePasswordMessage && <p className="auth-alert success" role="status">{changePasswordMessage}</p>}
-          <button type="button" className="btn btn-secondary" disabled={busy||changePasswordBusy||!changePassword.new} onClick={changePasswordSubmit}>{changePasswordBusy ? "Mengubah…" : "Ubah kata sandi"}</button>
+          <button type="button" className="btn btn-secondary change-password-button" disabled={busy||changePasswordBusy||!changePassword.new} onClick={changePasswordSubmit}>{changePasswordBusy ? "Mengubah…" : "Ubah kata sandi"}</button>
         </fieldset>}
         {error && <p className="error-message" role="alert">{error}</p>}
       </div>
