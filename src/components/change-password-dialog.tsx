@@ -38,22 +38,24 @@ export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose
           <h2>Ubah kata sandi</h2>
           <button className="icon-button" aria-label="Tutup" onClick={onClose}><X size={20} /></button>
         </div>
-        <div className="modal-body">
-          <div className="field">
-            <label className="field-label">Kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label>
-            <input aria-label="Kata sandi baru" className="input" required type="password" autoComplete="new-password" minLength={8} maxLength={128} disabled={busy} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimal 8 karakter" />
+        <form onSubmit={submit} aria-busy={busy}>
+          <div className="modal-body">
+            <div className="field">
+              <label className="field-label">Kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label>
+              <input aria-label="Kata sandi baru" className="input" required type="password" autoComplete="new-password" minLength={8} maxLength={128} disabled={busy} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimal 8 karakter" />
+            </div>
+            <div className="field">
+              <label className="field-label">Konfirmasi kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label>
+              <input aria-label="Konfirmasi kata sandi baru" className="input" required type="password" autoComplete="new-password" disabled={busy} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Masukkan ulang kata sandi baru" />
+            </div>
+            {error && <p className="error-message" role="alert">{error}</p>}
+            {message && <p className="auth-alert success" role="status">{message}</p>}
           </div>
-          <div className="field">
-            <label className="field-label">Konfirmasi kata sandi baru<span className="required-mark" aria-hidden="true"> *</span></label>
-            <input aria-label="Konfirmasi kata sandi baru" className="input" required type="password" autoComplete="new-password" disabled={busy} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Masukkan ulang kata sandi baru" />
+          <div className="modal-footer">
+            <Button type="button" className="btn btn-secondary" disabled={busy} onClick={onClose}>Batal</Button>
+            <Button type="submit" className="btn btn-primary" disabled={busy || !password}>{busy ? "Mengubah…" : "Simpan"}</Button>
           </div>
-          {error && <p className="error-message" role="alert">{error}</p>}
-          {message && <p className="auth-alert success" role="status">{message}</p>}
-        </div>
-        <div className="modal-footer">
-          <Button type="button" className="btn btn-secondary" disabled={busy} onClick={onClose}>Batal</Button>
-          <Button type="submit" className="btn btn-primary" disabled={busy || !password}>{busy ? "Mengubah…" : "Simpan"}</Button>
-        </div>
+        </form>
       </div>
     </div>
   );
