@@ -262,45 +262,16 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     setSelectedHpp("");
     go("dashboard");
   }
-  function findDuplicateOrder(order: Order): Order | undefined {
-    return data.orders.find((entry) => {
-      if (entry.id === order.id) return false;
-      if (entry.customerId !== order.customerId) return false;
-      if (entry.batchId !== order.batchId) return false;
-      if (entry.date !== order.date) return false;
-      if (entry.items.length !== order.items.length) return false;
-      const a = [...entry.items].sort((x, y) => (x.productId || "").localeCompare(y.productId || "") || x.quantity - y.quantity);
-      const b = [...order.items].sort((x, y) => (x.productId || "").localeCompare(y.productId || "") || x.quantity - y.quantity);
-      return a.every((item, i) => {
-        const other = b[i];
-        return item.productId === other.productId &&
-               item.variant === other.variant &&
-               item.color === other.color &&
-               item.size === other.size &&
-               item.quantity === other.quantity &&
-               item.unitPrice === other.unitPrice;
-      });
-    });
-  }
-
   async function saveOrder(order: Order, customer?: Customer, batchFx?: BatchPurchaseFx) {
     const existing = data.orders.find((entry) => entry.id === order.id);
-    const duplicate = existing ? undefined : findDuplicateOrder(order);
-    const target = duplicate ?? existing;
-
-    if (!target) {
+    if (!existing) {
       const type = data.batches.find((batch) => batch.id === order.batchId)?.type;
       const quota = canCreateOrders(data, subscription, 1, new Date(), type);
       if (!quota.allowed) { notify(quota.message); return; }
     }
-
-    const targetOrder = target ?? order;
-    const savedOrder = { ...targetOrder, refunds: target?.refunds ?? order.refunds, createdAt: target?.createdAt ?? new Date().toISOString() };
-    const orders = target ? data.orders.map((o) => o.id === target.id ? savedOrder : o) : [savedOrder, ...data.orders];
-    const batches = target ? data.batches : data.batches.map(batch => batch.id === order.batchId ? { ...batch, purchaseFx: batchFx } : batch);
-    const next = { ...data, batches, customers: customer ? [customer, ...data.customers] : data.customers, orders };
-    const isNew = !target;
-    if (await persist(next, isNew ? "Pesanan baru berhasil dicatat" : "Pesanan berhasil diperbarui")) setOrderModal(null);
+    const savedOrder = { ...order, refunds: existing?.refunds ?? order.refunds, createdAt: existing?.createdAt ?? new Date().toISOString() };
+    const next = { ...data, batches: !existing ? data.batches.map(batch => batch.id === order.batchId ? { ...batch, purchaseFx: batchFx } : batch) : data.batches, customers: customer ? [customer, ...data.customers] : data.customers, orders: existing ? data.orders.map((o) => o.id === order.id ? savedOrder : o) : [savedOrder, ...data.orders] };
+    if (await persist(next, !orderModal?.order ? "Pesanan baru berhasil dicatat" : "Pesanan berhasil diperbarui")) setOrderModal(null);
   }
   function updateStatus(order: Order, status: Order["status"]) {
     if (status === "cancelled" && order.paid > 0) { notify("Pesanan yang sudah dibayar belum dapat dibatalkan. Catat refund seluruh pembayaran sebelum membatalkan."); return false; }
