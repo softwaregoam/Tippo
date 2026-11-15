@@ -43,46 +43,48 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
   const total = orderRevenue(order);
   const store=profile.invoiceStoreName?textLine(profile.invoiceStoreName).toLocaleUpperCase("id-ID"):"";
   const paid=isInvoicePaid(order);
+  const name=textLine(customer?.name ?? "Pelanggan");
   const shipping=[
-    ...(order.shippingDate?[`Tanggal : ${invoiceDate(order.shippingDate)}`]:[]),
-    ...(order.shippingTime?[`Jam : ${order.shippingTime}`]:[]),
-    ...(order.shippingMethod?.trim()?[`Metode Kirim : ${textLine(order.shippingMethod)}`]:[]),
+    ...(order.shippingDate?[`Tanggal kirim: ${invoiceDate(order.shippingDate)}`]:[]),
+    ...(order.shippingTime?[`Jam: ${order.shippingTime}`]:[]),
+    ...(order.shippingMethod?.trim()?[`Metode kirim: ${textLine(order.shippingMethod)}`]:[]),
   ];
-  const divider="------------------------";
-  const lines = [
-    `Halo, ${textLine(customer?.name ?? "Pelanggan")}!`,
-    `Berikut rincian pesananmu${store?` di ${store}`:""}.`,
-    ...(!cancelled?["Mohon cek kembali pesanannya, ya."]:[]),
-    "",
-    divider,
-    "*INVOICE*",
-    `No. invoice: ${invoiceNumber(order, settings)}`,
-    `Tanggal: ${invoiceDate(order.date)}`,
-    `Nama: ${textLine(customer?.name ?? "Pelanggan")}`,
-    ...(customer?.phone ? [`WhatsApp: ${textLine(customer.phone)}`] : []),
-    "",
-    divider,
-    "*Pesanan*",
-    ...order.items.flatMap(item => [
-      `• ${textLine(invoiceItemLabel(item))}`,
-      `  ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
-    ]),
-    "",
-    `Subtotal produk: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
-    ...(batch?.type === "po" ? order.serviceFee > 0 ? [`Biaya tambahan: ${formatCurrency(order.serviceFee)}`] : [] : order.serviceFee>0?[`Fee jastip: ${formatCurrency(order.serviceFee)}`]:[]),
-    ...(orderDiscount(order) > 0 ? [`Diskon${order.discount?.type === "percent" ? ` (${order.discount.value}%)` : ""}: -${formatCurrency(orderDiscount(order))}`] : []),
-    ...(order.shippingCharge > 0 ? [`Ongkir: ${formatCurrency(order.shippingCharge)}`] : []),
-    `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
-    ...(outstanding(order) > 0 ? [`*Sisa tagihan*: ${formatCurrency(outstanding(order))}`] : []),
-    ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
-    ...(paid ? ["*LUNAS*"] : !cancelled ? ["Status: *BELUM LUNAS*"] : []),
-    "",
-    ...((shipping.length||customer?.address?.trim()) ? [divider,"*Pengiriman*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[]),""] : []),
-    ...(order.notes.trim() ? [divider,"*Catatan*",order.notes.trim(),divider,""] : []),
-    ...(!cancelled&&bank ? [...(!paid?["Mohon kirim bukti transfer setelah membayar.",""]:[]),"*Pembayaran via transfer*",`${bank.name} ${bank.account}`,`a.n. ${bank.holder}`,divider,""] : []),
-    ...(cancelled ? ["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."] : footer ? [footer] : []),
+  const sections:string[][]=[
+    [
+      `Halo, ${name}!`,
+      `Berikut rincian pesananmu${store?` di ${store}`:""}.`,
+      ...(!cancelled?["Mohon cek kembali pesanannya, ya."]:[]),
+    ],
+    [
+      "*INVOICE*",
+      `No. invoice: ${invoiceNumber(order, settings)}`,
+      `Tanggal pesanan: ${invoiceDate(order.date)}`,
+      `Nama: ${name}`,
+      ...(customer?.phone ? [`WhatsApp: ${textLine(customer.phone)}`] : []),
+    ],
+    [
+      "*PESANAN*",
+      ...order.items.flatMap(item => [
+        `• ${textLine(invoiceItemLabel(item))} — ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
+      ]),
+    ],
+    [
+      `Subtotal produk: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
+      ...(batch?.type === "po" ? order.serviceFee > 0 ? [`Biaya tambahan: ${formatCurrency(order.serviceFee)}`] : [] : order.serviceFee>0?[`Fee jastip: ${formatCurrency(order.serviceFee)}`]:[]),
+      ...(orderDiscount(order) > 0 ? [`Diskon${order.discount?.type === "percent" ? ` (${order.discount.value}%)` : ""}: -${formatCurrency(orderDiscount(order))}`] : []),
+      ...(order.shippingCharge > 0 ? [`Ongkir: ${formatCurrency(order.shippingCharge)}`] : []),
+      `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
+      ...(outstanding(order) > 0 ? [`*Sisa tagihan*: ${formatCurrency(outstanding(order))}`] : []),
+      ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
+      ...(paid ? ["*LUNAS*"] : !cancelled ? ["Status: *BELUM LUNAS*"] : []),
+    ],
+    ...((shipping.length||customer?.address?.trim()) ? [["*PENGIRIMAN*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[])]] : []),
+    ...(order.notes.trim() ? [["*CATATAN*",order.notes.trim()]] : []),
+    ...(!cancelled&&bank ? [[...(!paid?["Mohon kirim bukti transfer setelah membayar."]:[]),"*PEMBAYARAN VIA TRANSFER*",`${bank.name} ${bank.account}`,`a.n. ${bank.holder}`]] : []),
+    ...(cancelled ? [["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."]] : footer ? [[footer]] : []),
   ];
-  return lines.join("\n");
+  const divider="───────────";
+  return sections.map(section=>section.join("\n")).join(`\n\n${divider}\n`);
 }
 
 /** Open a customer chat when a usable number is available, otherwise let WhatsApp choose a recipient. */
