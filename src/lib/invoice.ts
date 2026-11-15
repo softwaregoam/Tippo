@@ -75,7 +75,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
       `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
       ...(outstanding(order) > 0 ? [`*Sisa tagihan*: ${formatCurrency(outstanding(order))}`] : []),
       ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
-      ...(paid ? ["*LUNAS*"] : !cancelled ? ["Status: *BELUM LUNAS*"] : []),
+      ...(paid ? ["Status: *LUNAS*"] : !cancelled ? ["Status: *BELUM LUNAS*"] : []),
     ],
     ...((shipping.length||customer?.address?.trim()) ? [["*PENGIRIMAN*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[])]] : []),
     ...(order.notes.trim() ? [["*CATATAN*",order.notes.trim()]] : []),
