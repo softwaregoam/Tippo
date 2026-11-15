@@ -69,12 +69,12 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
     return()=>{active=false;};
   },[tab,hasQris,qrisUrl,reference,qrisKey]);
 
-  async function shareImage(file:File|null){
+  async function shareImage(file:File|null,text=""){
     if(!file||downloadingRef.current)return;
     downloadingRef.current=true;setSharing(true);setFeedback("");setManualCopy(false);
     try{
-      const result=await shareOrDownloadFile(file);
-      if(result==="downloaded")setFeedback("Perangkat ini belum mendukung berbagi gambar. Gambar diunduh; lampirkan di chat pelanggan.");
+      const result=await shareOrDownloadFile(file,text);
+      if(result==="downloaded")setFeedback(text?"Perangkat ini belum mendukung berbagi gambar dan teks. Gambar diunduh; lampirkan di chat pelanggan lalu tempel teks invoice.":"Perangkat ini belum mendukung berbagi gambar. Gambar diunduh; lampirkan di chat pelanggan.");
     }catch(error){setManualCopy(true);setFeedback(error instanceof Error?error.message:"Gambar belum dapat dibagikan. Gunakan tombol Unduh.");}
     finally{downloadingRef.current=false;setSharing(false);}
   }
@@ -178,7 +178,8 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
         {tab==="image"?<>
           <Button type="button" className="btn btn-secondary" disabled={sharing||downloading||(!readyPhoto&&!printError)} onClick={printDocument}><Printer size={16}/>{printError?"Coba siapkan PDF":!readyPhoto?"Menyiapkan PDF…":"Cetak / PDF"}</Button>
           <Button type="button" className="btn btn-secondary" disabled={downloading||sharing} onClick={downloadImage}><Download size={16}/>{downloading?"Menyiapkan gambar…":"Unduh gambar"}</Button>
-          <Button type="button" className="btn btn-primary invoice-share-action" disabled={!imageFile||sharing||downloading} onClick={()=>void shareImage(imageFile)}><Share2 size={16}/>{sharing?"Membuka pilihan berbagi…":"Bagikan gambar"}</Button>
+          <Button type="button" className="btn btn-secondary" disabled={!imageFile||sharing||downloading} onClick={()=>void shareImage(imageFile)}><Share2 size={16}/>{sharing?"Membuka pilihan berbagi…":"Bagikan gambar"}</Button>
+          <Button type="button" className="btn btn-primary invoice-share-action" aria-label="Bagikan gambar invoice beserta teks invoice" disabled={!imageFile||sharing||downloading} onClick={()=>void shareImage(imageFile,message)}><Share2 size={16}/>{sharing?"Membuka pilihan berbagi…":"Bagikan + teks"}</Button>
         </>:tab==="qris"?<><Button type="button" className="btn btn-secondary" disabled={downloading||sharing} onClick={()=>void downloadQrisImage()}><Download size={16}/>{downloading?"Mengunduh…":"Unduh QRIS"}</Button><Button type="button" className="btn btn-primary" disabled={sharing||downloading||(!readyQris?.file&&!readyQris?.error)} onClick={()=>{if(readyQris?.error){setQrisFile(null);retryQris(value=>value+1);}else void shareImage(readyQris?.file??null);}}><Share2 size={16}/>{sharing?"Membuka pilihan berbagi…":readyQris?.error?"Coba siapkan QRIS":!readyQris?.file?"Menyiapkan QRIS…":"Bagikan QRIS"}</Button></>:<>
           <Button type="button" className="btn btn-secondary" disabled={copying} onClick={copyInvoice}><Copy size={16} />{copying ? "Menyalin..." : "Salin invoice WhatsApp"}</Button>
           <a className="btn btn-primary" href={invoiceWhatsAppUrl(message,customer?.phone)} target="_blank" rel="noopener noreferrer"><MessageSquare size={16}/>Bagikan ke WhatsApp</a>
