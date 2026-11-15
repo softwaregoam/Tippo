@@ -65,7 +65,8 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     [
       "*PESANAN*",
       ...order.items.flatMap(item => [
-        `• ${textLine(invoiceItemLabel(item))} — ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
+        `• ${textLine(invoiceItemLabel(item))}`,
+        `  ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
       ]),
       "",
       `Subtotal produk: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
