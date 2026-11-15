@@ -1641,7 +1641,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 
 @media(max-width:600px) {
  .order-invoice-dialog .invoice-image-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
- .order-invoice-dialog .invoice-image-actions .invoice-share-action { grid-column:1/-1; }
+ .order-invoice-dialog .invoice-image-actions .invoice-share-action { grid-column:auto; }
  .order-invoice-dialog .invoice-image-actions .btn { gap:5px; padding-inline:6px; font-size:13px; }
 }
 
