@@ -1,7 +1,8 @@
 /** Call directly from a click with a file prepared ahead of time for mobile activation. */
-export async function shareOrDownloadFile(file: File): Promise<"shared" | "downloaded" | "cancelled"> {
-  if (navigator.share && navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file] }); return "shared"; }
+export async function shareOrDownloadFile(file: File, text = ""): Promise<"shared" | "downloaded" | "cancelled"> {
+  const payload = { files: [file], ...(text ? { text } : {}) };
+  if (navigator.share && navigator.canShare?.(payload)) {
+    try { await navigator.share(payload); return "shared"; }
     catch (error) {
       if (error instanceof Error && error.name === "AbortError") return "cancelled";
       throw new Error("Gambar belum dapat dibagikan. Coba lagi atau gunakan tombol Unduh.");
