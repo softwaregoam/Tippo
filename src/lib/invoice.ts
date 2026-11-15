@@ -67,8 +67,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
       ...order.items.flatMap(item => [
         `• ${textLine(invoiceItemLabel(item))} — ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
       ]),
-    ],
-    [
+      "",
       `Subtotal produk: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
       ...(batch?.type === "po" ? order.serviceFee > 0 ? [`Biaya tambahan: ${formatCurrency(order.serviceFee)}`] : [] : order.serviceFee>0?[`Fee jastip: ${formatCurrency(order.serviceFee)}`]:[]),
       ...(orderDiscount(order) > 0 ? [`Diskon${order.discount?.type === "percent" ? ` (${order.discount.value}%)` : ""}: -${formatCurrency(orderDiscount(order))}`] : []),
@@ -80,7 +79,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ],
     ...((shipping.length||customer?.address?.trim()) ? [["*PENGIRIMAN*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[])]] : []),
     ...(order.notes.trim() ? [["*CATATAN*",order.notes.trim()]] : []),
-    ...(!cancelled&&bank ? [[...(!paid?["Mohon kirim bukti transfer setelah membayar."]:[]),"*PEMBAYARAN VIA TRANSFER*",`${bank.name} ${bank.account}`,`a.n. ${bank.holder}`]] : []),
+    ...(!cancelled&&bank ? [[...(!paid?["Mohon kirim bukti transfer setelah membayar.",""]:[]),"*PEMBAYARAN VIA TRANSFER*",`${bank.name} ${bank.account}`,`a.n. ${bank.holder}`]] : []),
     ...(cancelled ? [["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."]] : footer ? [[footer]] : []),
   ];
   const divider="───────────";
