@@ -79,9 +79,13 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ],
     ...((shipping.length||customer?.address?.trim()) ? [["*PENGIRIMAN*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[])]] : []),
     ...(order.notes.trim() ? [["*CATATAN*",order.notes.trim()]] : []),
-    ...(!cancelled&&bank ? [[...(!paid?["Mohon kirim bukti transfer setelah membayar.",""]:[]),"*PEMBAYARAN VIA TRANSFER*",`${bank.name} ${bank.account}`,`a.n. ${bank.holder}`]] : []),
-    ...(cancelled ? [["Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini."]] : footer ? [[footer]] : []),
   ];
+  // Payment details continue the previous section: a blank line, no divider.
+  const payment:string[]=[];
+  if(!cancelled&&bank)payment.push(...(!paid?["Mohon kirim bukti transfer setelah membayar.",""]:[]),"*PEMBAYARAN VIA TRANSFER*",`${bank.name} ${bank.account}`,`a.n. ${bank.holder}`);
+  if(cancelled)payment.push("Pesanan dibatalkan. Tidak ada tagihan untuk pesanan ini.");
+  if(payment.length)sections[sections.length-1].push("",...payment);
+  if(!cancelled&&footer)sections.push([footer]);
   const divider="───────────";
   return sections.map(section=>section.join("\n")).join(`\n\n${divider}\n`);
 }
