@@ -1,0 +1,92 @@
+﻿"use client";
+import { useState } from "react";
+import { Archive, ArchiveRestore, ChevronRight, Copy, PackagePlus, Pencil, X } from "lucide-react";
+import { formatCurrency } from "@/lib/finance";
+import { Button } from "@/components/ui/button";
+import { MobileDataList } from "@/components/mobile-data-list";
+import type { AppData, Product, ProductPackage } from "@/lib/types";
+
+export function PackageWorkspace({ data, onSavePackage, onPackageStatus, onEditPackage, onDuplicatePackage }: {
+  data: AppData;
+  onSavePackage: (p: ProductPackage) => boolean | Promise<boolean>;
+  onPackageStatus: (p: ProductPackage) => boolean | Promise<boolean>;
+  onEditPackage: (p: ProductPackage) => void;
+  onDuplicatePackage: (p: ProductPackage) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [packageStatus, setPackageStatus] = useState("active");
+  const [removingPackage, setRemovingPackage] = useState<ProductPackage | null>(null);
+  const productById = new Map(data.products.map((p) => [p.id, p]));
+  const packages = (data.packages ?? []).filter((p) => {
+    const memberNames = p.productIds.map((id) => productById.get(id)?.name ?? id).join(", ");
+    return `${p.name} ${p.sku} ${memberNames}`.toLowerCase().includes(search.trim().toLowerCase())
+      && (packageStatus === "all" || p.active === (packageStatus === "active"));
+  });
+  const activeProducts = data.products.filter((p) => p.active);
+
+  const packageTitle = (pack: ProductPackage) => pack.name.trim() || "Paket tanpa nama";
+  const memberLabel = (pack: ProductPackage) => pack.productIds.map((id) => productById.get(id)?.name ?? id).join(", ") || "Belum ada produk";
+
+  return <div>
+    <section className="card workspace-list-card" aria-label="Daftar produk paket">
+      <div className="card-header list-import-header"><div><h2>Produk Paket</h2><p>Gabungkan produk katalog jadi satu paket dengan harga jual paket baru.</p></div></div>
+      <div className="list-toolbar" role="group" aria-label="Pencarian dan filter paket">
+        <div className="search-field"><PackagePlus size={18} /><input aria-label="Cari produk paket" placeholder="Cari nama paket, SKU, atau produk anggota..." value={search} onChange={e => setSearch(e.target.value)} /></div>
+        <div className="toolbar-filters">
+          <select className="input filter-input" aria-label="Filter paket" value={packageStatus} onChange={e => setPackageStatus(e.target.value)}>
+            <option value="active">Paket aktif</option>
+            <option value="archived">Diarsipkan</option>
+            <option value="all">Semua paket</option>
+          </select>
+        </div>
+      </div>
+      <MobileDataList entries={packages.map(pack => ({
+        id: pack.id,
+        title: packageTitle(pack),
+        dialogClassName: "package-data-dialog",
+        subtitle: <span className="package-mobile-members">{memberLabel(pack)}</span>,
+        meta: <span className="package-mobile-price"><span>Harga paket</span><strong>{formatCurrency(pack.unitPrice)}</strong></span>,
+        status: pack.active ? "Aktif" : "Diarsipkan",
+        statusClassName: `status-tag package-status-${pack.active ? "active" : "archived"}`,
+        details: <><div className="package-detail-summary"><div><span>Harga paket</span><strong>{formatCurrency(pack.unitPrice)}</strong></div><div><span>Produk anggota</span><span>{memberLabel(pack)}</span></div><span className={`status-tag package-status-${pack.active ? "active" : "archived"}`}>{pack.active ? "Aktif" : "Diarsipkan"}</span></div><dl className="mobile-detail-fields"><dt>SKU</dt><dd>{pack.sku || "Belum diisi"}</dd><dt>Produk anggota</dt><dd>{memberLabel(pack)}</dd></dl><button className="btn btn-secondary package-mobile-action" data-close-detail onClick={() => onPackageStatus(pack)}>{pack.active ? <Archive size={16} /> : <ArchiveRestore size={16} />} {pack.active ? "Arsipkan paket" : "Aktifkan kembali"}</button><button className="btn btn-secondary package-mobile-action" data-close-detail onClick={() => onDuplicatePackage(pack)}><Copy size={16} />Duplikat paket</button><button className="btn btn-primary package-mobile-action" data-close-detail onClick={() => onEditPackage(pack)}>Edit paket</button></>,
+      }))} />
+      <div className="card management-table-wrap desktop-data-table"><table className="management-table" aria-label="Daftar produk paket">
+        <thead><tr><th scope="col">Nama paket</th><th scope="col">SKU</th><th scope="col">Produk anggota</th><th scope="col" className="numeric">Harga paket</th><th scope="col">Status</th><th scope="col">Aksi</th></tr></thead>
+        <tbody>{packages.length > 0 ? packages.map(pack => <tr key={pack.id}>
+          <td data-label="Nama paket"><h3>{packageTitle(pack)}</h3></td>
+          <td data-label="SKU">{pack.sku || "Belum diisi"}</td>
+          <td data-label="Produk anggota"><p className="package-members">{memberLabel(pack)}</p></td>
+          <td data-label="Harga paket" className="numeric"><strong>{formatCurrency(pack.unitPrice)}</strong></td>
+          <td data-label="Status"><span className={`status-tag package-status-${pack.active ? "active" : "archived"}`}>{pack.active ? "Aktif" : "Diarsipkan"}</span></td>
+          <td data-label="Aksi"><div className="management-actions"><button className="icon-button" aria-label={`Edit paket ${packageTitle(pack)}`} onClick={() => onEditPackage(pack)}><Pencil size={16} /></button><button className="icon-button" aria-label={pack.active ? `Arsipkan paket ${packageTitle(pack)}` : `Aktifkan kembali paket ${packageTitle(pack)}`} onClick={() => onPackageStatus(pack)}>{pack.active ? <Archive size={16} /> : <ArchiveRestore size={16} />}</button></div></td>
+        </tr>) : <tr><td colSpan={6} className="empty-row"><p>Belum ada produk paket.</p></td></tr>}</tbody>
+      </table></div>
+      {packages.length === 0 && activeProducts.length === 0 && <div className="empty-state workspace-empty-state" role="status"><div className="empty-icon"><PackagePlus size={26} aria-hidden="true" /></div><h3>Belum ada produk</h3><p>Tambahkan produk terlebih dahulu sebelum membuat produk paket.</p><Button className="btn btn-secondary" onClick={() => { }} disabled>Buat produk dulu</Button></div>}
+      <div className="table-footer">{packages.length} paket</div>
+    </section>
+    {removingPackage && <dialog className="native-dialog" ref={el => { if (el && !el.open) el.showModal(); }} aria-label={`Arsipkan ${removingPackage.name}`} onCancel={(e) => { e.preventDefault(); setRemovingPackage(null); }}><div className="modal-header"><div><h2>Arsipkan paket?</h2><p>Paket yang diarsipkan tidak akan muncul dalam daftar paket aktif, tapi histori tetap tersimpan.</p></div><button className="icon-button" aria-label="Batal" onClick={() => setRemovingPackage(null)}><X size={20} /></button></div><div className="modal-body"><p>Yakin ingin mengarsipkan <strong>{packageTitle(removingPackage)}</strong>?</p></div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={() => setRemovingPackage(null)}>Batal</Button><Button type="button" className="btn btn-primary" onClick={() => { onPackageStatus(removingPackage); setRemovingPackage(null); }}>{removingPackage.active ? "Arsipkan paket" : "Aktifkan kembali"}</Button></div></dialog>}
+  </div>;
+}
+
+export function ProductPackageForm({ products, pack, onSave, onClose }: {
+  products: Product[];
+  pack?: ProductPackage;
+  onSave: (p: ProductPackage) => boolean | Promise<boolean>;
+  onClose: () => void;
+}) {
+  const showDialog = (element: HTMLDialogElement | null) => { if (element && !element.open) element.showModal(); };
+  const [name, setName] = useState(pack ? pack.name : "");
+  const [sku, setSku] = useState(pack ? pack.sku : "");
+  const [selectedIds, setSelectedIds] = useState<string[]>(pack ? [...pack.productIds] : []);
+  const [price, setPrice] = useState(pack ? String(pack.unitPrice) : "");
+  const [error, setError] = useState("");
+  const productById = new Map(products.map((p) => [p.id, p]));
+  const isSelected = (id: string) => selectedIds.includes(id);
+  const toggleProduct = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  const memberNames = selectedIds.map(id => productById.get(id)?.name ?? id).join(", ");
+  return <dialog ref={showDialog} className="native-dialog" onCancel={(e) => { e.preventDefault(); onClose(); }} aria-label={pack ? "Edit produk paket" : "Produk paket baru"}><div className="modal-header"><div><span className="eyebrow">PRODUK PAKET</span><h2>{pack ? "Edit paket" : "Paket baru"}</h2><p>Gabungkan produk yang sudah ada menjadi satu paket dengan harga jual baru.</p></div><button className="icon-button" aria-label="Tutup paket" onClick={onClose}><X size={20} /></button></div><form onSubmit={async (e) => { e.preventDefault(); setError(""); if (!name.trim()) { setError("Isi nama paket."); return; } if (selectedIds.length === 0) { setError("Pilih setidaknya satu produk anggota."); return; } if (!price.trim() || !Number.isSafeInteger(Number(price)) || Number(price) < 0) { setError("Isi harga paket. Nominal harus rupiah bulat, minimal nol."); return; } const saved = await onSave({ id: pack ? pack.id : crypto.randomUUID(), name: name.trim(), sku: sku.trim(), productIds: selectedIds, unitPrice: Number(price), active: pack ? pack.active : true }); if (!saved) setError("Paket belum tersimpan. Periksa data dan koneksi, lalu coba lagi."); }}><div className="modal-body"><div className="field"><label className="field-label" htmlFor="package-name">Nama paket<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama paket" id="package-name" className="input" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Skincare Seoul Lengkap" /></div><div className="field"><label className="field-label" htmlFor="package-sku">SKU paket (opsional)</label><input id="package-sku" className="input" maxLength={60} value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Contoh: SKIN-SEOUL-SET" /></div><div className="field"><label className="field-label" htmlFor="package-members">Produk anggota<span className="required-mark" aria-hidden="true"> *</span></label><div className="package-member-list">{products.length === 0 ? <p className="field-hint">Belum ada produk aktif. Tambah produk di halaman Produk terlebih dahulu.</p> : products.map(p => <label key={p.id} className="package-member-checkbox"><input type="checkbox" checked={isSelected(p.id)} onChange={() => toggleProduct(p.id)} /><span>{productDisplay(p)}</span><span className="package-member-price">{formatCurrency(p.unitPrice)}</span></label>)}</div>{selectedIds.length > 0 && <p className="field-hint">{selectedIds.length} produk dipilih: {memberNames}</p>}</div><div className="field"><label className="field-label" htmlFor="package-price">Harga jual paket<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Harga jual paket" id="package-price" type="text" className="input" inputMode="numeric" min="0" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} placeholder="Contoh: 450.000" /><span className="field-hint">Harga baru untuk seluruh paket, bebas dari harga produk anggota.</span></div>{error && <p className="error-message" role="alert">{error}</p>}</div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={onClose}>Batal</Button><Button type="submit" className="btn btn-primary">{pack ? "Simpan paket" : "Simpan paket baru"}</Button></div></form></dialog>;
+
+}
+function productDisplay(p: Product) {
+  return [p.name, p.variant.trim()].filter(Boolean).join(" ") || "Produk tanpa nama";
+}
