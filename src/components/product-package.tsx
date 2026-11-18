@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useId, useRef, useState } from "react";
 import { Popover } from "radix-ui";
-import { Archive, ArchiveRestore, Check, ChevronDown, Copy, PackagePlus, Pencil, Search, X } from "lucide-react";
+import { Archive, ArchiveRestore, Check, ChevronDown, Copy, Info, PackagePlus, Pencil, Search, X } from "lucide-react";
 import { formatCurrency } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
@@ -21,6 +21,7 @@ export function PackageWorkspace({ data, onPackageStatus, onEditPackage, onDupli
   const [packageStatus, setPackageStatus] = useState("active");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [removingPackage, setRemovingPackage] = useState<ProductPackage | null>(null);
+  const [memberDetailsPackage, setMemberDetailsPackage] = useState<ProductPackage | null>(null);
   const productById = new Map(data.products.map((p) => [p.id, p]));
   const categories = [...new Set((data.packages ?? []).map((p) => p.category?.trim()).filter((c): c is string => Boolean(c)))].sort((a, b) => a.localeCompare(b, "id"));
   const packages = (data.packages ?? []).filter((p) => {
@@ -65,7 +66,7 @@ export function PackageWorkspace({ data, onPackageStatus, onEditPackage, onDupli
         <tbody>{packages.length > 0 ? packages.map(pack => <tr key={pack.id}>
           <td data-label="Nama paket"><h3>{packageTitle(pack)}</h3><p className="package-category">{packageCategory(pack)}</p></td>
           <td data-label="SKU">{pack.sku || "Belum diisi"}</td>
-          <td data-label="Produk anggota"><p className="package-members">{memberLabel(pack)}</p></td>
+          <td data-label="Produk anggota"><button type="button" className="package-members-detail-button" onClick={() => setMemberDetailsPackage(pack)}><Info size={15} aria-hidden="true" /><span>{pack.productIds.length} produk</span></button></td>
           <td data-label="Harga paket" className="numeric"><strong>{formatCurrency(pack.unitPrice)}</strong><small className="package-cost">HPP {packageCostLabel(pack)}</small></td>
           <td data-label="Status"><span className={`status-tag package-status-${pack.active ? "active" : "archived"}`}>{pack.active ? "Aktif" : "Diarsipkan"}</span></td>
           <td data-label="Aksi"><div className="management-actions"><button className="icon-button" aria-label={`Edit paket ${packageTitle(pack)}`} onClick={() => onEditPackage(pack)}><Pencil size={16} /></button><button className="icon-button" aria-label={pack.active ? `Arsipkan paket ${packageTitle(pack)}` : `Aktifkan kembali paket ${packageTitle(pack)}`} onClick={() => onPackageStatus(pack)}>{pack.active ? <Archive size={16} /> : <ArchiveRestore size={16} />}</button></div></td>
@@ -74,6 +75,7 @@ export function PackageWorkspace({ data, onPackageStatus, onEditPackage, onDupli
       {packages.length === 0 && activeProducts.length === 0 && <div className="empty-state workspace-empty-state" role="status"><div className="empty-icon"><PackagePlus size={26} aria-hidden="true" /></div><h3>Belum ada produk</h3><p>Tambahkan produk terlebih dahulu sebelum membuat produk paket.</p><Button className="btn btn-secondary" onClick={() => { }} disabled>Buat produk dulu</Button></div>}
       <div className="table-footer">{packages.length} paket</div>
     </section>
+    {memberDetailsPackage && <dialog className="native-dialog package-members-dialog" ref={el => { if (el && !el.open) el.showModal(); }} aria-label={`Produk anggota ${packageTitle(memberDetailsPackage)}`} onCancel={(e) => { e.preventDefault(); setMemberDetailsPackage(null); }}><div className="modal-header"><div><span className="eyebrow">PRODUK ANGGOTA</span><h2>{packageTitle(memberDetailsPackage)}</h2><p>Daftar lengkap produk yang tergabung dalam paket ini.</p></div><button className="icon-button" aria-label="Tutup detail produk anggota" onClick={() => setMemberDetailsPackage(null)}><X size={20} /></button></div><div className="modal-body"><div className="package-member-detail-list">{memberDetailsPackage.productIds.map((id, index) => { const product = productById.get(id); return <article className="package-member-detail-item" key={`${id}-${index}`}><div className="package-member-detail-index">{index + 1}</div><div className="package-member-detail-content"><strong>{product ? productDisplay(product) : "Produk tidak ditemukan"}</strong>{product ? <dl><div><dt>SKU</dt><dd>{product.sku || "Belum diisi"}</dd></div><div><dt>Kategori</dt><dd>{product.category || "Belum diisi"}</dd></div><div><dt>Supplier / brand</dt><dd>{product.store || "Belum diisi"}</dd></div><div><dt>Warna</dt><dd>{product.color || "Belum diisi"}</dd></div><div><dt>Ukuran</dt><dd>{product.size || "Belum diisi"}</dd></div><div><dt>Harga jual</dt><dd>{formatCurrency(product.unitPrice)}</dd></div><div><dt>HPP</dt><dd>{product.unitCost === null ? "Belum diisi" : formatCurrency(product.unitCost)}</dd></div></dl> : <p className="field-hint">ID produk: {id}</p>}</div></article>; })}</div></div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={() => setMemberDetailsPackage(null)}>Tutup</Button></div></dialog>}
     {removingPackage && <dialog className="native-dialog" ref={el => { if (el && !el.open) el.showModal(); }} aria-label={`Arsipkan ${removingPackage.name}`} onCancel={(e) => { e.preventDefault(); setRemovingPackage(null); }}><div className="modal-header"><div><h2>Arsipkan paket?</h2><p>Paket yang diarsipkan tidak akan muncul dalam daftar paket aktif, tapi histori tetap tersimpan.</p></div><button className="icon-button" aria-label="Batal" onClick={() => setRemovingPackage(null)}><X size={20} /></button></div><div className="modal-body"><p>Yakin ingin mengarsipkan <strong>{packageTitle(removingPackage)}</strong>?</p></div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={() => setRemovingPackage(null)}>Batal</Button><Button type="button" className="btn btn-primary" onClick={() => { onPackageStatus(removingPackage); setRemovingPackage(null); }}>{removingPackage.active ? "Arsipkan paket" : "Aktifkan kembali"}</Button></div></dialog>}
   </div>;
 }
