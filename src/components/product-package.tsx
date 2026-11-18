@@ -1,6 +1,7 @@
 ﻿"use client";
-import { useState } from "react";
-import { Archive, ArchiveRestore, ChevronRight, Copy, PackagePlus, Pencil, Search, X } from "lucide-react";
+import { useId, useRef, useState } from "react";
+import { Popover } from "radix-ui";
+import { Archive, ArchiveRestore, Check, ChevronDown, Copy, PackagePlus, Pencil, Search, X } from "lucide-react";
 import { formatCurrency } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { Select, SelectOption } from "@/components/ui/select";
@@ -82,12 +83,58 @@ export function ProductPackageForm({ products, pack, onSave, onClose }: {
   const [price, setPrice] = useState(pack ? String(pack.unitPrice) : "");
   const [error, setError] = useState("");
   const productById = new Map(products.map((p) => [p.id, p]));
-  const isSelected = (id: string) => selectedIds.includes(id);
-  const toggleProduct = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  const memberNames = selectedIds.map(id => productById.get(id)?.name ?? id).join(", ");
-  return <dialog ref={showDialog} className="native-dialog" onCancel={(e) => { e.preventDefault(); onClose(); }} aria-label={pack ? "Edit produk paket" : "Produk paket baru"}><div className="modal-header"><div><span className="eyebrow">PRODUK PAKET</span><h2>{pack ? "Edit paket" : "Paket baru"}</h2><p>Gabungkan produk yang sudah ada menjadi satu paket dengan harga jual baru.</p></div><button className="icon-button" aria-label="Tutup paket" onClick={onClose}><X size={20} /></button></div><form onSubmit={async (e) => { e.preventDefault(); setError(""); if (!name.trim()) { setError("Isi nama paket."); return; } if (selectedIds.length === 0) { setError("Pilih setidaknya satu produk anggota."); return; } if (!price.trim() || !Number.isSafeInteger(Number(price)) || Number(price) < 0) { setError("Isi harga paket. Nominal harus rupiah bulat, minimal nol."); return; } const saved = await onSave({ id: pack ? pack.id : crypto.randomUUID(), name: name.trim(), sku: sku.trim(), productIds: selectedIds, unitPrice: Number(price), active: pack ? pack.active : true }); if (!saved) setError("Paket belum tersimpan. Periksa data dan koneksi, lalu coba lagi."); }}><div className="modal-body"><div className="field"><label className="field-label" htmlFor="package-name">Nama paket<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama paket" id="package-name" className="input" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Skincare Seoul Lengkap" /></div><div className="field"><label className="field-label" htmlFor="package-sku">SKU paket (opsional)</label><input id="package-sku" className="input" maxLength={60} value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Contoh: SKIN-SEOUL-SET" /></div><div className="field"><label className="field-label" htmlFor="package-members">Produk anggota<span className="required-mark" aria-hidden="true"> *</span></label><div className="package-member-list">{products.length === 0 ? <p className="field-hint">Belum ada produk aktif. Tambah produk di halaman Produk terlebih dahulu.</p> : products.map(p => <label key={p.id} className={`package-member-option ${isSelected(p.id) ? "package-member-selected" : ""}`}><input type="checkbox" className="package-member-checkbox" checked={isSelected(p.id)} onChange={() => toggleProduct(p.id)} /><span><strong>{productDisplay(p)}</strong></span><span className="package-member-option-price">{formatCurrency(p.unitPrice)}</span></label>)}</div>{selectedIds.length > 0 && <p className="field-hint">{selectedIds.length} produk dipilih: {memberNames}</p>}</div><div className="field"><label className="field-label" htmlFor="package-price">Harga jual paket<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Harga jual paket" id="package-price" type="text" className="input" inputMode="numeric" min="0" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} placeholder="Contoh: 450.000" /><span className="field-hint">Harga baru untuk seluruh paket, bebas dari harga produk anggota.</span></div>{error && <p className="error-message" role="alert">{error}</p>}</div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={onClose}>Batal</Button><Button type="submit" className="btn btn-primary">{pack ? "Simpan paket" : "Simpan paket baru"}</Button></div></form></dialog>;
+  const [pickerPortal, setPickerPortal] = useState<HTMLDivElement | null>(null);
+  const toggleProduct = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);  return <dialog ref={showDialog} className="native-dialog" onCancel={(e) => { e.preventDefault(); onClose(); }} aria-label={pack ? "Edit produk paket" : "Produk paket baru"}><div className="modal-header"><div><span className="eyebrow">PRODUK PAKET</span><h2>{pack ? "Edit paket" : "Paket baru"}</h2><p>Gabungkan produk yang sudah ada menjadi satu paket dengan harga jual baru.</p></div><button className="icon-button" aria-label="Tutup paket" onClick={onClose}><X size={20} /></button></div><form onSubmit={async (e) => { e.preventDefault(); setError(""); if (!name.trim()) { setError("Isi nama paket."); return; } if (selectedIds.length === 0) { setError("Pilih setidaknya satu produk anggota."); return; } if (!price.trim() || !Number.isSafeInteger(Number(price)) || Number(price) < 0) { setError("Isi harga paket. Nominal harus rupiah bulat, minimal nol."); return; } const saved = await onSave({ id: pack ? pack.id : crypto.randomUUID(), name: name.trim(), sku: sku.trim(), productIds: selectedIds, unitPrice: Number(price), active: pack ? pack.active : true }); if (!saved) setError("Paket belum tersimpan. Periksa data dan koneksi, lalu coba lagi."); }}><div className="modal-body"><div className="field"><label className="field-label" htmlFor="package-name">Nama paket<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama paket" id="package-name" className="input" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Skincare Seoul Lengkap" /></div><div className="field"><label className="field-label" htmlFor="package-sku">SKU paket (opsional)</label><input id="package-sku" className="input" maxLength={60} value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Contoh: SKIN-SEOUL-SET" /></div><div className="field"><label className="field-label" htmlFor="package-members">Produk anggota<span className="required-mark" aria-hidden="true"> *</span></label><PackageMemberPicker id="package-members" products={products} selectedIds={selectedIds} onToggle={toggleProduct} container={pickerPortal} />{selectedIds.length === 0 ? <p className="field-hint">Belum ada produk dipilih. Paket wajib berisi minimal satu produk.</p> : <div className="package-selected-members">{selectedIds.map(id => { const product = productById.get(id); return <span key={id} className="package-selected-chip"><span>{product ? productDisplay(product) : id}</span><button type="button" className="icon-button" aria-label={`Hapus ${product ? productDisplay(product) : id} dari paket`} onClick={() => toggleProduct(id)}><X size={14} aria-hidden="true" /></button></span>; })}</div>}</div><div className="field"><label className="field-label" htmlFor="package-price">Harga jual paket<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Harga jual paket" id="package-price" type="text" className="input" inputMode="numeric" min="0" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} placeholder="Contoh: 450.000" /><span className="field-hint">Harga baru untuk seluruh paket, bebas dari harga produk anggota.</span></div>{error && <p className="error-message" role="alert">{error}</p>}</div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={onClose}>Batal</Button><Button type="submit" className="btn btn-primary">{pack ? "Simpan paket" : "Simpan paket baru"}</Button></div></form><div ref={setPickerPortal} /></dialog>;
 
 }
 function productDisplay(p: Product) {
   return [p.name, p.variant.trim()].filter(Boolean).join(" ") || "Produk tanpa nama";
+}
+
+const normalizeText = (text: string) => text.normalize("NFKC").toLocaleLowerCase("id").replace(/\s+/g, " ").trim();
+
+function PackageMemberPicker({ id, products, selectedIds, onToggle, container }: {
+  id?: string;
+  products: Product[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+  container?: HTMLElement | null;
+}) {
+  const contentId = useId();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const search = useRef<HTMLInputElement>(null);
+  const tokens = normalizeText(query).split(" ").filter(Boolean);
+  const filtered = products.filter((product) => {
+    const text = normalizeText([product.name, product.variant, product.color, product.size, product.store, product.sku, product.category].filter(Boolean).join(" "));
+    return tokens.every((token) => text.includes(token));
+  });
+  return <Popover.Root open={open} onOpenChange={(next) => { setOpen(next); if (next) setQuery(""); }}>
+    <Popover.Trigger asChild>
+      <button type="button" id={id} className="package-member-trigger" aria-haspopup="dialog" aria-controls={contentId} aria-expanded={open} disabled={products.length === 0}>
+        <span className="package-member-trigger-label"><PackagePlus size={18} aria-hidden="true" />Pilih produk</span>
+        <span className="package-member-trigger-meta">{selectedIds.length > 0 ? `${selectedIds.length} dipilih` : "Belum ada"}<ChevronDown size={16} aria-hidden="true" /></span>
+      </button>
+    </Popover.Trigger>
+    <Popover.Portal container={container}><div className="product-picker-portal">
+      {open && <div className="product-picker-scrim" onClick={() => setOpen(false)} />}
+      <Popover.Content id={contentId} data-product-picker className="product-picker" sideOffset={6} collisionPadding={12} aria-label="Pilih produk anggota paket" aria-modal="true" onOpenAutoFocus={(event) => { event.preventDefault(); search.current?.focus({ preventScroll: true }); }}>
+        <div className="product-picker-heading"><div><h2>Pilih produk</h2><p className="field-hint">Centang produk yang digabung ke paket ini.</p></div><Popover.Close className="icon-button" aria-label="Tutup pilihan produk"><X size={18} /></Popover.Close></div>
+        <div className="product-picker-search"><Search size={18} aria-hidden="true" /><input ref={search} aria-label="Cari produk anggota" placeholder="Nama, SKU, varian, atau kategori…" value={query} onChange={(event) => setQuery(event.target.value)} />{query && <button className="icon-button" type="button" aria-label="Hapus pencarian produk" onClick={() => { setQuery(""); search.current?.focus(); }}><X size={16} /></button>}</div>
+        <p className="product-picker-count" role="status">{filtered.length} dari {products.length} produk · {selectedIds.length} dipilih</p>
+        <div className="product-picker-list" role="group" aria-label="Produk tersedia">
+          {filtered.map((product) => {
+            const checked = selectedIds.includes(product.id);
+            return <label key={product.id} className="product-picker-option package-picker-option" data-selected={checked}>
+              <input type="checkbox" className="package-member-checkbox" checked={checked} onChange={() => onToggle(product.id)} />
+              <span className="package-picker-details"><strong>{productDisplay(product)}</strong>{product.category && <small>Kategori: {product.category}</small>}{product.store?.trim() && <small>Supplier: {product.store.trim()}</small>}{product.sku && <small>SKU: {product.sku}</small>}{product.color?.trim() && <small>Warna: {product.color.trim()}</small>}{product.size?.trim() && <small>Ukuran: {product.size.trim()}</small>}</span>
+              <span className="product-picker-price">{formatCurrency(product.unitPrice)}{checked && <Check size={16} aria-hidden="true" />}</span>
+            </label>;
+          })}
+        </div>
+        {!filtered.length && <div className="empty-state compact"><strong>Produk tidak ditemukan</strong><p>Coba nama, SKU, varian, atau kategori lain.</p><button type="button" className="btn btn-secondary" onClick={() => { setQuery(""); search.current?.focus(); }}>Reset pencarian</button></div>}
+        <div className="product-picker-footer"><span>{selectedIds.length > 0 ? `${selectedIds.length} produk dipilih` : "Belum ada produk dipilih"}</span><Button type="button" className="btn btn-primary" onClick={() => setOpen(false)}>Selesai</Button></div>
+      </Popover.Content>
+    </div></Popover.Portal>
+  </Popover.Root>;
 }
