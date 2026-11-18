@@ -157,7 +157,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
         return {
           id: item.id, productId: null, product: pack.name, variant: "", store: "", color: "", size: "",
           quantity: previewAmount(item.quantity), unitPrice: pack.unitPrice,
-          unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):packageMemberCost(pack, data.products),
+          unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):(pack.unitCost === undefined ? packageMemberCost(pack, data.products) : pack.unitCost),
         };
       }
       const product = data.products.find((entry) => entry.id === item.productId);
@@ -181,10 +181,10 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
       value: `${PACKAGE_PREFIX}${pack.id}`,
       name: pack.name,
       sku: pack.sku,
-      category: "",
+      category: pack.category?.trim() ?? "",
       detail: members.length ? `Isi paket: ${members.map((product) => product.name).join(", ")}` : "",
       price: pack.unitPrice,
-      searchText: [pack.name, pack.sku, ...members.map((product) => product.name)].filter(Boolean).join(" "),
+      searchText: [pack.name, pack.sku, pack.category ?? "", ...members.map((product) => product.name)].filter(Boolean).join(" "),
     };
   });
 
