@@ -68,6 +68,8 @@ export interface OrderItem {
   id: string;
   /** Optional link to an Open PO product; archived products remain valid for history. */
   productId?: string | null;
+  /** Package reference for customer-facing invoice expansion; prices remain on the order snapshot. */
+  packageId?: string | null;
   /** Product label and amounts are snapshots, independent of subsequent catalogue edits. */
   product: string;
   store?: string;

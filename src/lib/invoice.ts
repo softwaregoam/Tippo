@@ -3,7 +3,7 @@ import { invoiceBankDetails, readInvoiceAppearance } from "./invoice-template.ts
 import { refundedTotal } from "./refund.ts";
 import { formatCurrency, orderDiscount, orderRevenue, outstanding } from "./finance.ts";
 import { readBusinessProfile, type InvoiceSettings } from "./business-profile.ts";
-import type { Batch, Customer, Order, OrderItem } from "./types.ts";
+import type { Batch, Customer, Order, OrderItem, Product, ProductPackage } from "./types.ts";
 
 /** Keep existing short references; compact generated UUIDs consistently across invoice outputs. */
 export function invoiceNumber(order: Pick<Order, "id">, settings?: Partial<InvoiceSettings>): string {
@@ -17,6 +17,40 @@ export function invoiceNumber(order: Pick<Order, "id">, settings?: Partial<Invoi
 export function invoiceItemLabel(item: OrderItem): string {
   const name=[productDisplayName(item.product),item.variant].map(value=>value.trim()).filter(Boolean).join(" ");
   return [name,item.color.trim(),item.size.trim()].filter(Boolean).join(" · ");
+}
+
+function packageMemberLabels(pack: ProductPackage, products: Product[]): string[] {
+  const productById = new Map(products.map((product) => [product.id, product]));
+  return pack.productIds.map((id) => {
+    const product = productById.get(id);
+    if (!product) return "Produk tidak tersedia";
+    return [productDisplayName(product.name), product.variant.trim(), product.color?.trim(), product.size?.trim()].filter(Boolean).join(" · ");
+  });
+}
+
+export function invoicePackageMemberLabels(pack: ProductPackage, products: Product[]): string[] {
+  return packageMemberLabels(pack, products);
+}
+
+function invoiceItemLines(item: OrderItem, packages: ProductPackage[], products: Product[]): string[] {
+  const pack = item.packageId ? packages.find((entry) => entry.id === item.packageId) : undefined;
+  if (!pack) return [`• ${textLine(invoiceItemLabel(item))}`, `  ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`];
+  return [
+    `• ${textLine(invoiceItemLabel(item))}`,
+    ...packageMemberLabels(pack, products).map((label) => `  · ${textLine(label)}`),
+    `  ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
+  ];
+}
+
+export function invoiceItemMarkup(item: OrderItem, packages: ProductPackage[], products: Product[]): { label: string; members: string[] } {
+  const pack = item.packageId ? packages.find((entry) => entry.id === item.packageId) : undefined;
+  return { label: invoiceItemLabel(item), members: pack ? packageMemberLabels(pack, products) : [] };
+}
+
+export type InvoiceProductCatalog = { products?: Product[]; packages?: ProductPackage[] };
+
+function invoiceCatalog(catalog?: InvoiceProductCatalog): { products: Product[]; packages: ProductPackage[] } {
+  return { products: catalog?.products ?? [], packages: catalog?.packages ?? [] };
 }
 
 function textLine(value: string): string {
@@ -35,7 +69,8 @@ export function isInvoicePaid(order: Order): boolean {
 }
 
 /** A customer-facing WhatsApp message. Purchase costs stay private. Order notes are customer-facing. */
-export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, settings?: Partial<InvoiceSettings>): string {
+export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, settings?: Partial<InvoiceSettings>, catalog?: InvoiceProductCatalog): string {
+  const { products, packages } = invoiceCatalog(catalog);
   if(order.purpose==="personal")return "";
   const profile = readBusinessProfile(settings);
   const appearance=readInvoiceAppearance(settings?.appearance),footer=appearance.footer,bank=invoiceBankDetails(appearance);
@@ -64,10 +99,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
     ],
     [
       "*PESANAN*",
-      ...order.items.flatMap(item => [
-        `• ${textLine(invoiceItemLabel(item))}`,
-        `  ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
-      ]),
+      ...order.items.flatMap(item => invoiceItemLines(item, packages, products)),
       "",
       `Subtotal produk: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
       ...(batch?.type === "po" ? order.serviceFee > 0 ? [`Biaya tambahan: ${formatCurrency(order.serviceFee)}`] : [] : order.serviceFee>0?[`Fee jastip: ${formatCurrency(order.serviceFee)}`]:[]),
