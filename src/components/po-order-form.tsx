@@ -14,7 +14,21 @@ import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, itemLabel, orderDiscount, orderSubtotal, orderHpp, orderRevenue, outstanding } from "@/lib/finance";
-import type { AppData, Customer, Order, OrderItem } from "@/lib/types";
+import type { AppData, Customer, Order, OrderItem, Product, ProductPackage } from "@/lib/types";
+
+const PACKAGE_PREFIX = "pkg:";
+
+function resolvePackage(value: string, packages: ProductPackage[]) {
+  if (!value.startsWith(PACKAGE_PREFIX)) return undefined;
+  const id = value.slice(PACKAGE_PREFIX.length);
+  return packages.find((pack) => pack.id === id && pack.active);
+}
+
+function packageMemberCost(pack: ProductPackage, products: Product[]) {
+  const members = pack.productIds.map((id) => products.find((product) => product.id === id));
+  if (members.some((member) => !member || member.unitCost === null)) return null;
+  return members.reduce((total, member) => total + (member?.unitCost ?? 0), 0);
+}
 
 type PoOrderFormProps = {
   saveError?: string;
@@ -121,7 +135,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     return Boolean(original && item.productId === originalProductValue(original));
   }
   function canUseProduct(item: ItemFields) {
-    return usesOriginalSnapshot(item) || data.products.some((product) => product.id === item.productId && product.active);
+    return usesOriginalSnapshot(item) || data.products.some((product) => product.id === item.productId && product.active) || Boolean(resolvePackage(item.productId, data.packages ?? []));
   }
   const selectedBatch = poBatches.find((batch) => batch.id === fields.batchId);
   const canUseSelectedBatch = Boolean(selectedBatch && (selectedBatch.status === "open" || selectedBatch.id === order?.batchId));
@@ -138,6 +152,14 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     items: items.map((item) => {
       const original = order?.items.find((entry) => entry.id === item.id);
       if (original && item.productId === originalProductValue(original)) return { ...original, quantity: previewAmount(item.quantity),...(personal&&item.unitCost!==undefined?{unitCost:item.unitCost.trim()===""?null:previewAmount(item.unitCost)}:{}) };
+      const pack = resolvePackage(item.productId, data.packages ?? []);
+      if (pack) {
+        return {
+          id: item.id, productId: null, product: pack.name, variant: "", store: "", color: "", size: "",
+          quantity: previewAmount(item.quantity), unitPrice: pack.unitPrice,
+          unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):packageMemberCost(pack, data.products),
+        };
+      }
       const product = data.products.find((entry) => entry.id === item.productId);
       return {
         id: item.id, productId: product?.id ?? null, product: product?.name ?? "", variant: product?.variant ?? "", store: product?.store ?? "", color: product?.color ?? "", size: product?.size ?? "",
@@ -148,11 +170,23 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     discount: { type: fields.discountType, value: previewAmount(fields.discountValue) }, refunds: order?.refunds,
     date: fields.date, createdAt, status: order?.status ?? "new", notes: fields.notes.trim(),
     shippingDate:fields.shippingDate||undefined,shippingTime:fields.shippingTime||undefined,shippingMethod:fields.shippingMethod.trim()||undefined,
-  },personal), [fields, items, order, data.products, createdAt,personal]);
+  },personal), [fields, items, order, data.products, data.packages, createdAt,personal]);
   const revenue = orderRevenue(draft);
   const previewOrders = [...data.orders.filter((entry) => entry.id !== draft.id), draft];
   const hpp = orderHpp(draft, previewOrders, data.batches);
-  const hasActiveProducts = data.products.some((product) => product.active);
+  const hasActiveProducts = data.products.some((product) => product.active) || (data.packages ?? []).some((pack) => pack.active);
+  const packageOptions: ProductChoice[] = (data.packages ?? []).filter((pack) => pack.active).map((pack) => {
+    const members = pack.productIds.map((id) => data.products.find((product) => product.id === id)).filter((product): product is Product => Boolean(product));
+    return {
+      value: `${PACKAGE_PREFIX}${pack.id}`,
+      name: pack.name,
+      sku: pack.sku,
+      category: "",
+      detail: members.length ? `Isi paket: ${members.map((product) => product.name).join(", ")}` : "",
+      price: pack.unitPrice,
+      searchText: [pack.name, pack.sku, ...members.map((product) => product.name)].filter(Boolean).join(" "),
+    };
+  });
 
   function update(name: keyof Fields, value: string) {
     setFields((current) => ({ ...current, [name]: value }));
@@ -314,7 +348,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
                 <div className="form-grid">
                   <div className="field" >
                     <label className="field-label" htmlFor={productId}>Produk<span className="required-mark" aria-hidden="true"> *</span></label>
-                    <ProductPicker aria-label="Produk" aria-required="true" id={productId} name={`item-${item.id}-productId`} className="input" ref={index === 0 ? productRef : undefined} value={item.productId} options={productOptions} onValueChange={value => updateItem(item.id, "productId", value)} aria-invalid={Boolean(rowErrors?.productId)} aria-describedby={rowErrors?.productId ? `${productId}-error` : pricesId} />
+                    <ProductPicker aria-label="Produk" aria-required="true" id={productId} name={`item-${item.id}-productId`} className="input" ref={index === 0 ? productRef : undefined} value={item.productId} options={productOptions} packageOptions={packageOptions} onValueChange={value => updateItem(item.id, "productId", value)} aria-invalid={Boolean(rowErrors?.productId)} aria-describedby={rowErrors?.productId ? `${productId}-error` : pricesId} />
                     {rowErrors?.productId && <span id={`${productId}-error`} className="error-message">{rowErrors.productId}</span>}
                     {usesOriginalSnapshot(item) && <span className="field-hint">Nama dan harga memakai data saat pesanan dibuat. Perubahan master tidak mengubah produk ini.</span>}
                   </div>
