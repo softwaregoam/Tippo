@@ -933,7 +933,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .package-member-detail-content { min-width:0; }
 .package-member-detail-heading { display:flex; align-items:center; gap:9px; margin-bottom:12px; }
 .package-member-detail-heading strong { color:var(--ink); font-size:15px; }
-.package-member-detail-number { display:grid; place-items:center; flex:0 0 24px; height:24px; border-radius:6px; background:var(--tone-surface-edf5f1); color:var(--primary); font-size:12px; font-weight:700; }
+.package-member-detail-number { display:grid; place-items:center; flex:0 0 24px; height:24px; border:1px solid var(--warning); border-radius:6px; background:var(--tone-surface-f7e4cb); color:var(--warning); font-size:12px; font-weight:700; }
 .package-member-detail-prices { display:flex; gap:10px; margin-bottom:12px; }
 .package-member-detail-prices span { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex:1; padding:8px 10px; border-radius:6px; background:var(--tone-surface-edf5f1); }
 .package-member-detail-prices small { color:var(--muted); font-size:12px; }
