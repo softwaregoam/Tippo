@@ -53,7 +53,7 @@ function catalogue(value: unknown): value is AppData["products"] {
 
 function validPackages(value: unknown, productIds: Set<string>): value is ProductPackage[] {
   if (!Array.isArray(value) || value.length > 100000) return false;
-  if (!value.every((p) => record(p) && extendedId(p.id, LEGACY_PRODUCT_PREFIX) && text(p.name) && p.name.trim() && text(p.sku) && Array.isArray(p.productIds) && p.productIds.length > 0 && p.productIds.every((id) => extendedId(id, LEGACY_PRODUCT_PREFIX) && productIds.has(id)) && money(p.unitPrice) && typeof p.active === "boolean")) return false;
+  if (!value.every((p) => record(p) && extendedId(p.id, LEGACY_PRODUCT_PREFIX) && text(p.name) && p.name.trim() && text(p.sku) && (p.category === undefined || (text(p.category) && p.category.length <= 80)) && Array.isArray(p.productIds) && p.productIds.length > 0 && p.productIds.every((id) => extendedId(id, LEGACY_PRODUCT_PREFIX) && productIds.has(id)) && money(p.unitPrice) && (p.unitCost === undefined || p.unitCost === null || money(p.unitCost)) && typeof p.active === "boolean")) return false;
   return new Set(value.map((p) => p.id)).size === value.length;
 }
 

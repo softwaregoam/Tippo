@@ -43,9 +43,12 @@ export interface ProductPackage {
   id: string;
   name: string;
   sku: string;
+  category?: string;
   /** Referensi ke ID produk anggota yang digabung dalam paket ini. */
   productIds: string[];
   unitPrice: number;
+  /** null means that the package purchase cost (HPP) has not been recorded. */
+  unitCost?: number | null;
   active: boolean;
 }
 
