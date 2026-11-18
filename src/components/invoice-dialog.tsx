@@ -44,7 +44,7 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
   const [qrisFile,setQrisFile]=useState<{key:string;file:File|null;error:string}|null>(null);
   const [qrisAttempt,retryQris]=useState(0);
   const customer=data.customers.find(customer=>customer.id===order.customerId);
-  const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings);
+  const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings, { products: data.products, packages: data.packages });
 
   const photoKey=JSON.stringify([order,data.batches.find(batch=>batch.id===order.batchId),customer,settings]);
   useEffect(()=>{
@@ -154,7 +154,7 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
       </div>
       <div key={tab} ref={body} className={`modal-body invoice-${tab}-body`}>
         <div role="tabpanel" id={`${id}-image-panel`} aria-labelledby={`${id}-image-tab`} hidden={tab!=="image"}>
-        <div ref={document} className="invoice-preview-surface"><div className="invoice-preview-source"><InvoiceDocument order={order} batch={data.batches.find(batch=>batch.id===order.batchId)} customer={customer} settings={settings}/></div>
+        <div ref={document} className="invoice-preview-surface"><div className="invoice-preview-source"><InvoiceDocument order={order} batch={data.batches.find(batch=>batch.id===order.batchId)} customer={customer} settings={settings} catalog={{ products: data.products, packages: data.packages }}/></div>
           {mobile&&(photo?.key===photoKey&&photo.url?<InvoicePhoto src={photo.url}/>:photo?.key===photoKey&&photo.error?<div className="invoice-photo-placeholder"><p role="alert">{photo.error}</p><Button type="button" className="btn btn-secondary" onClick={()=>{setPhoto(null);retryPreview(value=>value+1);}}>Coba lagi</Button></div>:<div className="invoice-photo-placeholder" role="status">Menyiapkan pratinjau…</div>)}
         </div>
         </div>

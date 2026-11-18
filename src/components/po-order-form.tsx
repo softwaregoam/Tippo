@@ -155,7 +155,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
       const pack = resolvePackage(item.productId, data.packages ?? []);
       if (pack) {
         return {
-          id: item.id, productId: null, product: pack.name, variant: "", store: "", color: "", size: "",
+          id: item.id, productId: null, packageId: pack.id, product: pack.name, variant: "", store: "", color: "", size: "",
           quantity: previewAmount(item.quantity), unitPrice: pack.unitPrice,
           unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):(pack.unitCost === undefined ? packageMemberCost(pack, data.products) : pack.unitCost),
         };
