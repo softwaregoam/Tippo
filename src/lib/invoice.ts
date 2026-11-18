@@ -19,17 +19,21 @@ export function invoiceItemLabel(item: OrderItem): string {
   return [name,item.color.trim(),item.size.trim()].filter(Boolean).join(" · ");
 }
 
-function packageMemberLabels(pack: ProductPackage, products: Product[]): string[] {
+function packageMemberLabels(pack: ProductPackage, products: Product[], packageQuantity = 1): string[] {
   const productById = new Map(products.map((product) => [product.id, product]));
-  return pack.productIds.map((id) => {
+  const counts = new Map<string, number>();
+  for (const id of pack.productIds) {
     const product = productById.get(id);
-    if (!product) return "Produk tidak tersedia";
-    return [productDisplayName(product.name), product.variant.trim(), product.color?.trim(), product.size?.trim()].filter(Boolean).join(" · ");
-  });
+    const label = product
+      ? [productDisplayName(product.name), product.variant.trim(), product.color?.trim(), product.size?.trim()].filter(Boolean).join(" ")
+      : "Produk tidak tersedia";
+    counts.set(label, (counts.get(label) ?? 0) + packageQuantity);
+  }
+  return [...counts.entries()].map(([label, quantity]) => `${quantity}x ${label}`);
 }
 
-export function invoicePackageMemberLabels(pack: ProductPackage, products: Product[]): string[] {
-  return packageMemberLabels(pack, products);
+export function invoicePackageMemberLabels(pack: ProductPackage, products: Product[], packageQuantity = 1): string[] {
+  return packageMemberLabels(pack, products, packageQuantity);
 }
 
 function invoiceItemLines(item: OrderItem, packages: ProductPackage[], products: Product[]): string[] {
@@ -37,14 +41,14 @@ function invoiceItemLines(item: OrderItem, packages: ProductPackage[], products:
   if (!pack) return [`• ${textLine(invoiceItemLabel(item))}`, `  ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`];
   return [
     `• ${textLine(invoiceItemLabel(item))}`,
-    ...packageMemberLabels(pack, products).map((label) => `  · ${textLine(label)}`),
+    ...packageMemberLabels(pack, products, item.quantity).map((label) => `  ${textLine(label)}`),
     `  ${item.quantity} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.quantity * item.unitPrice)}`,
   ];
 }
 
 export function invoiceItemMarkup(item: OrderItem, packages: ProductPackage[], products: Product[]): { label: string; members: string[] } {
   const pack = item.packageId ? packages.find((entry) => entry.id === item.packageId) : undefined;
-  return { label: invoiceItemLabel(item), members: pack ? packageMemberLabels(pack, products) : [] };
+  return { label: invoiceItemLabel(item), members: pack ? packageMemberLabels(pack, products, item.quantity) : [] };
 }
 
 export type InvoiceProductCatalog = { products?: Product[]; packages?: ProductPackage[] };
