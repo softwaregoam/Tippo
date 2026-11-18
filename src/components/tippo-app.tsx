@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import {cacheInvoiceLogo,invalidateInvoiceLogo} from "@/lib/invoice-logo-cache";
 import { scrollToTopAfterSave } from "@/lib/after-save";
 
@@ -23,7 +23,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import {
   ArrowUpRight, CalendarDays, Crown,
   Check, ChevronDown, CircleHelp, Download, FileJson, Headset, Layers3,
-  FileBarChart2, LayoutDashboard, LogOut, Lock, MapPin, Menu, MessageSquare, Package, Palette, Pencil, Plus, ReceiptText, Search, Settings2,
+  FileBarChart2, LayoutDashboard, LogOut, Lock, MapPin, Menu, MessageSquare, Package, PackagePlus, Palette, Pencil, Plus, ReceiptText, Search, Settings2,
   ShoppingBag, Trash2, Upload, UsersRound, Wallet, X,
 } from "lucide-react";
 import { Select, SelectOption } from "@/components/ui/select";
@@ -32,6 +32,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { OrderForm } from "@/components/order-form";
 import { PoOrderForm } from "@/components/po-order-form";
 import { ModeWorkspace, ProductForm, WorkspaceEmptyState } from "@/components/mode-workspace";
+import { PackageWorkspace, ProductPackageForm } from "@/components/product-package";
 import {MobileDataList} from "@/components/mobile-data-list";
 import { OrdersTable } from "@/components/orders-table";
 import { ReportsPanel } from "@/components/reports-panel";
@@ -45,17 +46,18 @@ import { useAppData, saveAppData, normalizeAppData } from "@/lib/store";
 import { seedData } from "@/lib/seed";
 import { formatCurrency, getMonthlySeries, getMonthSummary, outstanding, isPersonalOrder } from "@/lib/finance";
 import { canCreateOrders, canCreateProduct, canRestoreOrders, effectivePlan, jakartaMonth, monthlyOrderUsage, recordOrderUsage, useSubscription } from "@/lib/subscription";
-import type { AppData, Batch, Customer, Order, Product } from "@/lib/types";
+import type { AppData, Batch, Customer, Order, Product, ProductPackage } from "@/lib/types";
 import type { AccountWorkspace } from "./cloud-workspace";
 import Link from "next/link";
 
-type Page = "dashboard" | "orders" | "products" | "batches" | "hpp" | "reports" | "customers" | "settings" | "invoice-template" | "profile" | "subscription" | "feedback" | "help";
+type Page = "dashboard" | "orders" | "products" | "product-packages" | "batches" | "hpp" | "reports" | "customers" | "settings" | "invoice-template" | "profile" | "subscription" | "feedback" | "help";
 const businessModeKey = "tippo.business-mode.v1";
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const subtitles = {
   dashboard: "Cek penjualan, HPP, dan sisa tagihan usaha ini.",
   orders: "Catat pesanan, pembayaran, dan perkembangan pengiriman.",
   products: "Katalog produk sendiri, harga siap untuk pesanan berikutnya.",
+  "product-packages": "Gabungkan produk katalog jadi satu paket dengan harga jual baru.",
   batches: "Kelompokkan pesanan sesuai perjalanan atau periode PO.",
   hpp: "Harga beli, HPP, dan margin pesanan.",
   reports: "Lihat penjualan dan estimasi laba usaha ini.",
@@ -126,11 +128,11 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   });
   const invoiceSettings = {...(cloud ? readBusinessProfile(cloud) : demoProfile),appearance:invoiceAppearanceForMode(cloud?.invoiceAppearance ?? demoAppearance,mode)};
   const modeLabel = mode === "po" ? "Open PO" : "Jastip";
-  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, reports: `Laporan ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", "invoice-template": "Template invoice", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
+  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", "product-packages": "Produk Paket", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, reports: `Laporan ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", "invoice-template": "Template invoice", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
   const navigation = [
     { id: "dashboard" as Page, label: "Ringkasan", icon: LayoutDashboard },
     { id: "orders" as Page, label: "Pesanan", icon: ReceiptText },
-    ...(mode === "po" ? [{ id: "products" as Page, label: "Produk", icon: Package }] : []),
+    ...(mode === "po" ? [{ id: "products" as Page, label: "Produk", icon: Package }, { id: "product-packages" as Page, label: "Produk Paket", icon: PackagePlus }] : []),
     { id: "batches" as Page, label: mode === "po" ? "Batch PO" : "Perjalanan", icon: Layers3 },
     { id: "customers" as Page, label: "Pelanggan", icon: UsersRound },
     { id: "hpp" as Page, label: "HPP & Margin", icon: Wallet },
@@ -151,6 +153,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   const [batchModal, setBatchModal] = useState<{ type: Batch["type"]; batch?: Batch } | null>(null);
   const [duplicateProduct, setDuplicateProduct] = useState<Product | null>(null);
   const [productModal, setProductModal] = useState<Product | "new" | null>(null);
+  const [packageModal, setPackageModal] = useState<ProductPackage | "new" | null>(null);
   const [batchRequired, setBatchRequired] = useState<Batch["type"] | null>(null);
   const [productRequired, setProductRequired] = useState(false);
   const [customerModal, setCustomerModal] = useState<Customer | "new" | null>(null);
@@ -334,6 +337,15 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     }
     return persist({ ...data, products: data.products.some((p) => p.id === product.id) ? data.products.map((p) => p.id === product.id ? product : p) : [product, ...data.products] }, "Master produk tersimpan. Harga pesanan lama tetap sama.");
   }
+  async function savePackage(pack: ProductPackage) {
+    const allPackages = data.packages ?? [];
+    if (pack.sku && allPackages.some((p) => p.id !== pack.id && p.sku.toLowerCase() === pack.sku.toLowerCase())) {
+      notify("SKU sudah digunakan paket lain. Gunakan SKU yang unik."); return false;
+    }
+    const unknownProducts = pack.productIds.filter((id) => !data.products.some((p) => p.id === id));
+    if (unknownProducts.length) { notify("Produk anggota tidak tersedia dalam katalog."); return false; }
+    return persist({ ...data, packages: allPackages.some((p) => p.id === pack.id) ? allPackages.map((p) => p.id === pack.id ? pack : p) : [pack, ...allPackages] }, "Produk paket tersimpan");
+  }
   async function importProducts(products: Product[]) {
     if (effectivePlan(subscription) !== "pro") throw new Error("Import template Excel hanya tersedia untuk paket Pro.");
     const quota = canCreateProduct(data, subscription);
@@ -359,7 +371,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     persist(next, message);
   }
 
-  if (!ready) return <div className="app-loading" role="status">Memuat workspace Tippo…</div>;
+  if (!ready) return <div className="app-loading" role="status">Memuat workspace Tippoâ€¦</div>;
 
   return (
     <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
@@ -410,28 +422,28 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
           </div>
         </header>
         <main className={`main-content${page === "dashboard" ? " is-dashboard" : ""}`}>
-          <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && page !== "reports" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
+          <div className="page-heading"><div><h1>{titles[page]}<span className="heading-dot">.</span></h1><p>{subtitles[page]}</p></div>{page !== "hpp" && page !== "reports" && <div className="heading-actions">{page === "dashboard" && <div className="month-picker"><CalendarDays size={16} /><Select aria-label="Pilih bulan ringkasan" disabled={!isPro} value={month} onValueChange={(value) => setMonth(value)}>{(isPro ? availableYears.flatMap((year) => monthNames.map((name, i) => <SelectOption key={`${year}-${i}`} value={`${year}-${String(i + 1).padStart(2, "0")}`}>{name} {year}</SelectOption>)) : [<SelectOption key={currentMonth} value={currentMonth}>{monthLabel(currentMonth)}</SelectOption>])}</Select></div>}{page === "customers" && <Button className="btn btn-primary page-create-button" onClick={() => { setSaveError(""); setCustomerModal("new"); }}><Plus size={17} />Tambah pelanggan</Button>}{page === "orders" && <Button className="btn btn-primary page-create-button" onClick={() => startOrder()}><Plus size={17} />Tambah pesanan</Button>}{page === "products" && <Button className="btn btn-primary page-create-button" onClick={() => { if (!isPro && data.products.length >= 5) go("subscription"); else setProductModal("new"); }}><Plus size={17} />Tambah produk</Button>}{page === "product-packages" && <Button className="btn btn-primary page-create-button" onClick={() => { if (data.products.length === 0) { notify("Tambah produk terlebih dahulu sebelum membuat paket."); return; } setPackageModal("new"); }}><PackagePlus size={17} />Tambah paket</Button>}{page === "batches" && <Button className="btn btn-primary page-create-button" onClick={() => setBatchModal({ type: mode })}><Plus size={17} />{mode === "po" ? "Tambah batch" : "Tambah perjalanan"}</Button>}</div>}</div>
 
-          {!isPro && page !== "settings" && page !== "hpp" && page !== "invoice-template" && page !== "subscription" && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan · satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
+          {!isPro && page !== "settings" && page !== "hpp" && page !== "invoice-template" && page !== "subscription" && <div className="quota-banner"><div><strong>{modeLabel} <span className="quota-count">{monthlyOrderUsage(data, new Date(), mode)} / 5</span> pesanan bulan ini</strong><span>Reset awal bulan Â· satu pesanan boleh banyak produk</span></div><Button className="btn btn-secondary" onClick={() => {go("subscription");setProFocusRequest(value=>value+1);}}><Crown size={15} />Upgrade Pro</Button></div>}
           {isPro && page !== "subscription" && <SubscriptionExpiryReminder subscription={subscription} mode={mode} onUpgrade={() => { go("subscription"); setProFocusRequest(value => value + 1); }} />}
             <div key={page} className={page === "dashboard" ? "dashboard-content" : undefined}>
               {page === "dashboard" && <>
                 <div className="stats-grid dashboard-stats">
                   <Stat icon={<Wallet size={18}/>} title="Total penjualan" value={formatCurrency(summary.revenue)} note={`${summary.ordersCount} pesanan di ${monthNames[Number(month.slice(5)) - 1]}`} />
                   <Stat icon={<FileBarChart2 size={18}/>} title="Estimasi margin" value={formatCurrency(summary.profit)} note={summary.unknownCostCount ? `${summary.unknownCostCount} pesanan belum lengkap HPP` : "Tanpa ongkir, sebelum biaya umum"} warning={summary.unknownCostCount > 0} />
-                  <Stat icon={<ShoppingBag size={18}/>} title="Pesanan bulan ini" value={`${summary.ordersCount}`} note={`${monthOrders.filter((o) => !isPersonalOrder(o)&&o.status === "done").length} selesai · ${monthOrders.filter((o) => !isPersonalOrder(o)&&!["done", "cancelled"].includes(o.status)).length} dalam proses`} />
+                  <Stat icon={<ShoppingBag size={18}/>} title="Pesanan bulan ini" value={`${summary.ordersCount}`} note={`${monthOrders.filter((o) => !isPersonalOrder(o)&&o.status === "done").length} selesai Â· ${monthOrders.filter((o) => !isPersonalOrder(o)&&!["done", "cancelled"].includes(o.status)).length} dalam proses`} />
                   <Stat icon={<ReceiptText size={18}/>} title="Sisa tagihan" value={formatCurrency(summary.outstanding)} note="Piutang pesanan bulan terpilih" />
-                  {summary.personalExpenses>0&&<div className="dashboard-personal-expense"><span>Belanja sendiri</span><strong>{formatCurrency(summary.personalExpenses)}</strong><small>{monthOrders.some(order=>isPersonalOrder(order)&&hasEstimatedCost(order))?"Mencakup kurs estimasi · di luar margin":"Terpisah dari penjualan dan margin"}</small></div>}
+                  {summary.personalExpenses>0&&<div className="dashboard-personal-expense"><span>Belanja sendiri</span><strong>{formatCurrency(summary.personalExpenses)}</strong><small>{monthOrders.some(order=>isPersonalOrder(order)&&hasEstimatedCost(order))?"Mencakup kurs estimasi Â· di luar margin":"Terpisah dari penjualan dan margin"}</small></div>}
                 </div>
                 <div className="dashboard-middle">
                   <section className="card chart-card"><div className="card-header"><div><h2>Penjualan dibanding HPP</h2><p>{isPro ? "Perbandingan enam bulan, berdasarkan tanggal pesanan." : "Perbandingan pada bulan berjalan."}</p></div><div className="chart-year">{currentYear}</div></div><div className="chart-summary"><div><span>{isPro ? "Total penjualan tahun ini" : `Penjualan ${monthLabel(month)}`}</span><strong>{formatCurrency(isPro ? getMonthlySeries(summaryData, currentYear).reduce((sum, point) => sum + point.revenue, 0) : summary.revenue)}</strong></div><div className="chart-legend"><span><i className="legend-dot teal" />Penjualan</span><span><i className="legend-dot gold" />HPP diketahui</span></div></div><MonthlyChart data={summaryData} month={month} currentOnly={!isPro} />{!isPro && <button className="summary-upgrade" onClick={() => go("subscription")}><Crown size={14} />Ringkasan bulan sebelumnya tersedia di Pro</button>}<div className="chart-caption"><span>Berdasarkan tanggal pesanan</span><span>{summaryData.orders.some(order=>order.status!=="cancelled"&&hasEstimatedCost(order))?"HPP mencakup kurs estimasi":"HPP yang belum terisi tidak dihitung"}</span></div></section>
                   <div className="dashboard-payments">
                     <section className="card payments-card"><div className="card-header"><div><h2>Aliran pembayaran</h2><p>Untuk pesanan {monthLabel(month)}</p></div></div><div className="payment-overview"><PaymentDonut received={summary.received} total={summary.revenue} /><div className="payment-breakdown"><div><span><i className="legend-dot teal" />Sudah diterima</span><strong>{formatCurrency(summary.received)}</strong></div><div><span><i className="legend-dot pale" />Belum dibayar</span><strong>{formatCurrency(summary.outstanding)}</strong></div>{modeOrders.some(o=>o.date.startsWith(`${month}-`) && refundedTotal(o)>0) && <div><span>Refund pesanan bulan ini</span><strong>{formatCurrency(modeOrders.filter(o=>o.date.startsWith(`${month}-`)).reduce((sum,o)=>sum+refundedTotal(o),0))}</strong></div>}</div></div></section>
                     <section className="card unpaid-card" aria-labelledby="unpaid-title">
-                      <div className="card-header"><div><h2 id="unpaid-title">Tagihan belum lunas</h2><p>{monthLabel(month)} · {unpaidOrders.length} pesanan</p></div></div>
+                      <div className="card-header"><div><h2 id="unpaid-title">Tagihan belum lunas</h2><p>{monthLabel(month)} Â· {unpaidOrders.length} pesanan</p></div></div>
                       {unpaidOrders.length > 0 ? <>
                         <ul className="unpaid-list">{unpaidOrders.slice(0, 5).map(order => <li key={order.id}>
-                          <div><h3>{data.customers.find(customer => customer.id === order.customerId)?.name || "Pelanggan belum diisi"}</h3><p>{data.batches.find(batch => batch.id === order.batchId)?.name || "Batch belum diisi"} · {dateLabel(order.date)}</p></div>
+                          <div><h3>{data.customers.find(customer => customer.id === order.customerId)?.name || "Pelanggan belum diisi"}</h3><p>{data.batches.find(batch => batch.id === order.batchId)?.name || "Batch belum diisi"} Â· {dateLabel(order.date)}</p></div>
                           <strong>{formatCurrency(outstanding(order))}</strong>
                         </li>)}</ul>
                         <div className="unpaid-total"><span>Total sisa tagihan</span><strong>{formatCurrency(summary.outstanding)}</strong></div>
@@ -456,7 +468,13 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                 onImport={importOrders} importAllowed={isPro} productLimit={!isPro ? 5 : undefined} onUpgrade={() => go("subscription")}
               />}
 
-              {page === "hpp" && <>{hppBatch ? <><div className="card hpp-selector"><label htmlFor="hpp-batch" className="field-label">{mode === "po" ? "Batch PO" : "Perjalanan"}</label><BatchPicker purpose="hpp" batches={modeBatches} type={mode} value={hppBatch.id} onValueChange={setSelectedHpp}/></div><HppPanel key={hppBatch.id} batch={hppBatch} data={data} onSave={(next) => persist(next, "Biaya tersimpan. HPP dan margin sudah diperbarui.")} /></> : <Empty title="HPP dimulai dari batch" description="Buat batch dan catat pesanan agar biaya bisa dihitung." action="Buat batch" onAction={() => setBatchModal({ type: mode })} />}</>}
+                            {page === "product-packages" && <PackageWorkspace key={mode} data={data}
+                onSavePackage={savePackage}
+                onPackageStatus={(pack) => persist({ ...data, packages: (data.packages ?? []).map((p) => p.id === pack.id ? { ...p, active: !p.active } : p) }, pack.active ? "Produk paket diarsipkan" : "Produk paket aktif kembali")}
+                onEditPackage={setPackageModal}
+                onDuplicatePackage={(pack) => setPackageModal({ ...pack, id: crypto.randomUUID(), productIds: [...pack.productIds], active: true })}
+              />}
+{page === "hpp" && <>{hppBatch ? <><div className="card hpp-selector"><label htmlFor="hpp-batch" className="field-label">{mode === "po" ? "Batch PO" : "Perjalanan"}</label><BatchPicker purpose="hpp" batches={modeBatches} type={mode} value={hppBatch.id} onValueChange={setSelectedHpp}/></div><HppPanel key={hppBatch.id} batch={hppBatch} data={data} onSave={(next) => persist(next, "Biaya tersimpan. HPP dan margin sudah diperbarui.")} /></> : <Empty title="HPP dimulai dari batch" description="Buat batch dan catat pesanan agar biaya bisa dihitung." action="Buat batch" onAction={() => setBatchModal({ type: mode })} />}</>}
 
               {page === "customers" && <section className="card workspace-list-card" aria-label="Daftar kontak pelanggan"><div className="card-header"><div><h2>Daftar pelanggan</h2><p>Kelola nama, WhatsApp, dan alamat pelangganmu.</p></div></div><div className="list-toolbar"><div className="search-field"><Search size={18} /><input aria-label="Cari pelanggan" placeholder="Cari nama pelanggan..." value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>{visibleCustomers.length > 0 && <><MobileDataList entries={visibleCustomers.map(c=>({id:c.id,title:c.name,subtitle:c.phone||"WhatsApp belum diisi",meta:`${modeOrders.filter(o=>o.customerId===c.id&&o.status!=="cancelled").length} pesanan`,details:<><dl className="mobile-detail-fields"><dt>WhatsApp</dt><dd>{c.phone||"Belum diisi"}</dd><dt>Alamat</dt><dd>{c.address||"Belum diisi"}</dd></dl><button data-close-detail className="btn btn-primary" onClick={()=>{setSaveError("");setCustomerModal(c);}}>Edit pelanggan</button></>}))}/><div className="management-table-wrap desktop-data-table"><table className="management-table" aria-label="Daftar pelanggan"><thead><tr><th scope="col">Nama pelanggan</th><th scope="col">WhatsApp</th><th scope="col">Alamat</th><th scope="col" className="numeric">Jumlah pesanan</th><th scope="col">Aksi</th></tr></thead><tbody>{visibleCustomers.map(customer=><tr key={customer.id}><td data-label="Nama pelanggan"><h3>{customer.name}</h3></td><td data-label="WhatsApp">{customer.phone || "Belum diisi"}</td><td data-label="Alamat" className="customer-address-cell">{customer.address || "Belum diisi"}</td><td data-label="Jumlah pesanan" className="numeric">{modeOrders.filter(o=>o.customerId===customer.id && o.status!=="cancelled").length}</td><td data-label="Aksi"><button className="icon-button" aria-label={`Edit pelanggan ${customer.name}`} onClick={()=>{setSaveError("");setCustomerModal(customer);}}><Pencil size={16}/></button></td></tr>)}</tbody></table></div></>}{!visibleCustomers.length && <WorkspaceEmptyState kind="customers" hasData={data.customers.length > 0} onReset={() => setSearch("")} />}<div className="table-footer">{visibleCustomers.length}{visibleCustomers.length !== data.customers.length && ` dari ${data.customers.length}`} pelanggan</div></section>}
 
@@ -474,6 +492,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
       {orderModal && (orderModal.type === "po" ? <PoOrderForm saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} onSave={saveOrder} onClose={() => setOrderModal(null)} /> : <OrderForm onBatchQuote={(id, quote) => { const batch = data.batches.find(b => b.id === id); if (batch && JSON.stringify(batch.purchaseFx) !== JSON.stringify(quote)) void persist({ ...data, batches: data.batches.map(b => b.id === id ? { ...b, purchaseFx: quote } : b) }, ""); }} saving={cloud?.saving} saveError={saveError} data={data} order={orderModal.order} defaultBatchId={orderModal.batchId} onSave={saveOrder} onClose={() => setOrderModal(null)} />)}
       {duplicateProduct && <ProductForm duplicate product={duplicateProduct} categories={[...new Set(data.products.map(product => product.category?.trim()).filter((category): category is string => Boolean(category)))]} onClose={() => setDuplicateProduct(null)} onSave={async (product) => { const saved = await saveProduct(product); if (saved) setDuplicateProduct(null); return saved; }} />}
       {productModal && <ProductForm categories={[...new Set(data.products.map(product => product.category?.trim()).filter((category): category is string => Boolean(category)))]} product={productModal === "new" ? undefined : productModal} onClose={() => setProductModal(null)} onSave={async (product) => { const saved = await saveProduct(product); if (saved) setProductModal(null); return saved; }} />}
+      {packageModal && <ProductPackageForm products={data.products.filter((p) => p.active)} pack={packageModal === "new" ? undefined : packageModal} onClose={() => setPackageModal(null)} onSave={async (pack) => { const saved = await savePackage(pack); if (saved) setPackageModal(null); return saved; }} />}
       {productRequired && <SimpleModal title="Belum ada produk aktif" onClose={() => setProductRequired(false)}><div className="modal-body"><p>Tambahkan produk terlebih dahulu agar kamu bisa mencatat pesanan Open PO. Produk yang diarsipkan tidak bisa dipilih untuk pesanan baru, kamu bisa mengaktifkannya kembali di halaman Produk.</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setProductRequired(false)}>Nanti dulu</Button><Button className="btn btn-primary" onClick={() => { setProductRequired(false); go("products"); }}><Plus size={17} />Tambah produk</Button></div></SimpleModal>}
       {batchRequired && <SimpleModal title={batchRequired === "po" ? "Belum ada batch yang dibuka" : "Belum ada perjalanan yang dibuka"} onClose={() => setBatchRequired(null)}><div className="modal-body"><p>{batchRequired === "po" ? "Buat batch baru dengan status Dibuka terlebih dahulu agar kamu bisa mencatat pesanan. Batch yang sudah ditutup atau selesai tidak bisa menerima pesanan baru." : "Buat perjalanan baru dengan status Dibuka terlebih dahulu agar kamu bisa mencatat pesanan jastip. Perjalanan yang sudah ditutup atau selesai tidak bisa menerima pesanan baru."}</p></div><div className="modal-footer"><Button className="btn btn-secondary" onClick={() => setBatchRequired(null)}>Nanti dulu</Button><Button className="btn btn-primary" onClick={() => { setBatchRequired(null); go("batches"); }}><Plus size={17} />{batchRequired === "po" ? "Buat batch" : "Buat perjalanan"}</Button></div></SimpleModal>}
       {batchModal && <BatchForm type={batchModal.type} batch={batchModal.batch} onSave={async (batch) => { if (await persist({ ...data, batches: data.batches.some((b) => b.id === batch.id) ? data.batches.map((b) => b.id === batch.id ? batch : b) : [batch, ...data.batches] }, "Batch berhasil disimpan")) setBatchModal(null); }} onClose={() => setBatchModal(null)} />}
@@ -529,7 +548,7 @@ function PaymentDonut({ received, total }: { received: number; total: number }) 
 function BatchCard({ batch, data, index, onOpen }: { batch: Batch; data: AppData; index: number; onOpen: () => void }) {
   const orders = data.orders.filter((o) => o.batchId === batch.id && o.status !== "cancelled");
   const completed = orders.filter((o) => o.status === "done").length;
-  return <button className="batch-card" onClick={onOpen}><div className="batch-card-top"><span className={`batch-icon ${index % 2 ? "peach" : "mint"}`}>{batch.type === "jastip" ? <ShoppingBag size={22} /> : <Package size={22} />}</span><span className={`type-badge ${batch.type === "po" ? "type-po" : ""}`}>{batch.type === "po" ? "OPEN PO" : "JASTIP"}</span><ArrowUpRight size={17} className="batch-open-icon" /></div><h3>{batch.name}</h3><p><MapPin size={13} />{batch.origin || "Lokasi belum ditentukan"}</p><div className="batch-progress"><span style={{ width: `${orders.length ? completed / orders.length * 100 : 0}%` }} /></div><div className="batch-card-foot"><span><strong>{orders.length}</strong> pesanan · {completed} selesai</span><span><CalendarDays size={12} />{dateLabel(batch.closeDate)}</span></div></button>;
+  return <button className="batch-card" onClick={onOpen}><div className="batch-card-top"><span className={`batch-icon ${index % 2 ? "peach" : "mint"}`}>{batch.type === "jastip" ? <ShoppingBag size={22} /> : <Package size={22} />}</span><span className={`type-badge ${batch.type === "po" ? "type-po" : ""}`}>{batch.type === "po" ? "OPEN PO" : "JASTIP"}</span><ArrowUpRight size={17} className="batch-open-icon" /></div><h3>{batch.name}</h3><p><MapPin size={13} />{batch.origin || "Lokasi belum ditentukan"}</p><div className="batch-progress"><span style={{ width: `${orders.length ? completed / orders.length * 100 : 0}%` }} /></div><div className="batch-card-foot"><span><strong>{orders.length}</strong> pesanan Â· {completed} selesai</span><span><CalendarDays size={12} />{dateLabel(batch.closeDate)}</span></div></button>;
 }
 
 function Empty({ title, description, action, onAction }: { title: string; description: string; action: string; onAction: () => void }) {
@@ -555,7 +574,7 @@ function BatchForm({ type, batch, onSave, onClose }: { type: Batch["type"]; batc
   const [name, setName] = useState(batch?.name ?? "");
   const [origin, setOrigin] = useState(batch?.origin ?? "");
   const [closeDate, setCloseDate] = useState(batch?.closeDate ?? new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }));
-  return <SimpleModal title={batch ? "Edit batch" : type === "po" ? "Batch PO baru" : "Batch jastip baru"} subtitle="Kumpulkan titipan dalam satu batch yang rapi." onClose={onClose}><form onSubmit={(e) => { e.preventDefault(); onSave({ id: batch?.id ?? crypto.randomUUID(), name: name.trim(), type, origin: origin.trim(), closeDate, status: batch?.status ?? "open", directCosts: batch?.directCosts ?? 0, ...(type === "jastip" && purchaseFx ? { purchaseFx } : {}) }); }}><div className="modal-body"><div className="field"><label className="field-label" htmlFor="batch-name">Nama batch<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama batch" id="batch-name" className="input" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "po" ? "Contoh: PO Roti • November" : "Contoh: Seoul Beauty • November"} /></div><div className="form-grid batch-fields-row"><div className="field"><label className="field-label" htmlFor="batch-type">Jenis titipan</label><input id="batch-type" className="input" readOnly value={type === "po" ? "Open PO" : "Jastip"} /></div><div className="field"><label className="field-label" htmlFor="batch-close">Tutup pesanan<span className="required-mark" aria-hidden="true"> *</span></label><DatePicker aria-label="Tutup pesanan" id="batch-close" required value={closeDate} onValueChange={setCloseDate} /></div></div><div className="field"><label className="field-label" htmlFor="batch-origin">Lokasi / supplier</label><input id="batch-origin" className="input" maxLength={120} value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder={type === "po" ? "Contoh: Dapur Roti, Bandung" : "Contoh: Seoul, Korea Selatan"} /></div>{type === "jastip" && <BatchCurrencyFields value={purchaseFx} onChange={setPurchaseFx} onLoading={setLoadingRate}/>}</div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={onClose}>Batal</Button><Button type="submit" disabled={loadingRate} className="btn btn-primary">Simpan batch</Button></div></form></SimpleModal>;
+  return <SimpleModal title={batch ? "Edit batch" : type === "po" ? "Batch PO baru" : "Batch jastip baru"} subtitle="Kumpulkan titipan dalam satu batch yang rapi." onClose={onClose}><form onSubmit={(e) => { e.preventDefault(); onSave({ id: batch?.id ?? crypto.randomUUID(), name: name.trim(), type, origin: origin.trim(), closeDate, status: batch?.status ?? "open", directCosts: batch?.directCosts ?? 0, ...(type === "jastip" && purchaseFx ? { purchaseFx } : {}) }); }}><div className="modal-body"><div className="field"><label className="field-label" htmlFor="batch-name">Nama batch<span className="required-mark" aria-hidden="true"> *</span></label><input aria-label="Nama batch" id="batch-name" className="input" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "po" ? "Contoh: PO Roti â€¢ November" : "Contoh: Seoul Beauty â€¢ November"} /></div><div className="form-grid batch-fields-row"><div className="field"><label className="field-label" htmlFor="batch-type">Jenis titipan</label><input id="batch-type" className="input" readOnly value={type === "po" ? "Open PO" : "Jastip"} /></div><div className="field"><label className="field-label" htmlFor="batch-close">Tutup pesanan<span className="required-mark" aria-hidden="true"> *</span></label><DatePicker aria-label="Tutup pesanan" id="batch-close" required value={closeDate} onValueChange={setCloseDate} /></div></div><div className="field"><label className="field-label" htmlFor="batch-origin">Lokasi / supplier</label><input id="batch-origin" className="input" maxLength={120} value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder={type === "po" ? "Contoh: Dapur Roti, Bandung" : "Contoh: Seoul, Korea Selatan"} /></div>{type === "jastip" && <BatchCurrencyFields value={purchaseFx} onChange={setPurchaseFx} onLoading={setLoadingRate}/>}</div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={onClose}>Batal</Button><Button type="submit" disabled={loadingRate} className="btn btn-primary">Simpan batch</Button></div></form></SimpleModal>;
 }
 
 function CustomerForm({ customer, onSave, onClose }: { customer?: Customer; onSave: (customer: Customer) => Promise<boolean>; onClose: () => void }) {
@@ -583,7 +602,7 @@ function CustomerForm({ customer, onSave, onClose }: { customer?: Customer; onSa
         <p className="field-hint">Nomor disimpan sebagai data pelanggan. Invoice dapat disalin ke WhatsApp.</p>
         {error && <p className="error-message" role="alert">{error}</p>}
       </div>
-      <div className="modal-footer"><Button type="button" className="btn btn-secondary" disabled={saving} onClick={onClose}>Batal</Button><Button type="submit" className="btn btn-primary" disabled={saving}>{saving ? "Menyimpan…" : "Simpan pelanggan"}</Button></div>
+      <div className="modal-footer"><Button type="button" className="btn btn-secondary" disabled={saving} onClick={onClose}>Batal</Button><Button type="submit" className="btn btn-primary" disabled={saving}>{saving ? "Menyimpanâ€¦" : "Simpan pelanggan"}</Button></div>
     </form>
   </SimpleModal>;
 }
