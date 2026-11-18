@@ -20,6 +20,12 @@ export function invoiceItemLabel(item: OrderItem): string {
 }
 
 function packageMemberLabels(pack: ProductPackage, products: Product[], packageQuantity = 1): string[] {
+  return invoicePackageMemberDetails(pack, products, packageQuantity).map((member) => `${member.quantity}x ${member.label}`);
+}
+
+export type InvoicePackageMember = { label: string; quantity: number };
+
+export function invoicePackageMemberDetails(pack: ProductPackage, products: Product[], packageQuantity = 1): InvoicePackageMember[] {
   const productById = new Map(products.map((product) => [product.id, product]));
   const counts = new Map<string, number>();
   for (const id of pack.productIds) {
@@ -29,7 +35,7 @@ function packageMemberLabels(pack: ProductPackage, products: Product[], packageQ
       : "Produk tidak tersedia";
     counts.set(label, (counts.get(label) ?? 0) + packageQuantity);
   }
-  return [...counts.entries()].map(([label, quantity]) => `${quantity}x ${label}`);
+  return [...counts.entries()].map(([label, quantity]) => ({ label, quantity }));
 }
 
 export function invoicePackageMemberLabels(pack: ProductPackage, products: Product[], packageQuantity = 1): string[] {
