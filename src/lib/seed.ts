@@ -22,6 +22,7 @@ export const seedData: AppData = {
     { id: "product-kaos-studio", name: "Kaos Studio oversize", variant: "", sku: "STUDIO-TEE", unitPrice: 185000, unitCost: 105000, active: true },
     { id: "product-canvas-tote", name: "Canvas tote Studio", variant: "", sku: "STUDIO-TOTE", unitPrice: 145000, unitCost: 80000, active: true },
   ],
+  packages: [],
   orders: [
     { id: "order-001", batchId: "batch-japan", customerId: "customer-nadia", items: [{ id: "legacy-item-order-001", product: "Matcha Kyoto 100 g", variant: "", color: "", size: "", quantity: 2, unitPrice: 185000, unitCost: 125000 }], createdAt: "2026-05-09T00:00:00+07:00", serviceFee: 25000, shippingCharge: 18000, paid: 413000, date: "2026-05-09", status: "done", notes: "Data contoh" },
     { id: "order-002", batchId: "batch-japan", customerId: "customer-raka", items: [{ id: "legacy-item-order-002", product: "Tote bag Tokyo", variant: "", color: "", size: "", quantity: 1, unitPrice: 225000, unitCost: 145000 }], createdAt: "2026-05-22T00:00:00+07:00", serviceFee: 30000, shippingCharge: 22000, paid: 277000, date: "2026-05-22", status: "done", notes: "Data contoh • warna navy" },

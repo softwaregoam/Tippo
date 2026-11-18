@@ -38,6 +38,17 @@ export interface Product {
   active: boolean;
 }
 
+/** Paket produk: gabungan beberapa produk katalog yang dijual sebagai satu paket dengan harga baru. */
+export interface ProductPackage {
+  id: string;
+  name: string;
+  sku: string;
+  /** Referensi ke ID produk anggota yang digabung dalam paket ini. */
+  productIds: string[];
+  unitPrice: number;
+  active: boolean;
+}
+
 /** Purchase currency and rate are fixed snapshots; invoice amounts stay in IDR. */
 export interface PurchaseFx {
   currency: string;
@@ -99,6 +110,8 @@ export interface AppData {
   batches: Batch[];
   customers: Customer[];
   products: Product[];
+  /** Dihasilkan oleh normalisasi data; undefined untuk data lama yang belum memiliki paket. */
+  packages?: ProductPackage[];
   orders: Order[];
 }
 

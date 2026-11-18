@@ -1,6 +1,6 @@
 import { validBatchPurchaseFx, validPurchaseFx } from "./purchase-fx.ts";
 import { shippingFieldErrors } from "./order-shipping.ts";
-import type { AppData, Order } from "./types.ts";
+import type { AppData, Order, ProductPackage } from "./types.ts";
 
 /** Scalar snapshots used only when reading validated v1/v2 backups. */
 export type LegacyOrder = Omit<Order, "items" | "createdAt"> & {
@@ -48,6 +48,12 @@ function baseWorkspace(value: unknown): value is Record<string, unknown> & {
 function catalogue(value: unknown): value is AppData["products"] {
   if (!Array.isArray(value) || value.length > 100000) return false;
   if (!value.every((p) => record(p) && extendedId(p.id, LEGACY_PRODUCT_PREFIX) && text(p.name) && p.name.trim() && text(p.variant) && text(p.sku) && (p.category === undefined || (text(p.category) && p.category.length <= 80)) && [p.store,p.color,p.size].every(value=>value===undefined || (text(value) && value.length<=80)) && money(p.unitPrice) && (p.unitCost === null || money(p.unitCost)) && typeof p.active === "boolean")) return false;
+  return new Set(value.map((p) => p.id)).size === value.length;
+}
+
+function validPackages(value: unknown, productIds: Set<string>): value is ProductPackage[] {
+  if (!Array.isArray(value) || value.length > 100000) return false;
+  if (!value.every((p) => record(p) && extendedId(p.id, LEGACY_PRODUCT_PREFIX) && text(p.name) && p.name.trim() && text(p.sku) && Array.isArray(p.productIds) && p.productIds.length > 0 && p.productIds.every((id) => extendedId(id, LEGACY_PRODUCT_PREFIX) && productIds.has(id)) && money(p.unitPrice) && typeof p.active === "boolean")) return false;
   return new Set(value.map((p) => p.id)).size === value.length;
 }
 
@@ -108,6 +114,8 @@ export function isScalarAppData(value: unknown): value is ScalarAppData {
   if (!scalarWorkspace(value) || !("products" in value) || !catalogue(value.products)) return false;
   const productIds = new Set(value.products.map((p) => p.id));
   const batchTypes = new Map(value.batches.map((b) => [b.id, b.type]));
+  const rawPackages = (value as Record<string, unknown>).packages;
+  if (!validPackages(rawPackages === undefined ? [] : rawPackages, productIds)) return false;
   return value.orders.every((o) => o.productId === undefined || o.productId === null || (extendedId(o.productId, LEGACY_PRODUCT_PREFIX) && productIds.has(o.productId) && batchTypes.get(o.batchId) === "po"));
 }
 
@@ -118,6 +126,8 @@ export function isAppData(value: unknown): value is AppData {
   const customerIds = new Set(value.customers.map((c) => c.id));
   const productIds = new Set(value.products.map((p) => p.id));
   const batchTypes = new Map(value.batches.map((b) => [b.id, b.type]));
+  const rawPackages = (value as Record<string, unknown>).packages;
+  if (!validPackages(rawPackages === undefined ? [] : rawPackages, productIds)) return false;
   const allItemIds = new Set<string>();
   const orderIds = new Set<string>();
   let totalRefunds = 0;
