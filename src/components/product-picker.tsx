@@ -7,7 +7,7 @@ import { formatCurrency } from "@/lib/finance";
 
 export type ProductChoice = { value: string; name: string; variant?: string; size?: string; supplier?: string; detail: string; sku: string; category: string; price: number|null; searchText: string; note?: string };
 type Props = Omit<ComponentProps<"button">, "value" | "onChange" | "ref"> & {
-  value: string; options: ProductChoice[]; packageOptions?: ProductChoice[]; onValueChange: (value: string) => void; ref?: Ref<HTMLButtonElement>;
+  value: string; options: ProductChoice[]; packageOptions?: ProductChoice[]; onValueChange: (value: string) => void; pickerClassName?: string; ref?: Ref<HTMLButtonElement>;
 };
 const choiceTitle = (product: ProductChoice) => [
   [productDisplayName(product.name), product.variant?.trim()].filter(Boolean).join(" "),
@@ -16,7 +16,7 @@ const choiceTitle = (product: ProductChoice) => [
 
 const normalize = (text: string) => text.normalize("NFKC").toLocaleLowerCase("id").replace(/\s+/g, " ").trim();
 
-export function ProductPicker({ value, options, packageOptions = [], onValueChange, ref, name, className = "", ...props }: Props) {
+export function ProductPicker({ value, options, packageOptions = [], onValueChange, pickerClassName = "", ref, name, className = "", ...props }: Props) {
   const contentId = useId();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -34,7 +34,7 @@ export function ProductPicker({ value, options, packageOptions = [], onValueChan
     <Popover.Trigger asChild><button {...props} type="button" ref={ref} name={name} role="combobox" aria-haspopup="dialog" aria-controls={contentId} aria-expanded={open} data-value={value} className={`select-trigger ${className}`}><span>{selected ? choiceTitle(selected) : "Pilih produk"}</span><span><ChevronDown size={16} aria-hidden="true" /></span></button></Popover.Trigger>
     <Popover.Portal><div className="product-picker-portal">
       {open && <div className="product-picker-scrim" />}
-      <Popover.Content id={contentId} data-product-picker className="product-picker" sideOffset={6} collisionPadding={12} aria-label="Pilih produk pesanan" aria-modal="true" onOpenAutoFocus={event => { event.preventDefault(); close.current?.focus({ preventScroll: true }); }}>
+      <Popover.Content id={contentId} data-product-picker className={`product-picker ${pickerClassName}`} sideOffset={6} collisionPadding={12} aria-label="Pilih produk pesanan" aria-modal="true" onOpenAutoFocus={event => { event.preventDefault(); close.current?.focus({ preventScroll: true }); }}>
         <div className="product-picker-heading"><h2>Pilih produk</h2><Popover.Close ref={close} className="icon-button" aria-label="Tutup pilihan produk"><X size={18} /></Popover.Close></div>
         <div className="product-picker-tabs" role="tablist" aria-label="Jenis item">
           <button type="button" role="tab" id={`${contentId}-products-tab`} aria-selected={tab === "products"} aria-controls={`${contentId}-products`} className="product-picker-tab" onClick={() => selectTab("products")}>Produk</button>
