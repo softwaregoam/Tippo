@@ -997,14 +997,13 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .package-member-detail-content dt { color:var(--muted); }
 .package-member-detail-content dd { margin:0; color:var(--ink); text-align:right; overflow-wrap:anywhere; }
 @media (max-width:600px) { .package-member-detail-prices { flex-direction:column; gap:6px; } .package-member-detail-content dl { grid-template-columns:1fr; } }
-/* Daftar produk anggota terpilih dalam form paket: satu baris per produk dengan stepper kuantitas */
+/* Daftar produk anggota terpilih dalam form paket: satu baris per produk dengan field jumlah */
 .package-selected-members { display:flex; flex-direction:column; gap:10px; margin-top:10px; }
 .package-selected-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--paper); }
-.package-selected-item-name { min-width:0; font-size:14px; color:var(--ink); overflow-wrap:anywhere; }
-.package-selected-item-qty { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
-.package-selected-item-qty .icon-button { min-width:32px; height:32px; display:grid; place-items:center; font-size:16px; line-height:1; padding:0; }
-.package-selected-item-qty .input { width:70px; height:32px; padding:0 8px; font-size:13px; text-align:center; }
-.package-selected-item-qty .icon-button:hover { background:var(--tone-surface-edf5f1); }
+.package-selected-item-name { min-width:0; font-size:14px; color:var(--ink); overflow-wrap:anywhere; flex:1; }
+.package-selected-item .input { width:90px; height:32px; padding:0 8px; font-size:13px; text-align:center; flex:0 0 auto; }
+.package-selected-item .icon-button { min-width:32px; height:32px; display:grid; place-items:center; font-size:16px; line-height:1; padding:0; cursor:pointer; }
+.package-selected-item .icon-button:hover { background:var(--tone-surface-edf5f1); }
 .management-actions .delete-item { color:var(--danger); }
 @media(max-width:1100px) {
  .management-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
