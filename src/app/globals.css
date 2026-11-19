@@ -940,17 +940,19 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .shipment-charge-field .field-label { margin-bottom:0; }
 .order-shipment-card textarea { resize:vertical; min-height:70px; padding-top:10px; }
 .shipment-packages { display:flex; flex-direction:column; gap:9px; }
-.shipment-package-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid var(--warning); border-radius:6px; background:#fff; }
-.shipment-package-row > span { min-width:0; color:var(--ink); font-size:13px; font-weight:600; }
-.shipment-package-row small { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:400; }
-.shipment-package-row .input { width:100px; min-height:40px; height:40px; border-color:var(--warning); background:#fff; color:var(--ink); text-align:center; font-weight:600; }
-.shipment-package-row .input:focus { border-color:var(--warning); outline-color:var(--warning); }
+.shipment-package-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0; background:transparent; }
+.shipment-package-info { min-width:0; flex:1; padding:10px 12px; border:1px solid var(--border); border-radius:6px; background:#fff; }
+.shipment-package-info strong { display:block; color:var(--ink); font-size:13px; font-weight:600; }
+.shipment-package-info small { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:400; }
+.shipment-package-quantity { flex:0 0 100px; }
+.shipment-package-quantity .input { width:100%; min-height:40px; height:40px; border-color:var(--control-border); background:#fff; color:var(--ink); text-align:center; font-weight:600; }
+.shipment-package-quantity .input:focus { border-color:var(--primary); outline-color:var(--primary); }
 .shipment-remove-button { margin-top:14px; color:var(--danger); }
 .invoice-shipment-block { margin-top:12px; padding-top:10px; border-top:1px solid #e2e6e3; }
 .invoice-shipment-block > p { font-size:12px; }
 .invoice-shipment-package { margin:7px 0 0 12px; }
 .invoice-shipment-package p { font-size:12px; line-height:1.5; }
-@media(max-width:600px) { .order-shipment-card { padding:12px; } .shipment-package-row { align-items:flex-start; } .shipment-package-row .input { width:84px; } }
+@media(max-width:600px) { .order-shipment-card { padding:12px; } .shipment-package-row { align-items:center; } .shipment-package-quantity { flex-basis:84px; } }
 .order-section-number { display:inline-grid; place-items:center; width:26px; height:26px; flex-shrink:0; border:1px solid var(--control-border); border-radius:6px; color:var(--primary); font-size:13px; font-weight:600; background:var(--tone-surface-edf5f1); }
 .product-card-actions .delete-item { color:var(--danger); }
 .btn-danger { background:var(--danger); color:var(--paper); border:1px solid var(--danger); }
@@ -1229,7 +1231,9 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .product-picker-option strong { font-size:14px; }
 .product-picker-option span span,.product-picker-option small { font-size:12px; color:var(--muted); line-height:1.6; }
 .product-picker-option:hover,.product-picker-option[aria-selected="true"] { background:var(--tone-surface-eaf0e8); }
-.po-order-dialog .product-picker-option:hover,.po-order-dialog .product-picker-option[aria-selected="true"] { background:var(--tone-surface-fff2de); color:var(--warning); }
+.po-order-dialog .product-picker-option:hover,.po-order-dialog .product-picker-option[aria-selected="true"],.po-customer-picker .product-picker-option:hover,.po-customer-picker .product-picker-option[aria-selected="true"] { background:var(--tone-surface-fff2de); color:var(--warning); }
+.po-customer-picker .product-picker-option[aria-selected="true"] > svg { color:var(--warning); }
+.po-customer-picker .product-picker-option:focus-visible { outline-color:var(--warning); }
 .product-picker-option:focus-visible { outline:2px solid var(--primary); outline-offset:-2px; }
 .po-order-dialog .product-picker-option:focus-visible { outline-color:var(--warning); }
 .po-order-dialog .product-picker-option[aria-selected="true"] > svg { color:var(--warning); }
