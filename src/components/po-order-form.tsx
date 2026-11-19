@@ -56,7 +56,7 @@ type Fields = {
   shippingMethod: string;
 };
 type ItemFields = { id: string; productId: string; quantity: string; unitCost?:string };
-type ShipmentFields = OrderShipment;
+type ShipmentFields = OrderShipment & { shippingCharge: number; };
 type FieldErrors = Partial<Record<keyof Fields | "items" | "shipments", string>>;
 type ItemErrors = Record<string, Partial<Record<"productId" | "quantity" | "unitCost", string>>>;
 const textLimits = { customerName: 120, customerPhone: 30, customerAddress: 1000, notes: 1000 };
@@ -88,18 +88,20 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     productId: "",
     quantity: "",
   }]);
+  const [shippingMode, setShippingMode] = useState<"single" | "multiple">(() => order?.shippingMode ?? (order?.shipments?.length ? "multiple" : "single"));
   const [shipments, setShipments] = useState<ShipmentFields[]>(() => order?.shipments?.map((shipment) => ({
-    ...shipment, packages: shipment.packages.map((entry) => ({ ...entry })),
+    ...shipment, shippingCharge: shipment.shippingCharge ?? 0, packages: shipment.packages.map((entry) => ({ ...entry })),
   })) ?? []);
   const [createdAt] = useState(() => order?.createdAt ?? new Date().toISOString());
   const packageProductsSelected = items.some((item) => item.productId.startsWith(PACKAGE_PREFIX));
+  const multipleShipping = packageProductsSelected && shippingMode === "multiple";
   const selectedPackageEntries = items.flatMap((item) => {
     const pack = resolvePackage(item.productId, data.packages ?? []);
     return pack ? [{ packageId: pack.id, quantity: Number(item.quantity) || 0, name: pack.name }] : [];
   });
   const totalSelectedPackages = selectedPackageEntries.reduce((sum, entry) => sum + entry.quantity, 0); 
   function addShipment() {
-    setShipments((current) => [...current, { id: crypto.randomUUID(), recipientName: "", phone: "", address: "", packages: selectedPackageEntries.map(({ packageId }) => ({ packageId, quantity: 0 })) }]);
+    setShipments((current) => [...current, { id: crypto.randomUUID(), recipientName: "", phone: "", address: "", packages: selectedPackageEntries.map(({ packageId }) => ({ packageId, quantity: 0 })), shippingCharge: 0 }]);
   }
   function updateShipment(id: string, field: "recipientName" | "phone" | "address", value: string) {
     setShipments((current) => current.map((shipment) => shipment.id === id ? { ...shipment, [field]: value } : shipment));
@@ -186,14 +188,16 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
         quantity: previewAmount(item.quantity), unitPrice: product?.unitPrice ?? 0, unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):product?.unitCost ?? null,
       };
     }),
-    serviceFee: previewAmount(fields.serviceFee), shippingCharge: previewAmount(fields.shippingCharge), paid: previewAmount(fields.paid),
+    serviceFee: previewAmount(fields.serviceFee), shippingCharge: multipleShipping ? shipments.reduce((sum, shipment) => sum + (shipment.shippingCharge ?? 0), 0) : previewAmount(fields.shippingCharge), paid: previewAmount(fields.paid),
     discount: { type: fields.discountType, value: previewAmount(fields.discountValue) }, refunds: order?.refunds,
     date: fields.date, createdAt, status: order?.status ?? "new", notes: fields.notes.trim(),
     shippingDate:fields.shippingDate||undefined,shippingTime:fields.shippingTime||undefined,shippingMethod:fields.shippingMethod.trim()||undefined,
-    shipments: shipments.length ? shipments.map((shipment) => ({ ...shipment, recipientName: shipment.recipientName.trim(), phone: shipment.phone.trim(), address: shipment.address.trim(), packages: shipment.packages.filter((entry) => entry.quantity > 0) })) : undefined,
+    shippingMode: packageProductsSelected ? shippingMode : undefined,
+    shipments: multipleShipping && shipments.length ? shipments.map((shipment) => ({ ...shipment, recipientName: shipment.recipientName.trim(), phone: shipment.phone.trim(), address: shipment.address.trim(), packages: shipment.packages.filter((entry) => entry.quantity > 0) })) : undefined,
   },personal), [fields, items, shipments, order, data.products, data.packages, createdAt,personal]);
   const shipmentPackageTotals = new Map<string, number>();
   for (const shipment of shipments) for (const entry of shipment.packages) shipmentPackageTotals.set(entry.packageId, (shipmentPackageTotals.get(entry.packageId) ?? 0) + entry.quantity);
+  const shipmentChargeTotal = shipments.reduce((sum, shipment) => sum + shipment.shippingCharge, 0);
   const revenue = orderRevenue(draft);
   const previewOrders = [...data.orders.filter((entry) => entry.id !== draft.id), draft];
   const hpp = orderHpp(draft, previewOrders, data.batches);
@@ -276,12 +280,12 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     if (order?.status === "cancelled" && Number(fields.paid) > 0) nextErrors.paid = "Untuk pesanan yang dibatalkan, pembayaran harus 0.";
     }
     Object.assign(nextErrors,shippingFieldErrors(fields));
-    if (packageProductsSelected && shipments.length > 0) {
+    if (multipleShipping && shipments.length > 0) {
       const hasInvalidShipment = shipments.some((shipment) => !shipment.recipientName.trim() || !shipment.address.trim() || shipment.packages.length === 0);
       const packageMismatch = selectedPackageEntries.some((entry) => (shipmentPackageTotals.get(entry.packageId) ?? 0) !== entry.quantity);
       if (hasInvalidShipment) nextErrors.shipments = "Lengkapi penerima, alamat, dan minimal satu paket pada setiap alamat.";
       else if (packageMismatch) nextErrors.shipments = "Jumlah paket per alamat harus sama dengan total paket dalam pesanan.";
-    } else if (packageProductsSelected && shipments.length === 0) {
+    } else if (multipleShipping && shipments.length === 0) {
       nextErrors.shipments = "Tambahkan minimal satu alamat atau hapus paket jika pesanan tidak membutuhkan pengiriman.";
     }
     const parsedDate = new Date(`${fields.date}T00:00:00Z`);
@@ -402,13 +406,14 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
           <details ref={detailsRef} className="order-section order-extra-details" onInvalidCapture={event=>{event.currentTarget.open=true;}}><summary><span><span className="order-section-number">3</span>Detail tambahan</span><ChevronDown size={18}/></summary><div className="order-extra-body">
             {!personal&&<OrderDiscountFields id="po-order-discount" type={fields.discountType} value={fields.discountValue} amount={orderDiscount(draft)} total={orderSubtotal(draft) + draft.shippingCharge} onType={value => { update("discountType", value); update("discountValue", ""); }} onValue={value => update("discountValue", value)} error={errors.discountValue} />}
             <div className="form-grid" style={{ marginTop: 14 }}>
-              {!personal&&amountField("shippingCharge", "Ongkir yang ditagihkan")}
+              {!personal&&!multipleShipping&&amountField("shippingCharge", "Ongkir yang ditagihkan")}
 
               {!personal&&Boolean(order?.serviceFee) && amountField("serviceFee", "Fee tambahan pesanan asal")}
               <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="po-order-notes">{personal?"Catatan":"Catatan invoice"} <span className="muted">(opsional)</span></label><input id="po-order-notes" name="notes" className="input" value={fields.notes} maxLength={textLimits.notes} placeholder="Contoh: Simpan roti di tempat sejuk" onChange={(event) => update("notes", event.target.value)} aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "po-error-notes" : undefined} />{errors.notes && <span id="po-error-notes" className="error-message">{errors.notes}</span>}</div>
             </div>
-            <OrderShippingFields id="po-order" values={fields} onChange={update} errors={errors}/>
-            {packageProductsSelected && <section className="order-shipments-section" aria-labelledby="po-order-shipments-title"><div className="order-shipping-heading"><span className="order-shipping-icon" aria-hidden="true"><Truck size={18}/></span><h4 id="po-order-shipments-title">Pembagian paket per alamat</h4><span className="order-shipping-optional">Opsional</span></div><p className="field-hint">Bagikan jumlah paket ke beberapa alamat. Isi paket akan ditampilkan otomatis tanpa harga.</p>{shipments.map((shipment, index) => <fieldset className="order-shipment-card" key={shipment.id}><legend>Alamat {index + 1}</legend><div className="form-grid"><div className="field"><label className="field-label" htmlFor={`shipment-${shipment.id}-name`}>Nama penerima</label><input id={`shipment-${shipment.id}-name`} className="input" value={shipment.recipientName} onChange={(event) => updateShipment(shipment.id, "recipientName", event.target.value)} placeholder="Nama penerima" /></div><div className="field"><label className="field-label" htmlFor={`shipment-${shipment.id}-phone`}>Nomor telepon</label><input id={`shipment-${shipment.id}-phone`} className="input" value={shipment.phone} onChange={(event) => updateShipment(shipment.id, "phone", event.target.value)} placeholder="Nomor telepon" /></div></div><div className="field"><label className="field-label" htmlFor={`shipment-${shipment.id}-address`}>Alamat lengkap</label><textarea id={`shipment-${shipment.id}-address`} className="input" rows={2} value={shipment.address} onChange={(event) => updateShipment(shipment.id, "address", event.target.value)} placeholder="Alamat pengiriman" /></div><div className="shipment-packages"><span className="field-label">Paket yang dikirim</span>{selectedPackageEntries.map((entry) => <div className="shipment-package-row" key={`${shipment.id}-${entry.packageId}`}><span>{entry.name}<small>Total pesanan: {entry.quantity} paket</small></span><NumberInput aria-label={`Jumlah ${entry.name} ke alamat ${index + 1}`} min="0" step="1" value={String(shipment.packages.find((item) => item.packageId === entry.packageId)?.quantity ?? 0)} onValueChange={(value) => updateShipmentPackage(shipment.id, entry.packageId, value)} /></div>)}</div><button type="button" className="btn btn-secondary shipment-remove-button" onClick={() => setShipments((current) => current.filter((item) => item.id !== shipment.id))}>Hapus alamat</button></fieldset>)}<Button type="button" className="btn btn-secondary" onClick={addShipment}>Tambah alamat</Button>{errors.shipments && <p className="error-message" role="alert">{errors.shipments}</p>}</section>}
+            {packageProductsSelected && <fieldset className="shipping-mode-choice"><legend className="field-label">Cara pengiriman</legend><label><input type="radio" name="shipping-mode" checked={shippingMode === "single"} onChange={() => { setShippingMode("single"); setShipments([]); }} /> Satu alamat</label><label><input type="radio" name="shipping-mode" checked={shippingMode === "multiple"} onChange={() => setShippingMode("multiple")} /> Beberapa alamat</label></fieldset>}
+            {(!packageProductsSelected || shippingMode === "single") && <OrderShippingFields id="po-order" values={fields} onChange={update} errors={errors}/>}
+            {multipleShipping && <section className="order-shipments-section" aria-labelledby="po-order-shipments-title"><div className="order-shipping-heading"><span className="order-shipping-icon" aria-hidden="true"><Truck size={18}/></span><h4 id="po-order-shipments-title">Pembagian paket per alamat</h4><span className="order-shipping-optional">Opsional</span></div><p className="field-hint">Bagikan jumlah paket ke beberapa alamat. Isi paket akan ditampilkan otomatis tanpa harga.</p>{shipments.map((shipment, index) => <fieldset className="order-shipment-card" key={shipment.id}><legend>Alamat {index + 1}</legend><div className="form-grid"><div className="field"><label className="field-label" htmlFor={`shipment-${shipment.id}-name`}>Nama penerima</label><input id={`shipment-${shipment.id}-name`} className="input" value={shipment.recipientName} onChange={(event) => updateShipment(shipment.id, "recipientName", event.target.value)} placeholder="Nama penerima" /></div><div className="field"><label className="field-label" htmlFor={`shipment-${shipment.id}-phone`}>Nomor telepon</label><input id={`shipment-${shipment.id}-phone`} className="input" value={shipment.phone} onChange={(event) => updateShipment(shipment.id, "phone", event.target.value)} placeholder="Nomor telepon" /></div></div><div className="field"><label className="field-label" htmlFor={`shipment-${shipment.id}-address`}>Alamat lengkap</label><textarea id={`shipment-${shipment.id}-address`} className="input" rows={2} value={shipment.address} onChange={(event) => updateShipment(shipment.id, "address", event.target.value)} placeholder="Alamat pengiriman" /></div><div className="shipment-packages"><span className="field-label">Paket yang dikirim</span>{selectedPackageEntries.map((entry) => <div className="shipment-package-row" key={`${shipment.id}-${entry.packageId}`}><span>{entry.name}<small>Total pesanan: {entry.quantity} paket</small></span><NumberInput aria-label={`Jumlah ${entry.name} ke alamat ${index + 1}`} min="0" step="1" value={String(shipment.packages.find((item) => item.packageId === entry.packageId)?.quantity ?? 0)} onValueChange={(value) => updateShipmentPackage(shipment.id, entry.packageId, value)} /></div>)}</div><div className="field shipment-charge-field"><label className="field-label" htmlFor={`shipment-${shipment.id}-charge`}>Ongkir alamat ini</label><NumberInput id={`shipment-${shipment.id}-charge`} aria-label={`Ongkir alamat ${index + 1}`} min="0" step="1" className="input" value={String(shipment.shippingCharge)} onValueChange={(value) => setShipments((current) => current.map((item) => item.id === shipment.id ? { ...item, shippingCharge: previewAmount(value) } : item))} /></div><button type="button" className="btn btn-secondary shipment-remove-button" onClick={() => setShipments((current) => current.filter((item) => item.id !== shipment.id))}>Hapus alamat</button></fieldset>)}<Button type="button" className="btn btn-secondary" onClick={addShipment}>Tambah alamat</Button>{errors.shipments && <p className="error-message" role="alert">{errors.shipments}</p>}</section>}
           </div></details>
           {personal?<div className="summary-strip" aria-live="polite"><div className="summary-cell"><span>Total belanja pribadi</span><strong>{draft.items.some(item=>item.unitCost===null)?"Belum lengkap":formatCurrency(personalExpense(draft))}</strong></div></div>:<>
           <section className="order-section"><h3><span className="order-section-number">4</span>Pembayaran</h3><div className="order-payment"><p className="payment-total">Total tagihan <strong>{formatCurrency(revenue)}</strong></p><div className="form-grid">{amountField("paid", "Sudah dibayar (DP / lunas)")}</div></div></section>
