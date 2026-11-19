@@ -8,10 +8,11 @@ type SelectProps = Omit<ComponentProps<"button">, "value" | "onChange" | "ref"> 
   placeholder?: string;
   value: string;
   onValueChange: (value: string) => void;
+  contentClassName?: string;
   ref?: Ref<HTMLButtonElement>;
 };
 
-export function Select({ placeholder, value, onValueChange, children, className = "", disabled, name, ref, ...props }: SelectProps) {
+export function Select({ placeholder, value, onValueChange, children, className = "", contentClassName = "", disabled, name, ref, ...props }: SelectProps) {
   const trigger = useRef<HTMLButtonElement>(null);
   const closingTap = useRef(false);
   const [open, setOpen] = useState(false);
@@ -48,7 +49,7 @@ export function Select({ placeholder, value, onValueChange, children, className 
       <SelectPrimitive.Icon><ChevronDown size={16} aria-hidden="true" /></SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
     <SelectPrimitive.Portal container={container}>
-      <SelectPrimitive.Content className={`select-content ${container?.classList.contains("po-order-dialog") ? "po-select-content" : ""}`} position="popper" sideOffset={6} collisionPadding={12}>
+      <SelectPrimitive.Content className={`select-content ${container?.classList.contains("po-order-dialog") ? "po-select-content" : ""} ${contentClassName}`} position="popper" sideOffset={6} collisionPadding={12}>
         <SelectPrimitive.Viewport>{children}</SelectPrimitive.Viewport>
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
