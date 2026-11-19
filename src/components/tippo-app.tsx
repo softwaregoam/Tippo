@@ -376,7 +376,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   return (
     <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       {mobileOpen && <button className="sidebar-scrim" aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} />}
-      <aside ref={navigationRef} id="workspace-navigation" data-scroll-lock={mobileOpen?"true":undefined} className={`sidebar ${mobileOpen ? "is-open" : ""}`}>
+      <aside ref={navigationRef} id="workspace-navigation" data-scroll-lock={mobileOpen?"true":undefined} className={`sidebar sidebar--${mode} ${mobileOpen ? "is-open" : ""}`}>
         <button className="icon-button sidebar-close" aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)}><X size={20} /></button>
         <div className="sidebar-heading"><button className="brand" onClick={() => go("dashboard")} aria-label="Tippo, halaman ringkasan"><TippoLogo /></button><button className="icon-button sidebar-toggle" aria-label={sidebarCollapsed ? "Perluas sidebar" : "Minimalkan sidebar"} aria-expanded={!sidebarCollapsed} aria-controls="workspace-navigation" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><Menu size={20} aria-hidden="true" /></button></div>
         <p className="brand-caption">Titip &amp; Pesan, Beres di Tippo.</p>
