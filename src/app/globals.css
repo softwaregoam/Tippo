@@ -940,25 +940,27 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .order-shipment-card { margin:14px 0; padding:22px 16px 16px; border:1px solid var(--border); border-radius:8px; }
 .order-shipment-card legend { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:0 6px; color:var(--ink); font-size:14px; font-weight:600; }
 .order-shipment-card legend .shipment-remove-button { margin:0; padding:6px; color:var(--danger); }
-.order-shipment-card .field { margin-top:8px; }
-.shipment-packages { margin-top:18px; }
+.order-shipment-card .field { margin-top:0; }
+.shipment-packages { margin-top:16px; }
 .shipment-packages > .field-label { display:block; margin-bottom:8px; }
-.shipment-charge-field { margin-top:18px; }
+.shipment-charge-field { margin-top:16px; }
 .shipment-charge-field .field-label { margin-bottom:0; }
 .order-shipment-card textarea { resize:vertical; min-height:70px; padding-top:10px; }
 .shipment-packages { display:flex; flex-direction:column; gap:9px; }
 .shipment-packages-labels { display:grid; grid-template-columns:minmax(0,1fr) 100px; gap:12px; align-items:center; }
 .shipment-packages-labels .field-label:last-child { text-align:center; }
 .shipment-package-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:stretch; gap:12px; padding:0; background:transparent; }
-.shipment-package-info { min-width:0; padding:10px 12px; border:1px solid var(--border); border-radius:6px; background:#fff; }
+.shipment-package-info { min-width:0; padding:10px 12px; border:0; border-radius:0; background:transparent; }
+.shipment-packages.has-multiple-items .shipment-package-info { position:relative; padding-left:24px; }
+.shipment-packages.has-multiple-items .shipment-package-info::before { content:"•"; position:absolute; left:8px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:16px; line-height:1; }
 .shipment-package-info strong { display:block; color:var(--ink); font-size:13px; font-weight:600; }
 .shipment-package-info small { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:400; }
 .shipment-package-quantity { display:flex; align-items:center; min-width:0; }
-.shipment-package-quantity .input { width:100%; min-height:40px; height:40px; border:1px solid var(--control-border); border-radius:6px; background:#fff; color:var(--ink); text-align:center; font-weight:600; }
+.shipment-package-quantity .input { width:100%; min-height:40px; height:40px; border:1px solid var(--control-border); border-radius:6px; background:#fff; color:var(--ink); text-align:left; font-weight:600; }
 .shipment-package-quantity .input:focus { border-color:var(--primary); outline-color:var(--primary); }
 .shipment-packages-labels { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
 .shipment-remove-button { margin-top:14px; color:var(--danger); border-color:var(--danger); }
-.shipment-remove-button:hover { background:var(--tone-surface-fff2de); color:var(--danger); border-color:var(--danger); }
+.shipment-remove-button:hover,.po-order-dialog .shipment-remove-button:hover { background:var(--tone-surface-fff2de) !important; color:var(--danger) !important; border-color:var(--danger) !important; }
 .invoice-shipment-block { margin-top:12px; padding-top:10px; border-top:1px solid #e2e6e3; }
 .invoice-shipment-block > p { font-size:12px; }
 .invoice-shipment-package { margin:7px 0 0 12px; }
