@@ -59,6 +59,23 @@ export function invoiceItemMarkup(item: OrderItem, packages: ProductPackage[], p
 
 export type InvoiceProductCatalog = { products?: Product[]; packages?: ProductPackage[] };
 
+export function invoiceShipmentLines(order: Order, catalog?: InvoiceProductCatalog): string[] {
+  if (!order.shipments?.length) return [];
+  const { products, packages } = invoiceCatalog(catalog);
+  const packageById = new Map(packages.map((pack) => [pack.id, pack]));
+  return order.shipments.flatMap((shipment, index) => {
+    const recipient = [shipment.recipientName.trim(), shipment.phone.trim()].filter(Boolean).join(" ");
+    const heading = `Pengiriman ${index + 1}${recipient ? ` — ${recipient}` : ""}`;
+    const address = shipment.address.trim() ? `Alamat: ${textLine(shipment.address)}` : "";
+    const entries = shipment.packages.flatMap((entry) => {
+      const pack = packageById.get(entry.packageId);
+      if (!pack) return [`${entry.quantity}x Paket tidak tersedia`];
+      return [`${entry.quantity}x ${textLine(pack.name)}`, ...packageMemberLabels(pack, products, entry.quantity).map((label) => `  ${textLine(label)}`)];
+    });
+    return [heading, ...(address ? [address] : []), ...entries];
+  });
+}
+
 function invoiceCatalog(catalog?: InvoiceProductCatalog): { products: Product[]; packages: ProductPackage[] } {
   return { products: catalog?.products ?? [], packages: catalog?.packages ?? [] };
 }
@@ -120,6 +137,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
       ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
       ...(paid ? ["Status: *LUNAS*"] : !cancelled ? ["Status: *BELUM LUNAS*"] : []),
     ],
+    ...(order.shipments?.length ? [["*PENGIRIMAN PER ALAMAT*", ...invoiceShipmentLines(order, { products, packages })]] : []),
     ...((shipping.length||customer?.address?.trim()) ? [["*PENGIRIMAN*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[])]] : []),
     ...(order.notes.trim() ? [["*CATATAN*",order.notes.trim()]] : []),
   ];

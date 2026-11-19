@@ -109,6 +109,16 @@ export interface Order {
   /** Local delivery time in 24-hour HH:mm format. */
   shippingTime?: string;
   shippingMethod?: string;
+  /** Optional per-address delivery breakdown for package orders. */
+  shipments?: OrderShipment[];
+}
+
+export interface OrderShipment {
+  id: string;
+  recipientName: string;
+  phone: string;
+  address: string;
+  packages: { packageId: string; quantity: number }[];
 }
 
 export interface AppData {
