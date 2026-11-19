@@ -912,19 +912,34 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .order-dialog .summary-strip > .summary-cell:nth-child(2) { order:-1; }
 }
 .order-dialog .order-section h3 { display:flex; align-items:center; gap:10px; }
-.shipping-mode-choice { display:flex; flex-wrap:wrap; gap:10px 18px; margin:18px 0; padding:12px 14px; border:1px solid var(--border); border-radius:8px; background:var(--tone-surface-edf5f1); }
-.shipping-mode-choice legend { width:100%; margin-bottom:2px; }
-.shipping-mode-choice label { display:inline-flex; align-items:center; gap:7px; color:var(--ink); font-size:13px; cursor:pointer; }
-.shipping-mode-choice input { accent-color:var(--primary); }
+.shipping-mode-choice { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:18px 0; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--paper); }
+.shipping-mode-choice legend { grid-column:1 / -1; width:100%; margin-bottom:2px; }
+.shipping-mode-option { position:relative; display:flex; align-items:flex-start; gap:10px; min-width:0; padding:12px; border:1px solid var(--control-border); border-radius:8px; background:var(--paper); color:var(--ink); cursor:pointer; }
+.shipping-mode-option:hover { border-color:var(--primary); background:var(--tone-surface-edf5f1); }
+.shipping-mode-option:has(input:checked) { border-color:var(--primary); background:var(--tone-surface-edf5f1); color:var(--primary); }
+.shipping-mode-option input { position:absolute; opacity:0; pointer-events:none; }
+.shipping-mode-radio { display:grid; place-items:center; flex:0 0 18px; width:18px; height:18px; margin-top:1px; border:2px solid var(--control-border); border-radius:50%; }
+.shipping-mode-option:has(input:checked) .shipping-mode-radio { border-color:var(--primary); }
+.shipping-mode-option:has(input:checked) .shipping-mode-radio::after { content:""; width:8px; height:8px; border-radius:50%; background:var(--primary); }
+.shipping-mode-option strong { display:block; font-size:13px; }
+.shipping-mode-option small { display:block; margin-top:4px; color:var(--muted); font-size:11px; line-height:1.5; }
+.shipping-mode-option:focus-within { outline:2px solid var(--primary); outline-offset:2px; }
+@media(max-width:600px) { .shipping-mode-choice { grid-template-columns:1fr; } .shipping-mode-choice legend { grid-column:auto; } }
 .order-shipments-section { margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
 .shipment-charge-field { margin-top:14px; }
 .shipment-charge-field .input { background:#fff; border-color:var(--warning); }
 .order-shipments-section .order-shipping-heading { margin-bottom:8px; }
-.order-shipment-card { margin:14px 0; padding:16px; border:1px solid var(--border); border-radius:8px; }
-.order-shipment-card legend { padding:0 6px; color:var(--ink); font-size:14px; font-weight:600; }
+.order-shipment-card { margin:14px 0; padding:22px 16px 16px; border:1px solid var(--border); border-radius:8px; }
+.order-shipment-card legend { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:0 6px; color:var(--ink); font-size:14px; font-weight:600; }
+.order-shipment-card legend .shipment-remove-button { margin:0; padding:6px; color:var(--danger); }
+.order-shipment-card .field { margin-top:8px; }
+.shipment-packages { margin-top:18px; }
+.shipment-packages > .field-label { display:block; margin-bottom:8px; }
+.shipment-charge-field { margin-top:18px; }
+.shipment-charge-field .field-label { margin-bottom:0; }
 .order-shipment-card textarea { resize:vertical; min-height:70px; padding-top:10px; }
-.shipment-packages { display:flex; flex-direction:column; gap:9px; margin-top:6px; }
-.shipment-package-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid var(--warning); border-radius:6px; background:var(--tone-surface-f7e4cb); }
+.shipment-packages { display:flex; flex-direction:column; gap:9px; }
+.shipment-package-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid var(--warning); border-radius:6px; background:#fff; }
 .shipment-package-row > span { min-width:0; color:var(--ink); font-size:13px; font-weight:600; }
 .shipment-package-row small { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:400; }
 .shipment-package-row .input { width:100px; min-height:40px; height:40px; border-color:var(--warning); background:#fff; color:var(--ink); text-align:center; font-weight:600; }
