@@ -28,12 +28,12 @@ export type InvoicePackageMember = { label: string; quantity: number };
 export function invoicePackageMemberDetails(pack: ProductPackage, products: Product[], packageQuantity = 1): InvoicePackageMember[] {
   const productById = new Map(products.map((product) => [product.id, product]));
   const counts = new Map<string, number>();
-  for (const id of pack.productIds) {
+  for (const { id, quantity } of pack.products) {
     const product = productById.get(id);
     const label = product
       ? [productDisplayName(product.name), product.variant.trim(), product.color?.trim(), product.size?.trim()].filter(Boolean).join(" ")
       : "Produk tidak tersedia";
-    counts.set(label, (counts.get(label) ?? 0) + packageQuantity);
+    counts.set(label, (counts.get(label) ?? 0) + quantity * packageQuantity);
   }
   return [...counts.entries()].map(([label, quantity]) => ({ label, quantity }));
 }
