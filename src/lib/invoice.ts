@@ -72,7 +72,8 @@ export function invoiceShipmentLines(order: Order, catalog?: InvoiceProductCatal
       if (!pack) return [`${entry.quantity}x Paket tidak tersedia`];
       return [`${entry.quantity}x ${textLine(pack.name)}`, ...packageMemberLabels(pack, products, entry.quantity).map((label) => `  ${textLine(label)}`)];
     });
-    return [heading, ...(address ? [address] : []), ...entries];
+    const shippingCharge = shipment.shippingCharge > 0 ? `Ongkir: ${formatCurrency(shipment.shippingCharge)}` : "";
+    return [heading, ...(address ? [address] : []), ...(shippingCharge ? [shippingCharge] : []), ...entries];
   });
 }
 
