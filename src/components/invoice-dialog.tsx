@@ -7,7 +7,7 @@ import type { InvoiceSettings } from "@/lib/business-profile";
 import { InvoiceDocument, printInvoice } from "@/components/invoice-document";
 import { InvoicePhoto } from "@/components/invoice-photo";
 import { downloadInvoiceImage, prepareInvoiceImage } from "@/lib/invoice-image";
-import { buildInvoice, invoiceNumber, invoiceWhatsAppUrl } from "@/lib/invoice";
+import { buildInvoice, invoiceNumber, invoiceShipmentLines, invoiceWhatsAppUrl } from "@/lib/invoice";
 import { QrisImage } from "@/components/qris-image";
 import { downloadQris, loadQrisFile, showQris } from "@/lib/qris";
 import { readInvoiceAppearance } from "@/lib/invoice-template";
@@ -45,6 +45,7 @@ export function InvoiceDialog({ order, data, settings, onClose }: { order: Order
   const [qrisAttempt,retryQris]=useState(0);
   const customer=data.customers.find(customer=>customer.id===order.customerId);
   const message = buildInvoice(order, data.batches.find((batch) => batch.id === order.batchId), data.customers.find((customer) => customer.id === order.customerId), settings, { products: data.products, packages: data.packages });
+  const invoiceCatalog = { products: data.products, packages: data.packages };
 
   const photoKey=JSON.stringify([order,data.batches.find(batch=>batch.id===order.batchId),customer,settings]);
   useEffect(()=>{
