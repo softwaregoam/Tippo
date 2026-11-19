@@ -342,7 +342,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
     if (pack.sku && allPackages.some((p) => p.id !== pack.id && p.sku.toLowerCase() === pack.sku.toLowerCase())) {
       notify("SKU sudah digunakan paket lain. Gunakan SKU yang unik."); return false;
     }
-    const unknownProducts = pack.productIds.filter((id) => !data.products.some((p) => p.id === id));
+    const unknownProducts = pack.products.map(({ id }) => id).filter((id) => !data.products.some((p) => p.id === id));
     if (unknownProducts.length) { notify("Produk anggota tidak tersedia dalam katalog."); return false; }
     return persist({ ...data, packages: allPackages.some((p) => p.id === pack.id) ? allPackages.map((p) => p.id === pack.id ? pack : p) : [pack, ...allPackages] }, "Produk paket tersimpan");
   }
@@ -472,7 +472,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                 onSavePackage={savePackage}
                 onPackageStatus={(pack) => persist({ ...data, packages: (data.packages ?? []).map((p) => p.id === pack.id ? { ...p, active: !p.active } : p) }, pack.active ? "Produk paket diarsipkan" : "Produk paket aktif kembali")}
                 onEditPackage={setPackageModal}
-                onDuplicatePackage={(pack) => setPackageModal({ ...pack, id: crypto.randomUUID(), productIds: [...pack.productIds], active: true })}
+                onDuplicatePackage={(pack) => setPackageModal({ ...pack, id: crypto.randomUUID(), products: [...pack.products], active: true })}
               />}
 {page === "hpp" && <>{hppBatch ? <><div className="card hpp-selector"><label htmlFor="hpp-batch" className="field-label">{mode === "po" ? "Batch PO" : "Perjalanan"}</label><BatchPicker purpose="hpp" batches={modeBatches} type={mode} value={hppBatch.id} onValueChange={setSelectedHpp}/></div><HppPanel key={hppBatch.id} batch={hppBatch} data={data} onSave={(next) => persist(next, "Biaya tersimpan. HPP dan margin sudah diperbarui.")} /></> : <Empty title="HPP dimulai dari batch" description="Buat batch dan catat pesanan agar biaya bisa dihitung." action="Buat batch" onAction={() => setBatchModal({ type: mode })} />}</>}
 

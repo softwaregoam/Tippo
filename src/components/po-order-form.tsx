@@ -25,7 +25,7 @@ function resolvePackage(value: string, packages: ProductPackage[]) {
 }
 
 function packageMemberCost(pack: ProductPackage, products: Product[]) {
-  const members = pack.productIds.map((id) => products.find((product) => product.id === id));
+  const members = pack.products.map(({ id }) => products.find((product) => product.id === id));
   if (members.some((member) => !member || member.unitCost === null)) return null;
   return members.reduce((total, member) => total + (member?.unitCost ?? 0), 0);
 }
@@ -217,7 +217,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
   const hpp = orderHpp(draft, previewOrders, data.batches);
   const hasActiveProducts = data.products.some((product) => product.active) || (data.packages ?? []).some((pack) => pack.active);
   const packageOptions: ProductChoice[] = (data.packages ?? []).filter((pack) => pack.active).map((pack) => {
-    const members = pack.productIds.map((id) => data.products.find((product) => product.id === id)).filter((product): product is Product => Boolean(product));
+    const members = pack.products.map(({ id }) => data.products.find((product) => product.id === id)).filter((product): product is Product => Boolean(product));
     return {
       value: `${PACKAGE_PREFIX}${pack.id}`,
       name: pack.name,
