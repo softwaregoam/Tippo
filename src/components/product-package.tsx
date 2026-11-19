@@ -1,18 +1,21 @@
 ﻿"use client";
 import { useId, useRef, useState } from "react";
 import { Popover } from "radix-ui";
-import { Archive, ArchiveRestore, Check, ChevronDown, Copy, Info, PackagePlus, Pencil, Search, X } from "lucide-react";
+import { Archive, ArchiveRestore, Check, ChevronDown, Copy, Info, PackagePlus, Pencil, Search, Upload, X } from "lucide-react";
 import { formatCurrency } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectOption } from "@/components/ui/select";
 import { CategoryFilter } from "@/components/category-filter";
 import { MobileDataList } from "@/components/mobile-data-list";
+import { PackageExcelImportDialog } from "@/components/package-excel-import";
 import type { AppData, Product, ProductPackage } from "@/lib/types";
 
-export function PackageWorkspace({ data, onPackageStatus, onEditPackage, onDuplicatePackage }: {
+export function PackageWorkspace({ data, importAllowed, onSavePackage, onImportPackages, onPackageStatus, onEditPackage, onDuplicatePackage }: {
   data: AppData;
+  importAllowed: boolean;
   onSavePackage: (p: ProductPackage) => boolean | Promise<boolean>;
+  onImportPackages: (packages: ProductPackage[]) => boolean | Promise<boolean>;
   onPackageStatus: (p: ProductPackage) => boolean | Promise<boolean>;
   onEditPackage: (p: ProductPackage) => void;
   onDuplicatePackage: (p: ProductPackage) => void;
@@ -22,6 +25,7 @@ export function PackageWorkspace({ data, onPackageStatus, onEditPackage, onDupli
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [removingPackage, setRemovingPackage] = useState<ProductPackage | null>(null);
   const [memberDetailsPackage, setMemberDetailsPackage] = useState<ProductPackage | null>(null);
+  const [packageImportOpen, setPackageImportOpen] = useState(false);
   const productById = new Map(data.products.map((p) => [p.id, p]));
   const categories = [...new Set((data.packages ?? []).map((p) => p.category?.trim()).filter((c): c is string => Boolean(c)))].sort((a, b) => a.localeCompare(b, "id"));
   const packages = (data.packages ?? []).filter((p) => {
@@ -39,7 +43,7 @@ export function PackageWorkspace({ data, onPackageStatus, onEditPackage, onDupli
 
   return <div>
     <section className="card workspace-list-card" aria-label="Daftar produk paket">
-      <div className="card-header list-import-header"><div><h2>Produk Paket</h2><p>Gabungkan produk katalog jadi satu paket dengan harga jual paket baru.</p></div></div>
+      <div className="card-header list-import-header"><div><h2>Produk Paket</h2><p>Gabungkan produk katalog jadi satu paket dengan harga jual paket baru.{!importAllowed && " Import template Excel tersedia di Pro."}</p></div><button type="button" className="btn btn-secondary excel-import-button" onClick={() => importAllowed ? setPackageImportOpen(true) : null} disabled={!importAllowed}><Upload size={16} aria-hidden="true" /><span>Import Excel</span>{!importAllowed && <span className="import-plan-badge" aria-hidden="true">Pro</span>}</button></div>
       <div className="list-toolbar" role="group" aria-label="Pencarian dan filter paket">
         <div className="search-field"><Search size={18} /><input aria-label="Cari produk paket" placeholder="Cari nama paket, SKU, kategori, atau produk anggota..." value={search} onChange={e => setSearch(e.target.value)} /></div>
         <div className="toolbar-filters">
@@ -77,6 +81,7 @@ export function PackageWorkspace({ data, onPackageStatus, onEditPackage, onDupli
     </section>
     {memberDetailsPackage && <dialog className="native-dialog package-members-dialog" ref={el => { if (el && !el.open) el.showModal(); }} aria-label={`Produk anggota ${packageTitle(memberDetailsPackage)}`} onCancel={(e) => { e.preventDefault(); setMemberDetailsPackage(null); }}><div className="modal-header"><div><span className="eyebrow">PRODUK ANGGOTA</span><h2>{packageTitle(memberDetailsPackage)}</h2><p>Daftar lengkap produk yang tergabung dalam paket ini.</p></div><button className="icon-button" aria-label="Tutup detail produk anggota" onClick={() => setMemberDetailsPackage(null)}><X size={20} /></button></div><div className="modal-body"><div className="package-member-detail-list">{memberDetailsPackage.products.map(({ id }, index) => { const product = productById.get(id); return <article className="package-member-detail-item" key={`${id}-${index}`}><div className="package-member-detail-content"><div className="package-member-detail-heading"><span className="package-member-detail-number">{index + 1}</span><strong>{product ? productDisplay(product) : "Produk tidak ditemukan"}</strong></div>{product ? <><div className="package-member-detail-prices"><span><small>Harga jual</small><b>{formatCurrency(product.unitPrice)}</b></span><span><small>HPP</small><b>{product.unitCost === null ? "Belum diisi" : formatCurrency(product.unitCost)}</b></span></div><dl><div><dt>SKU</dt><dd>{product.sku || "Belum diisi"}</dd></div><div><dt>Kategori</dt><dd>{product.category || "Belum diisi"}</dd></div>{product.store?.trim() && <div><dt>Supplier</dt><dd>{product.store.trim()}</dd></div>}{product.color?.trim() && <div><dt>Warna</dt><dd>{product.color.trim()}</dd></div>}{product.size?.trim() && <div><dt>Ukuran</dt><dd>{product.size.trim()}</dd></div>}</dl></> : <p className="field-hint">ID produk: {id}</p>}</div></article>; })}</div></div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={() => setMemberDetailsPackage(null)}>Tutup</Button></div></dialog>}
     {removingPackage && <dialog className="native-dialog" ref={el => { if (el && !el.open) el.showModal(); }} aria-label={`Arsipkan ${removingPackage.name}`} onCancel={(e) => { e.preventDefault(); setRemovingPackage(null); }}><div className="modal-header"><div><h2>Arsipkan paket?</h2><p>Paket yang diarsipkan tidak akan muncul dalam daftar paket aktif, tapi histori tetap tersimpan.</p></div><button className="icon-button" aria-label="Batal" onClick={() => setRemovingPackage(null)}><X size={20} /></button></div><div className="modal-body"><p>Yakin ingin mengarsipkan <strong>{packageTitle(removingPackage)}</strong>?</p></div><div className="modal-footer"><Button type="button" className="btn btn-secondary" onClick={() => setRemovingPackage(null)}>Batal</Button><Button type="button" className="btn btn-primary" onClick={() => { onPackageStatus(removingPackage); setRemovingPackage(null); }}>{removingPackage.active ? "Arsipkan paket" : "Aktifkan kembali"}</Button></div></dialog>}
+    {packageImportOpen && <PackageExcelImportDialog data={data} importAllowed={importAllowed} onImport={onImportPackages} onClose={() => setPackageImportOpen(false)} />}
   </div>;
 }
 
