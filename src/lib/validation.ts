@@ -22,6 +22,7 @@ const text = (v: unknown): v is string => typeof v === "string" && v.length <= M
 const id = (v: unknown): v is string => text(v) && v.length > 0;
 const extendedId = (v: unknown, prefix: string): v is string => typeof v === "string" && v.length > 0 && v.length <= MAX_TEXT_LENGTH + prefix.length;
 const record = (v: unknown): v is Record<string, unknown> => Boolean(v) && typeof v === "object" && !Array.isArray(v);
+export { record };
 const validDate = (v: unknown): v is string => {
   if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
   const d = new Date(`${v}T00:00:00Z`);

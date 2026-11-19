@@ -1,15 +1,17 @@
 import type { AppData } from "./types.ts";
 import type { OrderUsage, Subscription } from "./subscription.ts";
 import { isAppData } from "./validation.ts";
+import { normalizeAppData } from "./migration.ts";
 export interface CloudRecord { data: AppData; version: number; subscription: Subscription; usage: OrderUsage[] }
 export function parseCloudRecord(value: unknown): CloudRecord {
   if (!value || typeof value !== "object") throw new Error("Data workspace belum dapat dibaca.");
   const row = value as Record<string, unknown>;
-  if (!isAppData(row.data) || !Number.isSafeInteger(row.version) || (row.version as number) < 0) throw new Error("Format workspace tidak valid. Data belum diubah.");
+  const data = normalizeAppData(row.data) ?? row.data;
+  if (!isAppData(data) || !Number.isSafeInteger(row.version) || (row.version as number) < 0) throw new Error("Format workspace tidak valid. Data belum diubah.");
   const plan = row.subscription as Record<string, unknown> | undefined;
   if (!plan || (plan.tier !== "free" && plan.tier !== "pro") || !(plan.expiresAt === null || (typeof plan.expiresAt === "string" && Number.isFinite(Date.parse(plan.expiresAt))))) throw new Error("Status paket belum dapat dibaca.");
   if (!Array.isArray(row.usage) || !row.usage.every((entry) => entry && typeof entry.orderId === "string" && (entry.type === "jastip" || entry.type === "po") && /^\d{4}-(0[1-9]|1[0-2])$/.test(entry.month))) throw new Error("Kuota workspace belum dapat dibaca.");
-  return { data: row.data, version: row.version as number, subscription: { tier: plan.tier, expiresAt: plan.expiresAt as string | null, mode: "live" }, usage: row.usage };
+  return { data, version: row.version as number, subscription: { tier: plan.tier, expiresAt: plan.expiresAt as string | null, mode: "live" }, usage: row.usage };
 }
 export function cloudErrorMessage(error: { code?: string; message?: string }): string {
   const message = error.message ?? "";

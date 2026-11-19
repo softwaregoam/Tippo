@@ -1,5 +1,5 @@
 import type { AppData, Product } from "./types.ts";
-import { isAppData, isLegacyAppData, isScalarAppData, LEGACY_ITEM_PREFIX, LEGACY_PRODUCT_PREFIX, type ScalarAppData } from "./validation.ts";
+import { isAppData, isLegacyAppData, isScalarAppData, record, LEGACY_ITEM_PREFIX, LEGACY_PRODUCT_PREFIX, type ScalarAppData } from "./validation.ts";
 
 /**
  * Restore the current workspace or its v1/v2 scalar formats without changing any
@@ -7,6 +7,8 @@ import { isAppData, isLegacyAppData, isScalarAppData, LEGACY_ITEM_PREFIX, LEGACY
  */
 export function normalizeAppData(value: unknown): AppData | null {
   if (isAppData(value)) return value;
+  const migrated = migrateOldPackageFormat(value);
+  if (migrated && isAppData(migrated)) return migrated;
   if (isScalarAppData(value)) return convertScalarOrders(value);
   if (!isLegacyAppData(value)) return null;
 
@@ -49,4 +51,22 @@ function convertScalarOrders(value: ScalarAppData): AppData | null {
     }),
   };
   return isAppData(normalized) ? normalized : null;
+}
+
+/** Migrate v2 workspace saved with the old package format (productIds -> products). */
+function migrateOldPackageFormat(value: unknown): AppData | null {
+  if (!record(value)) return null;
+  const data = value as Record<string, unknown>;
+  const rawPackages = data.packages;
+  if (!Array.isArray(rawPackages)) return null;
+  const hasOldFormat = rawPackages.some((p) => record(p) && Array.isArray((p as Record<string, unknown>).productIds));
+  if (!hasOldFormat) return null;
+  const packages = rawPackages.map((p) => {
+    const entry = p as Record<string, unknown>;
+    const productIds = entry.productIds as string[] | undefined;
+    const products = (productIds ?? []).map((id) => ({ id, quantity: 1 }));
+    const { productIds: _ignored, ...rest } = entry;
+    return { ...rest, products };
+  });
+  return { ...data, packages } as AppData;
 }
