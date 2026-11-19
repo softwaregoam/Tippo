@@ -120,6 +120,7 @@ export interface OrderShipment {
   phone: string;
   address: string;
   packages: { packageId: string; quantity: number }[];
+  products?: { productId: string; quantity: number }[];
   shippingCharge: number;
 }
 

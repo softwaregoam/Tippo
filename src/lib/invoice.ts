@@ -67,11 +67,16 @@ export function invoiceShipmentLines(order: Order, catalog?: InvoiceProductCatal
     const recipient = [shipment.recipientName.trim(), shipment.phone.trim()].filter(Boolean).join(" ");
     const heading = `Pengiriman ${index + 1}${recipient ? ` — ${recipient}` : ""}`;
     const address = shipment.address.trim() ? `Alamat: ${textLine(shipment.address)}` : "";
-    const entries = shipment.packages.flatMap((entry) => {
+    const productById = new Map(products.map((product) => [product.id, product]));
+    const productEntries = (shipment.products ?? []).flatMap((entry) => {
+      const product = productById.get(entry.productId);
+      return product ? [`${entry.quantity}x ${textLine(product.name)}`] : [`${entry.quantity}x Produk tidak tersedia`];
+    });
+    const entries = [...productEntries, ...shipment.packages.flatMap((entry) => {
       const pack = packageById.get(entry.packageId);
       if (!pack) return [`${entry.quantity}x Paket tidak tersedia`];
       return [`${entry.quantity}x ${textLine(pack.name)}`, ...packageMemberLabels(pack, products, entry.quantity).map((label) => `  ${textLine(label)}`)];
-    });
+    })];
     const shippingCharge = shipment.shippingCharge > 0 ? `Ongkir: ${formatCurrency(shipment.shippingCharge)}` : "";
     return [heading, ...(address ? [address] : []), ...(shippingCharge ? [shippingCharge] : []), ...entries];
   });
