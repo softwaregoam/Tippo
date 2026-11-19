@@ -912,6 +912,22 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
  .order-dialog .summary-strip > .summary-cell:nth-child(2) { order:-1; }
 }
 .order-dialog .order-section h3 { display:flex; align-items:center; gap:10px; }
+.order-shipments-section { margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
+.order-shipments-section .order-shipping-heading { margin-bottom:8px; }
+.order-shipment-card { margin:14px 0; padding:16px; border:1px solid var(--border); border-radius:8px; }
+.order-shipment-card legend { padding:0 6px; color:var(--ink); font-size:14px; font-weight:600; }
+.order-shipment-card textarea { resize:vertical; min-height:70px; padding-top:10px; }
+.shipment-packages { display:flex; flex-direction:column; gap:9px; margin-top:6px; }
+.shipment-package-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid var(--border); border-radius:6px; background:var(--tone-surface-edf5f1); }
+.shipment-package-row > span { min-width:0; color:var(--ink); font-size:13px; font-weight:600; }
+.shipment-package-row small { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:400; }
+.shipment-package-row .input { width:100px; min-height:40px; height:40px; text-align:center; }
+.shipment-remove-button { margin-top:14px; color:var(--danger); }
+.invoice-shipment-block { margin-top:12px; padding-top:10px; border-top:1px solid #e2e6e3; }
+.invoice-shipment-block > p { font-size:12px; }
+.invoice-shipment-package { margin:7px 0 0 12px; }
+.invoice-shipment-package p { font-size:12px; line-height:1.5; }
+@media(max-width:600px) { .order-shipment-card { padding:12px; } .shipment-package-row { align-items:flex-start; } .shipment-package-row .input { width:84px; } }
 .order-section-number { display:inline-grid; place-items:center; width:26px; height:26px; flex-shrink:0; border:1px solid var(--control-border); border-radius:6px; color:var(--primary); font-size:13px; font-weight:600; background:var(--tone-surface-edf5f1); }
 .product-card-actions .delete-item { color:var(--danger); }
 .btn-danger { background:var(--danger); color:var(--paper); border:1px solid var(--danger); }
