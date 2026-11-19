@@ -61,6 +61,8 @@ svg { flex-shrink: 0; }
 .nav-item.active:hover { background: var(--tone-surface-f7f4ed); color: var(--tone-text-173f38); }
 .sidebar--po .nav-item:hover { background: var(--tone-surface-f7e4cb); color: var(--warning); }
 .sidebar--po .nav-item.active:hover { background: var(--tone-surface-fff2de); color: var(--warning); }
+[data-business-mode="po"] .nav-item:hover { background: var(--tone-surface-f7e4cb); color: var(--warning); }
+[data-business-mode="po"] .nav-item.active:hover { background: var(--tone-surface-fff2de); color: var(--warning); }
 .nav-count { margin-left: auto; font-size: 12px; background: var(--tone-surface-eef1ee); color: var(--muted); padding: 3px 6px; border-radius: 5px; }
 .active .nav-count { background: var(--tone-surface-ddeee5); color: var(--primary); }
 .sidebar-bottom { margin-top: auto; padding-top: 32px; }
