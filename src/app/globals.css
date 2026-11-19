@@ -761,8 +761,8 @@ details.form-section[open]>summary::after { transform: rotate(225deg); margin-bo
 .select-option > span:last-child { display: flex; flex-shrink: 0; }
 .select-option[data-state="checked"] { background: var(--tone-surface-eaf0e8); color: var(--tone-text-173f38); font-weight: 600; }
 .select-option[data-highlighted] { background: var(--tone-surface-eaf0e8); outline: 2px solid var(--primary); outline-offset: -2px; }
-.po-order-dialog .select-option[data-state="checked"],.po-order-dialog .select-option[data-highlighted] { background:var(--tone-surface-fff2de); color:var(--warning); outline-color:var(--warning); }
-.po-order-dialog .select-option[data-state="checked"] > span:last-child { color:var(--warning); }
+.po-order-dialog .select-content .select-option[data-state="checked"],.po-order-dialog .select-content .select-option[data-highlighted] { background:var(--tone-surface-fff2de) !important; color:var(--warning) !important; outline:2px solid var(--warning); outline-offset:-2px; }
+.po-order-dialog .select-content .select-option[data-state="checked"] > span:last-child { color:var(--warning) !important; }
 input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-trigger:disabled, .select-option[data-disabled], .po-product-prices { background: var(--tone-surface-e9eae7); color: var(--tone-text-626762); border-color: var(--tone-line-7d817d); opacity: 1; cursor: not-allowed; }
 .select-option[data-disabled] { outline: none; font-weight: 400; }
 .month-picker:has(.select-trigger:disabled) { background: var(--tone-surface-e9eae7); border-color: var(--tone-line-7d817d); color: var(--tone-text-626762); }
@@ -953,8 +953,8 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .shipment-package-info { min-width:0; padding:10px 12px; border:1px solid var(--border); border-radius:6px; background:#fff; }
 .shipment-package-info strong { display:block; color:var(--ink); font-size:13px; font-weight:600; }
 .shipment-package-info small { display:block; margin-top:3px; color:var(--muted); font-size:11px; font-weight:400; }
-.shipment-package-quantity { display:flex; align-items:center; min-width:0; padding:6px; border:1px solid var(--control-border); border-radius:6px; background:#fff; }
-.shipment-package-quantity .input { width:100%; min-height:40px; height:40px; border-color:transparent; background:#fff; color:var(--ink); text-align:center; font-weight:600; }
+.shipment-package-quantity { display:flex; align-items:center; min-width:0; }
+.shipment-package-quantity .input { width:100%; min-height:40px; height:40px; border-color:var(--control-border); border-radius:6px; background:#fff; color:var(--ink); text-align:center; font-weight:600; }
 .shipment-package-quantity .input:focus { border-color:var(--primary); outline-color:var(--primary); }
 .shipment-packages-labels { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
 .shipment-remove-button { margin-top:14px; color:var(--danger); border-color:var(--danger); }
@@ -1248,6 +1248,10 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .po-product-picker .product-picker-option:hover,.po-product-picker .product-picker-option[aria-selected="true"],.po-batch-picker .product-picker-option:hover,.po-batch-picker .product-picker-option[aria-selected="true"] { background:var(--tone-surface-fff2de); color:var(--warning); }
 .po-product-picker .product-picker-option:focus-visible,.po-batch-picker .product-picker-option:focus-visible { outline-color:var(--warning); }
 .po-product-picker .product-picker-option[aria-selected="true"] > svg,.po-batch-picker .product-picker-option[aria-selected="true"] > svg { color:var(--warning); }
+/* BatchPicker is rendered in a portal outside the order dialog. */
+.po-batch-picker .product-picker-option:hover,.po-batch-picker .product-picker-option[aria-selected="true"] { background:var(--tone-surface-fff2de); color:var(--warning); }
+.po-batch-picker .product-picker-option:focus-visible { outline-color:var(--warning); }
+.po-batch-picker .product-picker-option[aria-selected="true"] > svg { color:var(--warning); }
 .product-picker-option:focus-visible { outline:2px solid var(--primary); outline-offset:-2px; }
 .po-order-dialog .product-picker-option:focus-visible { outline-color:var(--warning); }
 .po-order-dialog .product-picker-option[aria-selected="true"] > svg { color:var(--warning); }
