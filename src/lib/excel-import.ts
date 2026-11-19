@@ -1,5 +1,5 @@
 import type { CellValue, Worksheet } from "exceljs";
-import type { AppData, BatchType, Customer, Order, OrderItem, Product } from "./types.ts";
+import type { AppData, BatchType, Customer, Order, OrderItem, Product, ProductPackage } from "./types.ts";
 import { isAppData } from "./validation.ts";
 
 const MAX_ROWS = 1000;
@@ -491,6 +491,19 @@ export async function createOrderTemplate(type: BatchType, data: AppData): Promi
 }
 
 const PRODUCT_HEADERS = ["produk", "varian", "sku_produk", "harga_jual", "harga_beli", "kategori", "toko_brand", "warna", "ukuran"];
+const PACKAGE_HEADERS = ["nama_paket", "sku_paket", "kategori_paket", "produk", "jumlah", "harga_paket", "harga_beli_paket", "catatan_paket"];
+const EXAMPLE_PACKAGE = "CONTOH, ganti nama paket";
+export interface PackageImportRow {
+  rowNumber: number;
+  source: SourceRow;
+  errors: string[];
+  normalized?: Omit<ProductPackage, "id" | "active">;
+}
+export interface PackageImportPreview {
+  rows: PackageImportRow[];
+  errors: string[];
+  validCount: number;
+}
 const EXAMPLE_PRODUCT = "CONTOH, ganti nama produk";
 export interface ProductImportRow {
   rowNumber: number;
@@ -606,6 +619,152 @@ export async function createProductTemplate(): Promise<Uint8Array> {
   sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: PRODUCT_HEADERS.length } };
   const guide = workbook.addWorksheet("Petunjuk"); guide.getColumn(1).width = 110;
   for (const instruction of ["Template produk Tippo", "1. Salin listing produk ke lembar Produk. Satu baris untuk satu produk atau varian.", "2. Produk dan harga_jual wajib. Varian, sku_produk, kategori, dan harga_beli boleh kosong.", "3. Ganti atau hapus baris contoh. Jangan ubah judul kolom.", "4. Harga berupa rupiah bulat. Gunakan angka biasa; formula tidak didukung, tempel sebagai nilai.", "5. SKU disimpan sebagai teks agar angka nol di depan tidak hilang. Produk baru akan aktif.", "6. Simpan sebagai .xlsx, lalu unggah di Open PO > Produk > Import produk Excel.", "7. Periksa pratinjau. Semua baris harus valid dan sesuai kuota agar tersimpan sekaligus.", "8. Import menambah produk; tidak menimpa produk lama. SKU atau nama + varian duplikat ditolak, termasuk arsip.", "9. Paket Gratis maksimal 5 produk, termasuk arsip. Maksimal file 5 MB dan 1.000 produk."]) guide.addRow([instruction]);
+  guide.getRow(1).font = { bold: true, size: 16 };
+  return new Uint8Array(await workbook.xlsx.writeBuffer());
+}
+
+function validatePackageRows(rows: Pick<PackageImportRow, "rowNumber" | "source" | "errors">[], data: AppData): PackageImportPreview {
+  const preview: PackageImportPreview = { rows: [], errors: [], validCount: 0 };
+  const activeProducts = data.products.filter((product) => product.active);
+  const bySku = new Map(activeProducts.filter((p) => p.sku).map((p) => [p.sku.toLowerCase(), p]));
+  const byName = new Map(activeProducts.map((p) => [p.name.toLowerCase(), p]));
+  const groups = new Map<string, { rows: PackageImportRow[]; first: PackageImportRow }>();
+  for (const row of rows) {
+    const name = String(row.source.nama_paket ?? "").trim();
+    if (!name) { row.errors.push("nama_paket: wajib diisi."); }
+    let group = groups.get(name);
+    if (!group) {
+      group = { rows: [], first: row };
+      groups.set(name, group);
+    }
+    group.rows.push(row);
+    if (!group.first.rowNumber) group.first = row;
+  }
+  for (const [name, group] of groups) {
+    const rowErrors = [...group.first.errors];
+    const sku = stringField(group.first.source, "sku_paket", rowErrors, false, 60);
+    const category = stringField(group.first.source, "kategori_paket", rowErrors, false, 80);
+    const unitPrice = integerField(group.first.source, "harga_paket", rowErrors, true);
+    const unitCost = integerField(group.first.source, "harga_beli_paket", rowErrors, false, true);
+    const notes = stringField(group.first.source, "catatan_paket", rowErrors, false, 1000);
+    if (name === EXAMPLE_PACKAGE) rowErrors.push("Ganti atau hapus baris contoh sebelum import paket.");
+    const memberProducts: { id: string; quantity: number }[] = [];
+    const seenProductIds = new Set<string>();
+    for (const row of group.rows) {
+      const memberErrors = [...row.errors];
+      const productRef = stringField(row.source, "produk", memberErrors, true, 120);
+      const quantity = integerField(row.source, "jumlah", memberErrors, true);
+      if (quantity !== null && quantity < 1) memberErrors.push("jumlah: minimal 1.");
+      let product: Product | undefined;
+      if (productRef) {
+        product = bySku.get(productRef.toLowerCase()) ?? byName.get(productRef.toLowerCase());
+        if (!product) memberErrors.push(`Produk "${productRef}" tidak ditemukan pada master aktif (cocokkan via SKU atau nama).`);
+        else if (seenProductIds.has(product.id)) memberErrors.push(`Produk "${productRef}" muncul lebih dari sekali dalam paket ini.`);
+        else seenProductIds.add(product.id);
+      }
+      if (product && quantity !== null) memberProducts.push({ id: product.id, quantity });
+      addRowErrors(rowErrors, row.rowNumber, memberErrors);
+    }
+    if (memberProducts.length === 0) rowErrors.push("Paket harus memiliki setidaknya satu produk anggota yang valid.");
+    const normalized = rowErrors.length ? undefined : {
+      name, sku, ...(category ? { category } : {}), products: memberProducts, unitPrice: unitPrice!, unitCost, notes: notes?.trim() || undefined,
+    };
+    preview.rows.push({ rowNumber: group.first.rowNumber, source: group.first.source, errors: rowErrors, normalized });
+  }
+  preview.validCount = preview.rows.filter((row) => row.normalized && !row.errors.length).length;
+  if (!preview.rows.length) preview.errors.push("Lembar Paket belum berisi data.");
+  const packageNames = new Set(data.packages?.map((p) => p.name.toLowerCase()) ?? []);
+  const fileNames = new Set<string>();
+  for (const row of preview.rows) {
+    if (!row.normalized) continue;
+    const key = row.normalized.name.toLowerCase();
+    if (packageNames.has(key)) row.errors.push(`Paket "${row.normalized.name}" sudah ada di katalog.`);
+    if (fileNames.has(key)) row.errors.push(`Paket "${row.normalized.name}" berulang dalam file.`);
+    fileNames.add(key);
+  }
+  preview.validCount = preview.rows.filter((row) => row.normalized && !row.errors.length).length;
+  return preview;
+}
+
+export async function previewPackageImport(buffer: ArrayBuffer, data: AppData): Promise<PackageImportPreview> {
+  const preview: PackageImportPreview = { rows: [], errors: [], validCount: 0 };
+  if (!isAppData(data)) { preview.errors.push("Data aplikasi tidak valid."); return preview; }
+  if (!buffer.byteLength || buffer.byteLength > MAX_BYTES) { preview.errors.push("File harus berisi data dan berukuran maksimal 5 MB."); return preview; }
+  try {
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const sheet = workbook.getWorksheet("Paket") ?? workbook.worksheets[0];
+    if (!sheet) { preview.errors.push("File tidak memiliki lembar Paket."); return preview; }
+    if (sheet.rowCount > MAX_ROWS + 1 || sheet.columnCount > 50) { preview.errors.push("Maksimal 1.000 paket dan 50 kolom. Gunakan template Paket Tippo."); return preview; }
+    const headers = new Map<number, string>();
+    const seen = new Set<string>();
+    sheet.getRow(1).eachCell({ includeEmpty: false }, (cell, column) => {
+      if (blank(cell.value)) return;
+      if (typeof cell.value !== "string") { preview.errors.push("Judul kolom harus berupa teks biasa."); return; }
+      const header = cell.value.trim().toLowerCase();
+      if (!PACKAGE_HEADERS.includes(header)) preview.errors.push(`Kolom ${header || column} tidak didukung. Gunakan template Paket.`);
+      if (seen.has(header)) preview.errors.push(`Kolom ${header} muncul lebih dari sekali.`);
+      seen.add(header); headers.set(column, header);
+    });
+    for (const header of ["nama_paket", "produk", "jumlah", "harga_paket"]) if (!seen.has(header)) preview.errors.push(`Kolom wajib ${header} tidak ditemukan.`);
+    if (preview.errors.length) return preview;
+    const rows: PackageImportRow[] = [];
+    sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const source: SourceRow = {}; const errors: string[] = []; let hasValue = false;
+      row.eachCell({ includeEmpty: false }, (cell, column) => {
+        if (blank(cell.value)) return;
+        hasValue = true;
+        const header = headers.get(column);
+        if (!header) { errors.push("Ada isi pada kolom tanpa judul; gunakan kolom dari template."); return; }
+        source[header] = readCell(cell.value, header, false, errors);
+      });
+      if (hasValue) rows.push({ rowNumber, source, errors });
+    });
+    return validatePackageRows(rows, data);
+  } catch {
+    preview.errors.push("File Excel tidak dapat dibaca. Gunakan file .xlsx yang valid tanpa kata sandi.");
+    return preview;
+  }
+}
+
+export function buildPackageImport(preview: PackageImportPreview, data: AppData): ProductPackage[] {
+  if (!isAppData(data) || preview.errors.length || !preview.rows.length || preview.rows.length > MAX_ROWS || preview.rows.some((row) => row.errors.length)) throw new Error("Perbaiki seluruh data sebelum import paket.");
+  const checked = validatePackageRows(preview.rows, data);
+  if (checked.errors.length || checked.validCount !== checked.rows.length) throw new Error(checked.errors[0] ?? "Katalog paket berubah atau ada paket duplikat. Periksa file dan unggah ulang.");
+  const packages = checked.rows.map((row) => ({ ...row.normalized!, id: crypto.randomUUID(), active: true }));
+  if (!isAppData({ ...data, packages: [...(data.packages ?? []), ...packages] })) throw new Error("Gabungan paket tidak valid.");
+  return packages;
+}
+
+export async function createPackageTemplate(): Promise<Uint8Array> {
+  const ExcelJS = (await import("exceljs")).default;
+  const workbook = new ExcelJS.Workbook(); workbook.creator = "Tippo";
+  const sheet = workbook.addWorksheet("Paket");
+  sheet.columns = PACKAGE_HEADERS.map((header) => ({ header, key: header, width: header === "nama_paket" || header === "produk" ? 35 : 22 }));
+  sheet.addRow({ nama_paket: EXAMPLE_PACKAGE, sku_paket: "CONTOH-PAK-001", kategori_paket: "Contoh kategori", produk: "Contoh produk", jumlah: 2, harga_paket: 50000, harga_beli_paket: 30000, catatan_paket: "Ganti atau hapus baris contoh sebelum import paket." });
+  sheet.getRow(2).getCell("nama_paket").note = "Ganti nama dan data contoh atau hapus baris ini sebelum import.";
+  sheet.getColumn("sku_paket").numFmt = "@";
+  for (const header of ["harga_paket", "harga_beli_paket"]) sheet.getColumn(header).numFmt = '#,##0';
+  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF94501F" } };
+  sheet.views = [{ state: "frozen", ySplit: 1 }];
+  sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: PACKAGE_HEADERS.length } };
+  const guide = workbook.addWorksheet("Petunjuk"); guide.getColumn(1).width = 110;
+  for (const instruction of [
+    "Template paket Tippo",
+    "1. Satu baris untuk satu produk anggota dalam paket. Gabungkan baris dengan nama_paket yang sama menjadi satu paket.",
+    "2. nama_paket, produk, jumlah, dan harga_paket wajib diisi. sku_paket, kategori_paket, harga_beli_paket, dan catatan_paket opsional.",
+    "3. Produk anggota harus cocok dengan SKU atau nama produk yang sudah ada di katalog aktif. Produk yang tidak ditemukan akan ditolak.",
+    "4. Ganti atau hapus baris contoh. Jangan ubah judul kolom.",
+    "5. Harga berupa rupiah bulat. Gunakan angka biasa; formula tidak didukung, tempel sebagai nilai.",
+    "6. Jumlah minimal 1. Produk yang sama tidak boleh muncul dua kali dalam satu paket.",
+    "7. Simpan sebagai .xlsx, lalu unggah di Open PO > Produk Paket > Import paket Excel.",
+    "8. Periksa pratinjau. Semua baris harus valid agar tersimpan sekaligus.",
+    "9. Import menambah paket baru; tidak menimpa paket lama. Nama paket duplikat ditolak.",
+    "10. Paket Gratis tanpa batas jumlah paket. Maksimal file 5 MB dan 1.000 baris."
+  ]) guide.addRow([instruction]);
   guide.getRow(1).font = { bold: true, size: 16 };
   return new Uint8Array(await workbook.xlsx.writeBuffer());
 }
