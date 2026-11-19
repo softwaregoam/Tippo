@@ -48,7 +48,7 @@ export function Select({ placeholder, value, onValueChange, children, className 
       <SelectPrimitive.Icon><ChevronDown size={16} aria-hidden="true" /></SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
     <SelectPrimitive.Portal container={container}>
-      <SelectPrimitive.Content className="select-content" position="popper" sideOffset={6} collisionPadding={12}>
+      <SelectPrimitive.Content className={`select-content ${container?.classList.contains("po-order-dialog") ? "po-select-content" : ""}`} position="popper" sideOffset={6} collisionPadding={12}>
         <SelectPrimitive.Viewport>{children}</SelectPrimitive.Viewport>
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
