@@ -355,7 +355,30 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   }
   async function importPackages(packages: ProductPackage[]) {
     if (effectivePlan(subscription) !== "pro") throw new Error("Import template Excel hanya tersedia untuk paket Pro.");
-    return persist({ ...data, packages: [...packages, ...(data.packages ?? [])] }, `${packages.length} produk paket berhasil diimpor dari Excel`);
+    const existing = data.packages ?? [];
+    const bySku = new Map(existing.map((pack) => [pack.sku.trim().toLowerCase(), pack]));
+    const merged = [...existing];
+    let created = 0;
+    for (const incoming of packages) {
+      const current = bySku.get(incoming.sku.trim().toLowerCase());
+      if (!current) {
+        merged.unshift(incoming);
+        bySku.set(incoming.sku.trim().toLowerCase(), incoming);
+        created += 1;
+        continue;
+      }
+      const products = [...current.products];
+      for (const member of incoming.products) {
+        const existingMember = products.find((entry) => entry.id === member.id);
+        if (existingMember) existingMember.quantity += member.quantity;
+        else products.push({ ...member });
+      }
+      const updated = { ...current, products, name: incoming.name || current.name, category: incoming.category || current.category, unitPrice: incoming.unitPrice, unitCost: incoming.unitCost, notes: incoming.notes ?? current.notes };
+      const index = merged.findIndex((pack) => pack.id === current.id);
+      if (index >= 0) merged[index] = updated;
+      bySku.set(updated.sku.trim().toLowerCase(), updated);
+    }
+    return persist({ ...data, packages: merged }, `${created} paket baru dan ${packages.length - created} paket diperbarui dari Excel`);
   }
   async function importOrders(orders: Order[], customers: Customer[]) {
     if (effectivePlan(subscription) !== "pro") throw new Error("Import template Excel hanya tersedia untuk paket Pro.");
