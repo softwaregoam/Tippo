@@ -112,6 +112,7 @@ export interface Order {
   shippingCharge: number;
   /** Percent discounts exclude shipping; rupiah discounts may cover the entire gross bill. */
   discount?: { type: "amount" | "percent"; value: number };
+  globalDiscount?: { name: string; type: "amount" | "percent"; value: number; amount: number };
   /** Net payment retained after recorded refunds. */
   paid: number;
   refunds?: { id: string; amount: number; date: string; reason: string; createdAt: string }[];
