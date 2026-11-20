@@ -491,7 +491,7 @@ export async function createOrderTemplate(type: BatchType, data: AppData): Promi
 }
 
 const PRODUCT_HEADERS = ["produk", "varian", "sku_produk", "harga_jual", "harga_beli", "kategori", "toko_brand", "warna", "ukuran"];
-const PACKAGE_HEADERS = ["nama_paket", "sku_paket", "kategori_paket", "produk", "jumlah", "harga_paket", "harga_beli_paket", "catatan_paket"];
+const PACKAGE_HEADERS = ["nama_paket", "sku_paket", "kategori_paket", "nama_produk", "jumlah", "harga_paket", "harga_beli_paket", "catatan_paket"];
 const EXAMPLE_PACKAGE = "CONTOH, ganti nama paket";
 export interface PackageImportRow {
   rowNumber: number;
@@ -626,7 +626,13 @@ export async function createProductTemplate(): Promise<Uint8Array> {
 function validatePackageRows(rows: Pick<PackageImportRow, "rowNumber" | "source" | "errors">[], data: AppData): PackageImportPreview {
   const preview: PackageImportPreview = { rows: [], errors: [], validCount: 0 };
   const activeProducts = data.products.filter((product) => product.active);
-  const bySku = new Map(activeProducts.filter((p) => p.sku).map((p) => [p.sku.toLowerCase(), p]));
+  const byName = new Map<string, Product[]>();
+  for (const p of activeProducts) {
+    const key = p.name.toLowerCase();
+    const existing = byName.get(key);
+    if (existing) byName.set(key, [...existing, p]);
+    else byName.set(key, [p]);
+  }
   const groups = new Map<string, { rows: PackageImportRow[]; first: PackageImportRow }>();
   for (const row of rows) {
     const name = String(row.source.nama_paket ?? "").trim();
@@ -651,15 +657,17 @@ function validatePackageRows(rows: Pick<PackageImportRow, "rowNumber" | "source"
     const seenProductIds = new Set<string>();
     for (const row of group.rows) {
       const memberErrors = [...row.errors];
-      const productRef = stringField(row.source, "produk", memberErrors, true, 120);
+      const productRef = stringField(row.source, "nama_produk", memberErrors, true, 120);
       const quantity = integerField(row.source, "jumlah", memberErrors, true);
       if (quantity !== null && quantity < 1) memberErrors.push("jumlah: minimal 1.");
       let product: Product | undefined;
       if (productRef) {
-        product = bySku.get(productRef.toLowerCase());
-        if (!product) memberErrors.push(`Produk dengan SKU "${productRef}" tidak ditemukan pada master aktif. Gunakan SKU produk yang sudah terdaftar.`);
-        else if (seenProductIds.has(product.id)) memberErrors.push(`Produk "${productRef}" muncul lebih dari sekali dalam paket ini.`);
-        else seenProductIds.add(product.id);
+        const matches = byName.get(productRef.toLowerCase()) ?? [];
+        if (matches.length === 0) memberErrors.push(`Produk "${productRef}" tidak ditemukan pada master aktif. Gunakan nama produk yang sudah terdaftar.`);
+        else if (matches.length > 1) memberErrors.push(`Nama produk "${productRef}" ada beberapa produk, tidak dapat dipastikan. Gunakan SKU produk atau pastikan nama unik.`);
+        else product = matches[0];
+        if (product && seenProductIds.has(product.id)) memberErrors.push(`Produk "${productRef}" muncul lebih dari sekali dalam paket ini.`);
+        else if (product) seenProductIds.add(product.id);
       }
       if (product && quantity !== null) memberProducts.push({ id: product.id, quantity });
       addRowErrors(rowErrors, row.rowNumber, memberErrors);
@@ -741,8 +749,8 @@ export async function createPackageTemplate(): Promise<Uint8Array> {
   const ExcelJS = (await import("exceljs")).default;
   const workbook = new ExcelJS.Workbook(); workbook.creator = "Tippo";
   const sheet = workbook.addWorksheet("Paket");
-  sheet.columns = PACKAGE_HEADERS.map((header) => ({ header, key: header, width: header === "nama_paket" || header === "produk" ? 35 : 22 }));
-  sheet.addRow({ nama_paket: EXAMPLE_PACKAGE, sku_paket: "CONTOH-PAK-001", kategori_paket: "Contoh kategori", produk: "CONTOH-PROD-001", jumlah: 2, harga_paket: 50000, harga_beli_paket: 30000, catatan_paket: "Ganti atau hapus baris contoh sebelum import paket." });
+  sheet.columns = PACKAGE_HEADERS.map((header) => ({ header, key: header, width: header === "nama_paket" || header === "nama_produk" ? 35 : 22 }));
+  sheet.addRow({ nama_paket: EXAMPLE_PACKAGE, sku_paket: "CONTOH-PAK-001", kategori_paket: "Contoh kategori", nama_produk: "Contoh produk", jumlah: 2, harga_paket: 50000, harga_beli_paket: 30000, catatan_paket: "Ganti atau hapus baris contoh sebelum import paket." });
   sheet.getRow(2).getCell("nama_paket").note = "Ganti nama dan data contoh atau hapus baris ini sebelum import.";
   sheet.getColumn("sku_paket").numFmt = "@";
   for (const header of ["harga_paket", "harga_beli_paket"]) sheet.getColumn(header).numFmt = '#,##0';
@@ -754,8 +762,8 @@ export async function createPackageTemplate(): Promise<Uint8Array> {
   for (const instruction of [
     "Template paket Tippo",
     "1. Satu baris untuk satu produk anggota dalam paket. Gabungkan baris dengan nama_paket yang sama menjadi satu paket.",
-    "2. nama_paket, produk, jumlah, dan harga_paket wajib diisi. sku_paket, kategori_paket, harga_beli_paket, dan catatan_paket opsional.",
-    "3. Produk anggota harus cocok dengan SKU atau nama produk yang sudah ada di katalog aktif. Produk yang tidak ditemukan akan ditolak.",
+    "2. nama_paket, nama_produk, jumlah, dan harga_paket wajib diisi. sku_paket, kategori_paket, harga_beli_paket, dan catatan_paket opsional.",
+    "3. Produk anggota harus cocok dengan nama produk yang sudah ada di katalog aktif. Produk yang tidak ditemukan akan ditolak.",
     "4. Ganti atau hapus baris contoh. Jangan ubah judul kolom.",
     "5. Harga berupa rupiah bulat. Gunakan angka biasa; formula tidak didukung, tempel sebagai nilai.",
     "6. Jumlah minimal 1. Produk yang sama tidak boleh muncul dua kali dalam satu paket.",
