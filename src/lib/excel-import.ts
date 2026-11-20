@@ -501,6 +501,7 @@ export interface PackageImportRow {
 }
 export interface PackageImportPreview {
   rows: PackageImportRow[];
+  displayRows: PackageImportRow[];
   errors: string[];
   validCount: number;
 }
@@ -633,7 +634,7 @@ export async function createProductTemplate(): Promise<Uint8Array> {
 }
 
 function validatePackageRows(rows: Pick<PackageImportRow, "rowNumber" | "source" | "errors">[], data: AppData): PackageImportPreview {
-  const preview: PackageImportPreview = { rows: [], errors: [], validCount: 0 };
+  const preview: PackageImportPreview = { rows: [], displayRows: [], errors: [], validCount: 0 };
   const activeProducts = data.products.filter((product) => product.active);
   const byName = new Map<string, Product[]>();
   for (const p of activeProducts) {
@@ -703,11 +704,12 @@ function validatePackageRows(rows: Pick<PackageImportRow, "rowNumber" | "source"
     fileSkus.add(key);
   }
   preview.validCount = preview.rows.filter((row) => row.normalized && !row.errors.length).length;
+  preview.displayRows = rows.map((row) => ({ rowNumber: row.rowNumber, source: row.source, errors: row.errors }));
   return preview;
 }
 
 export async function previewPackageImport(buffer: ArrayBuffer, data: AppData): Promise<PackageImportPreview> {
-  const preview: PackageImportPreview = { rows: [], errors: [], validCount: 0 };
+  const preview: PackageImportPreview = { rows: [], displayRows: [], errors: [], validCount: 0 };
   if (!isAppData(data)) { preview.errors.push("Data aplikasi tidak valid."); return preview; }
   if (!buffer.byteLength || buffer.byteLength > MAX_BYTES) { preview.errors.push("File harus berisi data dan berukuran maksimal 5 MB."); return preview; }
   try {
