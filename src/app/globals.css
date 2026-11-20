@@ -397,6 +397,8 @@ input::placeholder, textarea::placeholder, .input::placeholder { color: var(--pl
 .form-section { margin-top: 16px; padding-top: 18px; border-top: 1px solid var(--border); }
 .form-section h3 { font-size: 16px; margin-bottom: 14px; }
 .error-message { display:block; width:100%; box-sizing:border-box; color: var(--danger); font-size: 14px; line-height: 1.8; background: var(--tone-surface-fff2ed); padding: 12px; border-radius: 6px; margin-top: 12px; }
+.global-discount-dialog .discount-value-input + .field-hint + .error-message,
+.global-discount-dialog .discount-value-input + .error-message { width:calc(200% + 20px); margin-left:calc(-100% - 20px); }
 .summary-strip { border: 1px solid var(--border); background: var(--tone-surface-edf5f1); border-radius: 8px; padding: 16px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-top: 20px; }
 .summary-cell { min-width: 0; }
 .summary-cell>span { font-size: 13px; color: var(--muted); }
