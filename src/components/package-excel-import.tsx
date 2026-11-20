@@ -80,7 +80,7 @@ export function PackageExcelImportDialog({ data, importAllowed, onImport, onClos
           <ul className="field-hint" style={{ paddingLeft: 18, lineHeight: 1.8, marginTop: 8 }}>
             <li>Satu baris untuk satu produk anggota. Gabungkan baris dengan nama_paket yang sama menjadi satu paket.</li>
             <li>nama_paket, produk, jumlah, dan harga_paket wajib diisi.</li>
-            <li>Produk anggota harus cocok dengan SKU atau nama di katalog aktif.</li>
+            <li>Produk anggota harus cocok dengan SKU produk di katalog aktif.</li>
             <li>Isi harga dengan angka biasa, bukan formula.</li>
             <li>Nama paket yang sudah ada akan ditolak.</li>
           </ul>
