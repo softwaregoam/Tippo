@@ -33,6 +33,7 @@ import { OrderForm } from "@/components/order-form";
 import { PoOrderForm } from "@/components/po-order-form";
 import { ModeWorkspace, ProductForm, WorkspaceEmptyState } from "@/components/mode-workspace";
 import { PackageWorkspace, ProductPackageForm } from "@/components/product-package";
+import { GlobalDiscountWorkspace } from "@/components/global-discount-workspace";
 import {MobileDataList} from "@/components/mobile-data-list";
 import { OrdersTable } from "@/components/orders-table";
 import { ReportsPanel } from "@/components/reports-panel";
@@ -50,7 +51,7 @@ import type { AppData, Batch, Customer, Order, Product, ProductPackage } from "@
 import type { AccountWorkspace } from "./cloud-workspace";
 import Link from "next/link";
 
-type Page = "dashboard" | "orders" | "products" | "product-packages" | "batches" | "hpp" | "reports" | "customers" | "settings" | "invoice-template" | "profile" | "subscription" | "feedback" | "help";
+type Page = "dashboard" | "orders" | "products" | "product-packages" | "discounts" | "batches" | "hpp" | "reports" | "customers" | "settings" | "invoice-template" | "profile" | "subscription" | "feedback" | "help";
 const businessModeKey = "tippo.business-mode.v1";
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const subtitles = {
@@ -58,6 +59,7 @@ const subtitles = {
   orders: "Catat pesanan, pembayaran, dan perkembangan pengiriman.",
   products: "Katalog produk sendiri, harga siap untuk pesanan berikutnya.",
   "product-packages": "Gabungkan produk katalog jadi satu paket dengan harga jual baru.",
+  discounts: "Atur promo dan diskon global untuk produk dan paket.",
   batches: "Kelompokkan pesanan sesuai perjalanan atau periode PO.",
   hpp: "Harga beli, HPP, dan margin pesanan.",
   reports: "Lihat penjualan dan estimasi laba usaha ini.",
@@ -128,11 +130,11 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
   });
   const invoiceSettings = {...(cloud ? readBusinessProfile(cloud) : demoProfile),appearance:invoiceAppearanceForMode(cloud?.invoiceAppearance ?? demoAppearance,mode)};
   const modeLabel = mode === "po" ? "Open PO" : "Jastip";
-  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", "product-packages": "Produk Paket", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, reports: `Laporan ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", "invoice-template": "Template invoice", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
+  const titles: Record<Page, string> = { dashboard: `Ringkasan ${modeLabel}`, orders: `Pesanan ${modeLabel}`, products: "Produk Open PO", "product-packages": "Produk Paket", discounts: "Diskon Global", batches: mode === "po" ? "Batch PO" : "Perjalanan Jastip", hpp: `HPP & Margin ${modeLabel}`, reports: `Laporan ${modeLabel}`, customers: "Pelanggan", settings: "Pengaturan data", "invoice-template": "Template invoice", profile: "Profil bisnis", subscription: "Paket & langganan", feedback: "Kritik & saran", help: "Panduan & FAQ" };
   const navigation = [
     { id: "dashboard" as Page, label: "Ringkasan", icon: LayoutDashboard },
     { id: "orders" as Page, label: "Pesanan", icon: ReceiptText },
-    ...(mode === "po" ? [{ id: "products" as Page, label: "Produk", icon: Package }, { id: "product-packages" as Page, label: "Produk Paket", icon: PackagePlus }] : []),
+    ...(mode === "po" ? [{ id: "products" as Page, label: "Produk", icon: Package }, { id: "product-packages" as Page, label: "Produk Paket", icon: PackagePlus }, { id: "discounts" as Page, label: "Diskon Global", icon: Wallet }] : []),
     { id: "batches" as Page, label: mode === "po" ? "Batch PO" : "Perjalanan", icon: Layers3 },
     { id: "customers" as Page, label: "Pelanggan", icon: UsersRound },
     { id: "hpp" as Page, label: "HPP & Margin", icon: Wallet },
@@ -497,6 +499,8 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                 onProductStatus={(product) => persist({ ...data, products: data.products.map((p) => p.id === product.id ? { ...p, active: !p.active } : p) }, product.active ? "Produk diarsipkan. Histori pesanan tetap tersedia." : "Produk aktif kembali")}
                 onImport={importOrders} importAllowed={isPro} productLimit={!isPro ? 5 : undefined} onUpgrade={() => go("subscription")}
               />}
+
+              {page === "discounts" && <GlobalDiscountWorkspace discounts={data.discounts ?? []} onSave={(discount) => persist({ ...data, discounts: [...(data.discounts ?? []).filter(item => item.id !== discount.id), discount] }, "Diskon global tersimpan")} onArchive={(discount) => persist({ ...data, discounts: (data.discounts ?? []).map(item => item.id === discount.id ? { ...item, archived: true, active: false } : item) }, "Diskon global diarsipkan")} />}
 
               {page === "product-packages" && <PackageWorkspace key={mode} data={data}
                 onSavePackage={savePackage}
