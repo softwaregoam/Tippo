@@ -27,7 +27,7 @@ const documentCss = `
 @media print{@page{size:A4;margin:14mm}.invoice-document{padding:20px;font-size:13px;container-type:normal;print-color-adjust:exact;-webkit-print-color-adjust:exact}.invoice-document .invoice-meta{grid-template-columns:1fr 1fr}.invoice-document thead{display:table-header-group}.invoice-document tr,.invoice-document .invoice-totals{break-inside:avoid}.invoice-document .invoice-footer{break-inside:avoid}}
 `;
 export function InvoiceDocument({order,batch,customer,settings,logoPreviewUrl,fixedLayout=false,catalog}:{fixedLayout?:boolean;logoPreviewUrl?:string;order:Order;batch?:Batch;customer?:Customer;settings?:Partial<InvoiceSettings>;catalog?:InvoiceProductCatalog}) {
- const appearance=invoiceAppearanceForMode(settings?.appearance,batch?.type??"jastip"),discount=orderDiscount(order),refund=refundedTotal(order);
+ const appearance=invoiceAppearanceForMode(settings?.appearance,batch?.type??"jastip"),discount=orderDiscount(order)+(order.globalDiscount?.amount??0),refund=refundedTotal(order);
  const bank=invoiceBankDetails(appearance);
  const hasShipping=Boolean(order.shippingDate||order.shippingTime||order.shippingMethod?.trim());
  const shippingSchedule=[order.shippingDate?formatCalendarDate(order.shippingDate):"",order.shippingTime].filter(Boolean).join(" · ");

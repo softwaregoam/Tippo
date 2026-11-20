@@ -362,7 +362,10 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     const customer: Customer | undefined = fields.customerId === "new" ? {
       id: crypto.randomUUID(), name: fields.customerName.trim(), phone: fields.customerPhone.trim(), address: fields.customerAddress.trim(),
     } : undefined;
-    onSave({ ...draft, id: order?.id ?? crypto.randomUUID(), customerId: personal?"":customer?.id ?? fields.customerId }, customer);
+    const globalDiscountEntries = draft.items.map((item) => { const target = item.packageId ? "packages" : "products" as const; const source = item.packageId ? data.packages?.find(pack => pack.id === item.packageId)?.unitPrice ?? item.unitPrice : data.products.find(product => product.id === item.productId)?.unitPrice ?? item.unitPrice; const discount = globalDiscountFor(target, data.discounts, draft.date); return discount && source > item.unitPrice ? { discount, amount: (source - item.unitPrice) * item.quantity } : null; }).filter((entry): entry is { discount: NonNullable<ReturnType<typeof globalDiscountFor>>; amount: number } => Boolean(entry));
+    const globalTotal = globalDiscountEntries.reduce((sum, entry) => sum + entry.amount, 0);
+    const globalDiscount = globalDiscountEntries[0] && globalTotal > 0 ? { name: globalDiscountEntries[0].discount.name, type: globalDiscountEntries[0].discount.type, value: globalDiscountEntries[0].discount.value, amount: globalTotal } : undefined;
+    onSave({ ...draft, globalDiscount, id: order?.id ?? crypto.randomUUID(), customerId: personal?"":customer?.id ?? fields.customerId }, customer);
   }
 
   function amountField(name: "paid" | "shippingCharge" | "serviceFee", label: string) {
@@ -455,7 +458,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
                     {rowErrors?.quantity && <span id={`${quantityId}-error`} className="error-message">{rowErrors.quantity}</span>}
                   </div>
                     {!personal&&<dl id={pricesId} className="po-product-prices order-full-width" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, padding: "10px 12px", borderRadius: 6 }}>
-                      {!personal&&<div><dt className="field-hint">Harga jual / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{canUseProduct(item) ? formatCurrency(itemDraft.unitPrice) : "Pilih produk"}</dd>{hasGlobalDiscount && <><dt className="field-hint">Diskon Global</dt><dd className="global-discount-order-note" style={{ fontSize: 13, marginTop: 3 }}>{globalDiscountText}</dd></>}</div>}
+                      {!personal&&<div><dt className="field-hint">Harga jual / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{canUseProduct(item) ? formatCurrency(itemDraft.unitPrice) : "Pilih produk"}</dd>{hasGlobalDiscount && <dd className="global-discount-order-note" style={{ fontSize: 13, marginTop: 3 }}>{globalDiscountText}</dd>}</div>}
                       <div><dt className="field-hint">Harga beli / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{!canUseProduct(item) ? "Pilih produk" : itemDraft.unitCost === null ? "Belum diisi" : formatCurrency(itemDraft.unitCost)}</dd></div>
                     </dl>}
                     {personal&&<div className="field order-full-width"><label className="field-label" htmlFor={`${productId}-cost`}>Harga beli / produk<span className="required-mark" aria-hidden="true"> *</span></label><NumberInput id={`${productId}-cost`} name={`item-${item.id}-unitCost`} aria-label="Harga beli / produk" required className="input" value={item.unitCost??(itemDraft.unitCost===null?"":String(itemDraft.unitCost))} onValueChange={value=>updateItem(item.id,"unitCost",value)} aria-invalid={Boolean(rowErrors?.unitCost)} aria-describedby={rowErrors?.unitCost?`${productId}-cost-error`:undefined}/>{rowErrors?.unitCost&&<span id={`${productId}-cost-error`} className="error-message">{rowErrors.unitCost}</span>}</div>}
