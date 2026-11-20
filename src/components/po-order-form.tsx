@@ -77,9 +77,20 @@ function applyGlobalDiscount(price: number, target: "products" | "packages", dis
   return Math.max(0, price - amount);
 }
 
+function globalDiscountFor(target: "products" | "packages", discounts: AppData["discounts"], date: string) {
+  return (discounts ?? []).find(item => item.active && !item.archived && item.target === target && (!item.startsAt || !date || item.startsAt <= date) && (!item.endsAt || !date || item.endsAt >= date));
+}
+
+function globalDiscountLabel(target: "products" | "packages", discounts: AppData["discounts"], date: string, originalPrice: number, discountedPrice: number) {
+  const discount = globalDiscountFor(target, discounts, date);
+  if (!discount || discountedPrice >= originalPrice) return undefined;
+  return discount.type === "percent"
+    ? `Diskon Global (-${discount.value}%)`
+    : `Diskon Global (-${formatCurrency(Math.max(0, originalPrice - discountedPrice))})`;
+}
+
 function discountLabel(target: "products" | "packages", discounts: AppData["discounts"], date: string) {
-  const discount = (discounts ?? []).find(item => item.active && !item.archived && item.target === target && (!item.startsAt || !date || item.startsAt <= date) && (!item.endsAt || !date || item.endsAt >= date));
-  return discount?.name;
+  return globalDiscountFor(target, discounts, date)?.name;
 }
 
 
@@ -419,8 +430,8 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
               const selectedPackage = resolvePackage(item.productId, data.packages ?? []);
               const globalTarget = selectedPackage ? "packages" : "products" as const;
               const originalUnitPrice = selectedPackage?.unitPrice ?? data.products.find(product => product.id === item.productId)?.unitPrice ?? itemDraft.unitPrice;
-              const globalDiscountName = discountLabel(globalTarget, data.discounts, fields.date);
-              const hasGlobalDiscount = Boolean(globalDiscountName && itemDraft.unitPrice < originalUnitPrice);
+              const globalDiscountText = globalDiscountLabel(globalTarget, data.discounts, fields.date, originalUnitPrice, itemDraft.unitPrice);
+                            const hasGlobalDiscount = Boolean(globalDiscountText);
               const productId = index === 0 ? "po-order-productId" : `po-order-${item.id}-productId`;
               const pricesId = index === 0 ? "po-product-prices" : `po-product-prices-${item.id}`;
               const quantityId = index === 0 ? "po-order-quantity" : `po-order-${item.id}-quantity`;
@@ -444,7 +455,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
                     {rowErrors?.quantity && <span id={`${quantityId}-error`} className="error-message">{rowErrors.quantity}</span>}
                   </div>
                     {!personal&&<dl id={pricesId} className="po-product-prices order-full-width" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, padding: "10px 12px", borderRadius: 6 }}>
-                      {!personal&&<div><dt className="field-hint">Harga jual / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{canUseProduct(item) ? formatCurrency(itemDraft.unitPrice) : "Pilih produk"}</dd>{hasGlobalDiscount && <><dt className="field-hint">Diskon Global</dt><dd className="global-discount-order-note" style={{ fontSize: 13, marginTop: 3 }}>{globalDiscountName}</dd></>}</div>}
+                      {!personal&&<div><dt className="field-hint">Harga jual / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{canUseProduct(item) ? formatCurrency(itemDraft.unitPrice) : "Pilih produk"}</dd>{hasGlobalDiscount && <><dt className="field-hint">Diskon Global</dt><dd className="global-discount-order-note" style={{ fontSize: 13, marginTop: 3 }}>{globalDiscountText}</dd></>}</div>}
                       <div><dt className="field-hint">Harga beli / produk</dt><dd style={{ fontSize: 14, marginTop: 3 }}>{!canUseProduct(item) ? "Pilih produk" : itemDraft.unitCost === null ? "Belum diisi" : formatCurrency(itemDraft.unitCost)}</dd></div>
                     </dl>}
                     {personal&&<div className="field order-full-width"><label className="field-label" htmlFor={`${productId}-cost`}>Harga beli / produk<span className="required-mark" aria-hidden="true"> *</span></label><NumberInput id={`${productId}-cost`} name={`item-${item.id}-unitCost`} aria-label="Harga beli / produk" required className="input" value={item.unitCost??(itemDraft.unitCost===null?"":String(itemDraft.unitCost))} onValueChange={value=>updateItem(item.id,"unitCost",value)} aria-invalid={Boolean(rowErrors?.unitCost)} aria-describedby={rowErrors?.unitCost?`${productId}-cost-error`:undefined}/>{rowErrors?.unitCost&&<span id={`${productId}-cost-error`} className="error-message">{rowErrors.unitCost}</span>}</div>}
