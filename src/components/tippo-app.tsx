@@ -500,7 +500,7 @@ export function TippoApp({ cloud }: { cloud?: AccountWorkspace }) {
                 onImport={importOrders} importAllowed={isPro} productLimit={!isPro ? 5 : undefined} onUpgrade={() => go("subscription")}
               />}
 
-              {page === "discounts" && <GlobalDiscountWorkspace discounts={data.discounts ?? []} onSave={(discount) => persist({ ...data, discounts: [...(data.discounts ?? []).filter(item => item.id !== discount.id), discount] }, "Diskon global tersimpan")} onArchive={(discount) => persist({ ...data, discounts: (data.discounts ?? []).map(item => item.id === discount.id ? { ...item, archived: true, active: false } : item) }, "Diskon global diarsipkan")} />}
+              {page === "discounts" && <GlobalDiscountWorkspace discounts={data.discounts ?? []} onSave={(discount) => persist({ ...data, discounts: [...(data.discounts ?? []).filter(item => item.id !== discount.id), discount] }, "Diskon global tersimpan")} onArchive={(discount) => persist({ ...data, discounts: (data.discounts ?? []).map(item => item.id === discount.id ? { ...item, archived: true, active: false } : item) }, "Diskon global diarsipkan")} onStatus={(discount) => persist({ ...data, discounts: (data.discounts ?? []).map(item => item.id === discount.id ? { ...item, active: discount.active, archived: discount.archived } : item) }, "Status diskon diperbarui")} />}
 
               {page === "product-packages" && <PackageWorkspace key={mode} data={data}
                 onSavePackage={savePackage}
