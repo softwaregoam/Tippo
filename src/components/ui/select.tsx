@@ -57,10 +57,8 @@ export function Select({ placeholder, value, onValueChange, children, className 
   </SelectPrimitive.Root>;
 }
 
-export function SelectOption({ value, children, disabled, poTheme = false }: { value: string; children: ReactNode; disabled?: boolean; poTheme?: boolean }) {
-  return <SelectPrimitive.Item className={`select-option${poTheme ? " po-select-option" : ""}`} value={`value:${value}`} data-value={value} disabled={disabled}
-    onPointerMove={poTheme ? (event) => { event.currentTarget.style.backgroundColor = "#fff2de"; event.currentTarget.style.color = "#9e5a18"; } : undefined}
-    onPointerLeave={poTheme ? (event) => { event.currentTarget.style.backgroundColor = ""; event.currentTarget.style.color = ""; } : undefined}>
+export function SelectOption({ value, children, disabled }: { value: string; children: ReactNode; disabled?: boolean }) {
+  return <SelectPrimitive.Item className="select-option" value={`value:${value}`} data-value={value} disabled={disabled}>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
     <SelectPrimitive.ItemIndicator><Check size={16} aria-hidden="true" /></SelectPrimitive.ItemIndicator>
   </SelectPrimitive.Item>;
