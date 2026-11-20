@@ -46,6 +46,10 @@ function OrderPaymentBadges({order,onPayment}:{order:Order;onPayment?:()=>void})
 
 export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, onRefund, onPayment, compact = false, readOnly = false }: OrdersTableProps) {
   const [detailOrderId,setDetailOrderId]=useState<string|null>(null);
+  const [sort, setSort] = useState<{key: "customer"|"batch"|"total"|"hpp"|"payment"|"status"; direction: "asc"|"desc"}>({key:"customer",direction:"asc"});
+  const toggleSort = (key: typeof sort.key) => setSort(current => ({ key, direction: current.key === key && current.direction === "asc" ? "desc" : "asc" }));
+  const indicator = (key: typeof sort.key) => <span className={`table-sort-indicator${sort.key === key ? " is-active" : ""}`} aria-hidden="true">{sort.key === key ? (sort.direction === "asc" ? "↑" : "↓") : "↕"}</span>;
+  const sortedOrders = [...orders].sort((a,b) => { const name = (o: Order) => isPersonalOrder(o) ? "Belanja pribadi" : data.customers.find(c=>c.id===o.customerId)?.name ?? "Pelanggan"; const batch = (o: Order) => data.batches.find(item=>item.id===o.batchId)?.name ?? ""; const value = (o: Order) => ({customer:name(o),batch:batch(o),total:String(isPersonalOrder(o)?personalExpense(o):orderRevenue(o)),hpp:String(orderHpp(o,data.orders,data.batches)??-1),payment:String(outstanding(o)),status:visibleOrderStatus(o.status)}[sort.key]); const result=value(a).localeCompare(value(b),"id",{numeric:["total","hpp","payment"].includes(sort.key),sensitivity:"base"}); return sort.direction === "asc" ? result : -result; });
   const detailOrder=data.orders.find(order=>order.id===detailOrderId);
   const detailContent=(order:Order)=><MobileOrderDetail order={order} data={data} onPayment={readOnly?undefined:()=>setPaymentId(order.id)}/>;
   const detailFooter=(order:Order)=>readOnly?undefined:<OrderDetailActions order={order} onEdit={()=>onEdit(order)} onStatus={()=>setStatusOrderId(order.id)} onInvoice={()=>setInvoiceOrderId(order.id)} onRefund={()=>setRefundId(order.id)}/>;
@@ -73,17 +77,17 @@ export function OrdersTable({ data, invoiceSettings, orders, onEdit, onStatus, o
         <caption className="sr-only">Daftar pesanan jastip dan open PO</caption>
         <thead>
           <tr>
-            <th scope="col"><span className="customer-column-title">Pelanggan & produk</span></th>
-            <th scope="col">Batch</th>
-            <th scope="col" className="numeric-cell">Total</th>
-            {!compact && <th scope="col" className="numeric-cell">HPP</th>}
-            <th scope="col">Pembayaran</th>
-            <th scope="col" className="center-cell"><span className="status-column-title">Status</span></th>
+            <th scope="col"><button type="button" className="table-sort-button" onClick={() => toggleSort("customer")}>Pelanggan & produk{indicator("customer")}</button></th>
+                        <th scope="col"><button type="button" className="table-sort-button" onClick={() => toggleSort("batch")}>Batch{indicator("batch")}</button></th>
+                        <th scope="col" className="numeric-cell"><button type="button" className="table-sort-button" onClick={() => toggleSort("total")}>Total{indicator("total")}</button></th>
+            {!compact && <th scope="col" className="numeric-cell"><button type="button" className="table-sort-button" onClick={() => toggleSort("hpp")}>HPP{indicator("hpp")}</button></th>}
+            <th scope="col"><button type="button" className="table-sort-button" onClick={() => toggleSort("payment")}>Pembayaran{indicator("payment")}</button></th>
+            <th scope="col" className="center-cell"><button type="button" className="table-sort-button" onClick={() => toggleSort("status")}>Status{indicator("status")}</button></th>
             {!readOnly && <th scope="col" className="actions-cell">Aksi</th>}
           </tr>
         </thead>
         <tbody>
-          {orders.map((order) => {
+          {sortedOrders.map((order) => {
             const customer = data.customers.find((entry) => entry.id === order.customerId);
             const batch = data.batches.find((entry) => entry.id === order.batchId);
             const hpp = isPersonalOrder(order) ? personalExpense(order) : orderHpp(order, data.orders, data.batches);

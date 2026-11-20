@@ -27,12 +27,16 @@ export function BatchesTable({ title, batches, orders, data, onEdit, onStatus }:
  const recapLabel=(batch:Batch)=>batch.type==="po"?"Rekap kebutuhan produk":"Rekap belanja";
  const [changing, setChanging] = useState<Batch | null>(null);
  const count = (batch: Batch) => orders.filter(order => order.batchId === batch.id && order.status !== "cancelled").length;
+ const [batchSort, setBatchSort] = useState<{key: "name"|"origin"|"date"|"count"|"status"; direction: "asc"|"desc"}>({key:"name",direction:"asc"});
+ const toggleBatchSort = (key: typeof batchSort.key) => setBatchSort(current => ({key, direction: current.key === key && current.direction === "asc" ? "desc" : "asc"}));
+ const batchIndicator = (key: typeof batchSort.key) => <span className={`table-sort-indicator${batchSort.key === key ? " is-active" : ""}`} aria-hidden="true">{batchSort.key === key ? (batchSort.direction === "asc" ? "↑" : "↓") : "↕"}</span>;
+ const sortedBatches = [...batches].sort((a,b) => { const values = {name:[a.name,b.name],origin:[a.origin,b.origin],date:[a.closeDate,b.closeDate],count:[String(count(a)),String(count(b))],status:[batchStatusLabels[a.status],batchStatusLabels[b.status]]}[batchSort.key]; const result=values[0].localeCompare(values[1],"id",{numeric:batchSort.key==="count",sensitivity:"base"}); return batchSort.direction==="asc"?result:-result; });
  const badge = (batch: Batch) => <span className={`status-tag batch-status-${batch.status}`}>{batchStatusLabels[batch.status]}</span>;
  const statusAction = (batch: Batch, mobile=false) => batch.status === "completed"
    ? null
    : <button className={mobile?"btn btn-secondary":"icon-button"} data-close-detail aria-label={`${batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} ${batch.name}`} title={batch.status === "open" ? "Tutup batch" : "Selesaikan batch"} onClick={() => setChanging(batch)}>{batch.status === "open" ? <CircleArrowRight size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}{mobile && <span>{batch.status === "open" ? "Tutup batch" : "Selesaikan batch"}</span>}</button>;
  return <>
-   <MobileDataList entries={batches.map(batch => ({
+   <MobileDataList entries={sortedBatches.map(batch => ({
      id: batch.id, title: batch.name, subtitle: batch.origin || "Lokasi belum diisi",
      meta: `${formatCalendarDate(batch.closeDate,false)} · ${count(batch)} pesanan`,
      status: batchStatusLabels[batch.status],
@@ -40,8 +44,8 @@ export function BatchesTable({ title, batches, orders, data, onEdit, onStatus }:
      details: <><dl className="mobile-detail-fields"><dt>Lokasi / supplier</dt><dd>{batch.origin || "Belum diisi"}</dd><dt>Tutup pesanan</dt><dd>{formatCalendarDate(batch.closeDate)}</dd><dt>Jumlah pesanan</dt><dd>{count(batch)}</dd><dt>Status</dt><dd>{badge(batch)}</dd></dl><button className="btn btn-secondary product-mobile-action" data-close-detail onClick={()=>setRecapBatch(batch)}><ClipboardList size={16}/>{recapLabel(batch)}</button><div className={`batch-mobile-actions ${batch.status==="completed"?"single":""}`}>{statusAction(batch,true)}<button className="btn btn-primary" data-close-detail onClick={() => onEdit(batch)}><Pencil size={16} aria-hidden="true"/>Edit batch</button></div></>,
    }))} />
    <div className="card management-table-wrap desktop-data-table"><table className="management-table" aria-label={title}>
-     <thead><tr>{["Nama batch", "Lokasi / supplier", "Tutup pesanan", "Pesanan", "Status", "Aksi"].map(label => <th scope="col" key={label} className={label === "Pesanan" ? "center-cell" : undefined}>{label}</th>)}</tr></thead>
-     <tbody>{batches.map(batch => <tr key={batch.id}>
+     <thead><tr><th scope="col"><button type="button" className="table-sort-button" onClick={() => toggleBatchSort("name")}>Nama batch{batchIndicator("name")}</button></th><th scope="col"><button type="button" className="table-sort-button" onClick={() => toggleBatchSort("origin")}>Lokasi / supplier{batchIndicator("origin")}</button></th><th scope="col"><button type="button" className="table-sort-button" onClick={() => toggleBatchSort("date")}>Tutup pesanan{batchIndicator("date")}</button></th><th scope="col" className="center-cell"><button type="button" className="table-sort-button" onClick={() => toggleBatchSort("count")}>Pesanan{batchIndicator("count")}</button></th><th scope="col"><button type="button" className="table-sort-button" onClick={() => toggleBatchSort("status")}>Status{batchIndicator("status")}</button></th><th scope="col">Aksi</th></tr></thead>
+     <tbody>{sortedBatches.map(batch => <tr key={batch.id}>
        <td data-label="Nama batch"><h3>{batch.name}</h3></td>
        <td data-label="Lokasi / supplier">{batch.origin || "Belum diisi"}</td>
        <td data-label="Tutup pesanan">{formatCalendarDate(batch.closeDate)}</td>
