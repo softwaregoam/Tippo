@@ -826,6 +826,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .discount-value-input > input.input { box-sizing:border-box; padding-left:48px !important; }
 .order-dialog .field-label { display:block; margin-bottom:8px; line-height:1.5; }
 .order-dialog .input { width:100%; min-height:46px; }
+.global-discount-dialog .modal-body > .form-grid + .form-grid { margin-top:20px; }
 .order-dialog .order-section + .order-section { padding-top:24px; border-top:1px solid var(--border); }
 .order-dialog .order-item-card { min-width:0; border:1px solid var(--control-border); border-radius:10px; padding:18px; margin:18px 0 0; background:var(--tone-surface-fffefa); }
 .order-dialog .order-item-card legend { padding:0 8px; color:var(--primary); margin:0; }
