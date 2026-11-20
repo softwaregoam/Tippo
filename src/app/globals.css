@@ -257,7 +257,9 @@ svg { flex-shrink: 0; }
 .order-hpp-note { display:block; margin-top:4px; font-size:11px; line-height:1.4; white-space:nowrap; }
 .status-tag { display: inline-flex; align-items: center; padding: 6px 8px; border-radius: 4px; font-size: 12px; line-height: 1.4; font-weight: 600; }
 .status-new { background: var(--tone-surface-fff2de); color: var(--warning); }
-.status-purchased,.status-shipped,.status-cancelled { background: var(--tone-surface-eef1ee); color: var(--muted); }
+.status-purchased,.status-shipped { background: var(--tone-surface-eef1ee); color: var(--muted); }
+.global-discount-dialog + .status-tag,
+.status-tag.discount-status-inactive { background:var(--tone-surface-fbe8e6); color:var(--danger); }
 .status-ready,.status-done { background: var(--tone-surface-edf5f1); color: var(--primary); }
 .tiny-select { border: 1px solid var(--control-border); padding: 8px; border-radius: 5px; font-size: 16px; min-height: 44px; min-width: 130px; max-width: 165px; }
 .payment-label { display: block; color: var(--primary); font-size: 13px; }
@@ -823,8 +825,8 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .discount-value-input { position:relative; display:block; }
 .discount-value-input > span { position:absolute; z-index:1; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; pointer-events:none; }
 .discount-value-input > input.input { box-sizing:border-box; padding-left:48px !important; }
-.order-dialog .field-label,.global-discount-dialog .field-label { display:block; margin-bottom:8px; line-height:1.5; }
-.order-dialog .input,.global-discount-dialog .input { width:100%; min-height:46px; }
+.order-dialog .field-label { display:block; margin-bottom:8px; line-height:1.5; }
+.order-dialog .input { width:100%; min-height:46px; }
 .order-dialog .order-section + .order-section { padding-top:24px; border-top:1px solid var(--border); }
 .order-dialog .order-item-card { min-width:0; border:1px solid var(--control-border); border-radius:10px; padding:18px; margin:18px 0 0; background:var(--tone-surface-fffefa); }
 .order-dialog .order-item-card legend { padding:0 8px; color:var(--primary); margin:0; }
