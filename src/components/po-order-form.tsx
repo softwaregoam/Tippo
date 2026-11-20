@@ -70,6 +70,19 @@ function previewAmount(value: string) {
   return Number.isSafeInteger(amount) && amount >= 0 ? amount : 0;
 }
 
+function applyGlobalDiscount(price: number, target: "products" | "packages", discounts: AppData["discounts"], date: string) {
+  const discount = (discounts ?? []).find(item => item.active && !item.archived && item.target === target && (!item.startsAt || !date || item.startsAt <= date) && (!item.endsAt || !date || item.endsAt >= date));
+  if (!discount) return price;
+  const amount = discount.type === "percent" ? Math.round(price * discount.value / 100) : discount.value;
+  return Math.max(0, price - amount);
+}
+
+function discountLabel(target: "products" | "packages", discounts: AppData["discounts"], date: string) {
+  const discount = (discounts ?? []).find(item => item.active && !item.archived && item.target === target && (!item.startsAt || !date || item.startsAt <= date) && (!item.endsAt || !date || item.endsAt >= date));
+  return discount?.name;
+}
+
+
 export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }: PoOrderFormProps) {
   const poBatches = data.batches.filter((batch) => batch.type === "po");
   const [fields, setFields] = useState<Fields>(() => ({
@@ -199,14 +212,14 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
       if (pack) {
         return {
           id: item.id, productId: null, packageId: pack.id, product: pack.name, variant: "", store: "", color: "", size: "",
-          quantity: previewAmount(item.quantity), unitPrice: pack.unitPrice,
+          quantity: previewAmount(item.quantity), unitPrice: applyGlobalDiscount(pack.unitPrice, "packages", data.discounts, fields.date),
           unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):(pack.unitCost === undefined ? packageMemberCost(pack, data.products) : pack.unitCost),
         };
       }
       const product = data.products.find((entry) => entry.id === item.productId);
       return {
         id: item.id, productId: product?.id ?? null, product: product?.name ?? "", variant: product?.variant ?? "", store: product?.store ?? "", color: product?.color ?? "", size: product?.size ?? "",
-        quantity: previewAmount(item.quantity), unitPrice: product?.unitPrice ?? 0, unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):product?.unitCost ?? null,
+        quantity: previewAmount(item.quantity), unitPrice: applyGlobalDiscount(product?.unitPrice ?? 0, "products", data.discounts, fields.date), unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):product?.unitCost ?? null,
       };
     }),
     serviceFee: previewAmount(fields.serviceFee), shippingCharge: multipleShipping ? shipments.reduce((sum, shipment) => sum + (shipment.shippingCharge ?? 0), 0) : previewAmount(fields.shippingCharge), paid: previewAmount(fields.paid),
