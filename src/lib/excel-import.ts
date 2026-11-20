@@ -695,12 +695,10 @@ function validatePackageRows(rows: Pick<PackageImportRow, "rowNumber" | "source"
   }
   preview.validCount = preview.rows.filter((row) => row.normalized && !row.errors.length).length;
   if (!preview.rows.length) preview.errors.push("Lembar Paket belum berisi data.");
-  const packageSkus = new Set(data.packages?.map((p) => p.sku?.toLowerCase()).filter(Boolean) ?? []);
   const fileSkus = new Set<string>();
   for (const row of preview.rows) {
     if (!row.normalized) continue;
     const key = row.normalized.sku.toLowerCase();
-    if (packageSkus.has(key)) row.errors.push(`SKU paket "${row.normalized.sku}" sudah ada di katalog.`);
     if (fileSkus.has(key)) row.errors.push(`SKU paket "${row.normalized.sku}" berulang dalam file.`);
     fileSkus.add(key);
   }
