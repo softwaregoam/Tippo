@@ -820,7 +820,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .order-discount-fields > p { grid-column:1 / -1; }
 .discount-value-input { position:relative; }
 .discount-value-input > span { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; }
-.order-dialog .discount-value-input .input { padding-left:37px; }
+.discount-value-input .input { padding-left:37px; }
 .order-dialog .field-label { display:block; margin-bottom:8px; line-height:1.5; }
 .order-dialog .input { width:100%; min-height:46px; }
 .order-dialog .order-section + .order-section { padding-top:24px; border-top:1px solid var(--border); }
