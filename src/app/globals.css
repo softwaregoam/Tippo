@@ -974,9 +974,11 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .product-card-actions .delete-item { color:var(--danger); }
 .btn-danger { background:var(--danger); color:var(--paper); border:1px solid var(--danger); }
 .management-table-wrap { overflow:auto; }
-.table-sort-button { display:inline-flex; align-items:center; gap:6px; min-height:30px; margin:-6px -8px; padding:6px 8px; border:0; border-radius:6px; background:transparent; color:inherit; font:inherit; font-weight:inherit; cursor:pointer; text-align:inherit; transition:background .15s,color .15s; }
+.table-sort-button { display:flex; align-items:center; justify-content:space-between; gap:8px; width:calc(100% + 16px); min-height:30px; margin:-6px -8px; padding:6px 8px; border:0; border-radius:6px; background:transparent; color:inherit; font:inherit; font-weight:inherit; cursor:pointer; text-align:inherit; transition:background .15s,color .15s; }
+.management-table th.numeric .table-sort-button,.orders-table th.numeric-cell .table-sort-button { justify-content:flex-end; text-align:right; }
+.management-table th.center-cell .table-sort-button { justify-content:center; text-align:center; }
 .table-sort-button:hover,.table-sort-button:focus-visible { background:var(--tone-surface-eaf0e8); color:var(--primary); outline:none; }
-.table-sort-indicator { display:inline-flex; align-items:center; justify-content:center; width:14px; height:18px; color:var(--muted); font-size:14px; line-height:1; opacity:.7; }
+.table-sort-indicator { display:inline-flex; align-items:center; justify-content:center; flex:0 0 16px; width:16px; height:18px; color:var(--muted); font-size:14px; line-height:1; opacity:.7; }
 .table-sort-indicator.is-active { color:var(--primary); opacity:1; font-weight:700; }
 .management-table { width:100%; border-collapse:collapse; font-size:14px; }
 .management-table th { padding:14px 16px; background:var(--tone-surface-f6f1e7); color:var(--muted); font-weight:600; text-align:left; white-space:nowrap; }
