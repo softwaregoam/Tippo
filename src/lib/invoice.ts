@@ -142,7 +142,6 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
       ...(refundedTotal(order) > 0 ? [`Refund: ${formatCurrency(refundedTotal(order))}`] : []),
       ...(paid ? ["Status: *LUNAS*"] : !cancelled ? ["Status: *BELUM LUNAS*"] : []),
     ],
-    ...(order.shipments?.length ? [["*PENGIRIMAN PER ALAMAT*", ...invoiceShipmentLines(order, { products, packages })]] : []),
     ...((shipping.length||customer?.address?.trim()) ? [["*PENGIRIMAN*",...shipping,...(customer?.address?.trim()?[`Alamat: ${textLine(customer.address)}`]:[])]] : []),
     ...(order.notes.trim() ? [["*CATATAN*",order.notes.trim()]] : []),
   ];
