@@ -4,7 +4,7 @@ import { InvoiceLogo } from "./invoice-logo";
 import type { InvoicePrintImage } from "@/lib/invoice-image";
 import type { InvoiceSettings } from "@/lib/business-profile";
 import { invoiceAppearanceForMode, invoiceBankDetails } from "@/lib/invoice-template";
-import { invoiceItemMarkup, invoiceNumber, invoicePackageMemberDetails, invoiceShipmentLines, isInvoicePaid, type InvoiceProductCatalog } from "@/lib/invoice";
+import { invoiceItemMarkup, invoiceNumber, invoicePackageMemberDetails, isInvoicePaid, type InvoiceProductCatalog } from "@/lib/invoice";
 import { formatCalendarDate } from "@/lib/calendar-date";
 import { formatCurrency, orderDiscount, orderRevenue, outstanding } from "@/lib/finance";
 import { refundedTotal } from "@/lib/refund";
@@ -44,7 +44,6 @@ export function InvoiceDocument({order,batch,customer,settings,logoPreviewUrl,fi
   </div>
   {(hasShipping||order.notes.trim()||order.shipments?.length)&&<div className="invoice-additional-details">
    {hasShipping&&<section className="invoice-additional-section" aria-label="Pengiriman invoice"><h3>Pengiriman</h3>{shippingSchedule&&<p>{shippingSchedule}</p>}{order.shippingMethod?.trim()&&<p>{order.shippingMethod.trim()}</p>}</section>}
-   {order.shipments?.length&&<section className="invoice-additional-section invoice-shipment-details" aria-label="Pengiriman per alamat"><h3>Pengiriman per alamat</h3>{order.shipments.map((shipment,index)=><div className="invoice-shipment-block" key={shipment.id}><p><strong>Pengiriman {index+1}{shipment.recipientName.trim()?` — ${shipment.recipientName.trim()}`:""}</strong></p>{shipment.phone.trim()&&<p>{shipment.phone.trim()}</p>}{shipment.shippingCharge>0&&<p>Ongkir: {formatCurrency(shipment.shippingCharge)}</p>}{shipment.products?.map((entry,entryIndex)=>{const product=catalog?.products?.find(item=>item.id===entry.productId);return <div className="invoice-shipment-package" key={`${shipment.id}-product-${entryIndex}`}><p><strong>{entry.quantity}x {product?.name??"Produk tidak tersedia"}</strong></p></div>})}{shipment.packages.map((entry,entryIndex)=>{const pack=catalog?.packages?.find(item=>item.id===entry.packageId);const members=pack?invoicePackageMemberDetails(pack,catalog?.products??[],entry.quantity):[];return <div className="invoice-shipment-package" key={`${shipment.id}-package-${entryIndex}`}><p><strong>{entry.quantity}x {pack?.name??"Paket tidak tersedia"}</strong></p>{members.map((member,memberIndex)=><p key={`${shipment.id}-member-${entryIndex}-${memberIndex}`}>{member.quantity}x {member.label}</p>)}</div>})}</div>)}</section>}
    {order.notes.trim()&&<section className="invoice-additional-section" aria-label="Catatan invoice"><h3>Catatan</h3><p>{order.notes.trim()}</p></section>}
   </div>}
   {(order.status==="cancelled"||appearance.footer)&&<p className="invoice-footer">{order.status==="cancelled"?"Pesanan dibatalkan. Tidak ada tagihan.":appearance.footer}</p>}
