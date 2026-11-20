@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useId, useRef, useState } from "react";
 import { Popover } from "radix-ui";
-import { Archive, ArchiveRestore, Check, ChevronDown, Copy, Info, PackagePlus, Pencil, Search, Upload, X } from "lucide-react";
+import { Archive, ArchiveRestore, Check, ChevronDown, Copy, Info, PackagePlus, Pencil, Plus, Search, Upload, X } from "lucide-react";
 import { formatCurrency } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
@@ -77,7 +77,7 @@ export function PackageWorkspace({ data, importAllowed, onSavePackage, onImportP
           <td data-label="Harga paket" className="numeric"><strong>{formatCurrency(pack.unitPrice)}</strong><small className="package-cost">HPP {packageCostLabel(pack)}</small></td>
           <td data-label="Status"><span className={`status-tag package-status-${pack.active ? "active" : "archived"}`}>{pack.active ? "Aktif" : "Diarsipkan"}</span></td>
           <td data-label="Aksi"><div className="management-actions"><button className="icon-button" aria-label={`Duplikat paket ${packageTitle(pack)}`} title="Duplikat paket" onClick={() => onDuplicatePackage(pack)}><Copy size={16} /></button><button className="icon-button" aria-label={`Edit paket ${packageTitle(pack)}`} onClick={() => onEditPackage(pack)}><Pencil size={16} /></button><button className="icon-button" aria-label={pack.active ? `Arsipkan paket ${packageTitle(pack)}` : `Aktifkan kembali paket ${packageTitle(pack)}`} onClick={() => onPackageStatus(pack)}>{pack.active ? <Archive size={16} /> : <ArchiveRestore size={16} />}</button></div></td>
-        </tr>) : <tr><td colSpan={6} className="empty-row"><p>Belum ada produk paket.</p></td></tr>}</tbody>
+        </tr>) : <tr><td colSpan={6}><div className="catalog-empty-state"><div className="catalog-empty-icon"><PackagePlus size={24}/></div><h3>Belum ada produk paket</h3><p>Gabungkan produk yang sudah ada menjadi paket untuk mulai menjualnya sebagai satu item.</p><Button className="btn btn-primary" onClick={() => onEditPackage({ id: "", name: "", sku: "", products: [], unitPrice: 0, unitCost: null, active: true })}><Plus size={16}/>Tambah paket</Button></div></td></tr>}</tbody>
       </table></div>
       {packages.length === 0 && activeProducts.length === 0 && <div className="empty-state workspace-empty-state" role="status"><div className="empty-icon"><PackagePlus size={26} aria-hidden="true" /></div><h3>Belum ada produk</h3><p>Tambahkan produk terlebih dahulu sebelum membuat produk paket.</p><Button className="btn btn-secondary" onClick={() => { }} disabled>Buat produk dulu</Button></div>}
       <div className="table-footer">{packages.length} paket</div>
