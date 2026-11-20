@@ -258,8 +258,7 @@ svg { flex-shrink: 0; }
 .status-tag { display: inline-flex; align-items: center; padding: 6px 8px; border-radius: 4px; font-size: 12px; line-height: 1.4; font-weight: 600; }
 .status-new { background: var(--tone-surface-fff2de); color: var(--warning); }
 .status-purchased,.status-shipped { background: var(--tone-surface-eef1ee); color: var(--muted); }
-.global-discount-dialog + .status-tag,
-.status-tag.discount-status-inactive { background:var(--tone-surface-fbe8e6); color:var(--danger); }
+.status-tag.discount-status-inactive { background:var(--tone-surface-fff2ed); color:var(--danger); }
 .status-ready,.status-done { background: var(--tone-surface-edf5f1); color: var(--primary); }
 .tiny-select { border: 1px solid var(--control-border); padding: 8px; border-radius: 5px; font-size: 16px; min-height: 44px; min-width: 130px; max-width: 165px; }
 .payment-label { display: block; color: var(--primary); font-size: 13px; }
