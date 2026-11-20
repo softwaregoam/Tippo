@@ -976,8 +976,9 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .management-table-wrap { overflow:auto; }
 .table-sort-button { display:inline-flex; align-items:center; justify-content:flex-start; gap:5px; min-height:30px; margin:-6px -8px; padding:6px 8px; border:0; border-radius:6px; background:transparent; color:inherit; font:inherit; font-weight:inherit; cursor:pointer; text-align:inherit; transition:background .15s,color .15s; }
 .management-table th.numeric .table-sort-button,.orders-table th.numeric-cell .table-sort-button { justify-content:flex-start; text-align:left; }
-.management-table th.center-cell .table-sort-button { justify-content:flex-start; text-align:left; }
+.management-table th.center-cell .table-sort-button { justify-content:center; text-align:center; }
 .table-sort-button:hover,.table-sort-button:focus-visible { background:var(--tone-surface-eaf0e8); color:var(--primary); outline:none; }
+.mode-po .table-sort-button:hover,.mode-po .table-sort-button:focus-visible,.mode-po .orders-table .table-sort-button:hover,.mode-po .orders-table .table-sort-button:focus-visible,.po-order-dialog .table-sort-button:hover,.po-order-dialog .table-sort-button:focus-visible,[data-business-mode="po"] .table-sort-button:hover,[data-business-mode="po"] .table-sort-button:focus-visible { background:var(--tone-surface-fff2de) !important; color:var(--warning) !important; outline:none; }
 .table-sort-indicator { display:inline-flex; align-items:center; justify-content:center; flex:0 0 14px; width:14px; height:18px; color:var(--muted); font-size:13px; line-height:1; opacity:.7; }
 .table-sort-indicator.is-active { color:var(--primary); opacity:1; font-weight:700; }
 .management-table { width:100%; border-collapse:collapse; font-size:14px; }
