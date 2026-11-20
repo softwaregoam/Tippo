@@ -609,13 +609,23 @@ export async function createProductTemplate(): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook(); workbook.creator = "Tippo";
   const sheet = workbook.addWorksheet("Produk");
   sheet.columns = PRODUCT_HEADERS.map((header) => ({ header, key: header, width: header === "produk" ? 35 : 22 }));
-  sheet.addRow({ produk: EXAMPLE_PRODUCT, varian: "Ukuran M", sku_produk: "CONTOH-001", toko_brand:"Contoh supplier", warna:"Hitam", ukuran:"M", harga_jual: 150000, harga_beli: 100000 });
-  sheet.getRow(2).getCell("produk").note = "Ganti nama dan data contoh atau hapus baris ini sebelum import.";
+  const requiredProduct = new Set(["produk", "harga_jual"]);
+  sheet.addRow(PRODUCT_HEADERS.reduce((obj, h) => { obj[h as keyof typeof obj] = h; return obj; }, {} as Record<string, string>));
+  const ketRow = sheet.addRow({});
+  for (const header of PRODUCT_HEADERS) {
+    const cell = ketRow.getCell(header);
+    cell.value = requiredProduct.has(header) ? "(wajib)" : "(opsional)";
+    cell.font = { size: 9, italic: true, color: { argb: requiredProduct.has(header) ? "FF9E2A2B" : "FF666666" } };
+    cell.alignment = { horizontal: "center" };
+  }
+  sheet.addRow({ produk: EXAMPLE_PRODUCT, varian: "Ukuran M", sku_produk: "CONTOH-001", toko_brand: "Contoh supplier", warna: "Hitam", ukuran: "M", harga_jual: 150000, harga_beli: 100000 });
+  sheet.getRow(3).getCell("produk").note = "Ganti nama dan data contoh atau hapus baris ini sebelum import.";
   sheet.getColumn("sku_produk").numFmt = "@";
   for (const header of ["harga_jual", "harga_beli"]) sheet.getColumn(header).numFmt = '#,##0';
   sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF245C4E" } };
-  sheet.views = [{ state: "frozen", ySplit: 1 }];
+  sheet.getRow(2).font = { size: 9 };
+  sheet.views = [{ state: "frozen", ySplit: 2 }];
   sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: PRODUCT_HEADERS.length } };
   const guide = workbook.addWorksheet("Petunjuk"); guide.getColumn(1).width = 110;
   for (const instruction of ["Template produk Tippo", "1. Salin listing produk ke lembar Produk. Satu baris untuk satu produk atau varian.", "2. Produk dan harga_jual wajib. Varian, sku_produk, kategori, dan harga_beli boleh kosong.", "3. Ganti atau hapus baris contoh. Jangan ubah judul kolom.", "4. Harga berupa rupiah bulat. Gunakan angka biasa; formula tidak didukung, tempel sebagai nilai.", "5. SKU disimpan sebagai teks agar angka nol di depan tidak hilang. Produk baru akan aktif.", "6. Simpan sebagai .xlsx, lalu unggah di Open PO > Produk > Import produk Excel.", "7. Periksa pratinjau. Semua baris harus valid dan sesuai kuota agar tersimpan sekaligus.", "8. Import menambah produk; tidak menimpa produk lama. SKU atau nama + varian duplikat ditolak, termasuk arsip.", "9. Paket Gratis maksimal 5 produk, termasuk arsip. Maksimal file 5 MB dan 1.000 produk."]) guide.addRow([instruction]);
@@ -714,7 +724,7 @@ export async function previewPackageImport(buffer: ArrayBuffer, data: AppData): 
       if (seen.has(header)) preview.errors.push(`Kolom ${header} muncul lebih dari sekali.`);
       seen.add(header); headers.set(column, header);
     });
-    for (const header of ["nama_paket", "produk", "jumlah", "harga_paket"]) if (!seen.has(header)) preview.errors.push(`Kolom wajib ${header} tidak ditemukan.`);
+    for (const header of ["nama_paket", "nama_produk", "jumlah", "harga_paket"]) if (!seen.has(header)) preview.errors.push(`Kolom wajib ${header} tidak ditemukan.`);
     if (preview.errors.length) return preview;
     const rows: PackageImportRow[] = [];
     sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
@@ -750,13 +760,23 @@ export async function createPackageTemplate(): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook(); workbook.creator = "Tippo";
   const sheet = workbook.addWorksheet("Paket");
   sheet.columns = PACKAGE_HEADERS.map((header) => ({ header, key: header, width: header === "nama_paket" || header === "nama_produk" ? 35 : 22 }));
+  const requiredPackage = new Set(["nama_paket", "nama_produk", "jumlah", "harga_paket"]);
+  sheet.addRow(PACKAGE_HEADERS.reduce((obj, h) => { obj[h as keyof typeof obj] = h; return obj; }, {} as Record<string, string>));
+  const ketRow = sheet.addRow({});
+  for (const header of PACKAGE_HEADERS) {
+    const cell = ketRow.getCell(header);
+    cell.value = requiredPackage.has(header) ? "(wajib)" : "(opsional)";
+    cell.font = { size: 9, italic: true, color: { argb: requiredPackage.has(header) ? "FF9E2A2B" : "FF666666" } };
+    cell.alignment = { horizontal: "center" };
+  }
   sheet.addRow({ nama_paket: EXAMPLE_PACKAGE, sku_paket: "CONTOH-PAK-001", kategori_paket: "Contoh kategori", nama_produk: "Contoh produk", jumlah: 2, harga_paket: 50000, harga_beli_paket: 30000, catatan_paket: "Ganti atau hapus baris contoh sebelum import paket." });
-  sheet.getRow(2).getCell("nama_paket").note = "Ganti nama dan data contoh atau hapus baris ini sebelum import.";
+  sheet.getRow(3).getCell("nama_paket").note = "Ganti nama dan data contoh atau hapus baris ini sebelum import.";
   sheet.getColumn("sku_paket").numFmt = "@";
   for (const header of ["harga_paket", "harga_beli_paket"]) sheet.getColumn(header).numFmt = '#,##0';
   sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF94501F" } };
-  sheet.views = [{ state: "frozen", ySplit: 1 }];
+  sheet.getRow(2).font = { size: 9 };
+  sheet.views = [{ state: "frozen", ySplit: 2 }];
   sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: PACKAGE_HEADERS.length } };
   const guide = workbook.addWorksheet("Petunjuk"); guide.getColumn(1).width = 110;
   for (const instruction of [
