@@ -1,5 +1,17 @@
 export type BatchType = "jastip" | "po";
 export type BatchStatus = "open" | "closed" | "completed";
+export type DiscountTarget = "products" | "packages" | "both";
+export interface GlobalDiscount {
+  id: string;
+  name: string;
+  target: DiscountTarget;
+  type: "amount" | "percent";
+  value: number;
+  startsAt?: string;
+  endsAt?: string;
+  active: boolean;
+  archived?: boolean;
+}
 export type OrderStatus = "new" | "purchased" | "ready" | "shipped" | "done" | "cancelled";
 
 export interface Batch {
@@ -132,6 +144,7 @@ export interface AppData {
   products: Product[];
   /** Dihasilkan oleh normalisasi data; undefined untuk data lama yang belum memiliki paket. */
   packages?: ProductPackage[];
+  discounts?: GlobalDiscount[];
   orders: Order[];
 }
 
