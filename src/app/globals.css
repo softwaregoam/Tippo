@@ -937,7 +937,7 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .shipping-mode-option:focus-within { outline:2px solid var(--primary); outline-offset:2px; }
 @media(max-width:600px) { .shipping-mode-choice { grid-template-columns:1fr; } .shipping-mode-choice legend { grid-column:auto; } }
 .order-shipments-section { margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
-.order-shipment-card .shipment-charge-field { margin-top:20px; }
+.order-shipment-card .shipment-charge-field { margin-top:20px; padding-top:20px; border-top:1px solid var(--border); }
 .shipment-charge-field .input { background:var(--paper); border-color:var(--control-border); }
 .shipment-add-button { width:100%; justify-content:center; margin-top:14px; }
 .order-shipments-section .order-shipping-heading { margin-bottom:8px; }
