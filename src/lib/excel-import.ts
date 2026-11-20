@@ -627,7 +627,6 @@ function validatePackageRows(rows: Pick<PackageImportRow, "rowNumber" | "source"
   const preview: PackageImportPreview = { rows: [], errors: [], validCount: 0 };
   const activeProducts = data.products.filter((product) => product.active);
   const bySku = new Map(activeProducts.filter((p) => p.sku).map((p) => [p.sku.toLowerCase(), p]));
-  const byName = new Map(activeProducts.map((p) => [p.name.toLowerCase(), p]));
   const groups = new Map<string, { rows: PackageImportRow[]; first: PackageImportRow }>();
   for (const row of rows) {
     const name = String(row.source.nama_paket ?? "").trim();
@@ -657,8 +656,8 @@ function validatePackageRows(rows: Pick<PackageImportRow, "rowNumber" | "source"
       if (quantity !== null && quantity < 1) memberErrors.push("jumlah: minimal 1.");
       let product: Product | undefined;
       if (productRef) {
-        product = bySku.get(productRef.toLowerCase()) ?? byName.get(productRef.toLowerCase());
-        if (!product) memberErrors.push(`Produk "${productRef}" tidak ditemukan pada master aktif (cocokkan via SKU atau nama).`);
+        product = bySku.get(productRef.toLowerCase());
+        if (!product) memberErrors.push(`Produk dengan SKU "${productRef}" tidak ditemukan pada master aktif. Gunakan SKU produk yang sudah terdaftar.`);
         else if (seenProductIds.has(product.id)) memberErrors.push(`Produk "${productRef}" muncul lebih dari sekali dalam paket ini.`);
         else seenProductIds.add(product.id);
       }
@@ -743,7 +742,7 @@ export async function createPackageTemplate(): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook(); workbook.creator = "Tippo";
   const sheet = workbook.addWorksheet("Paket");
   sheet.columns = PACKAGE_HEADERS.map((header) => ({ header, key: header, width: header === "nama_paket" || header === "produk" ? 35 : 22 }));
-  sheet.addRow({ nama_paket: EXAMPLE_PACKAGE, sku_paket: "CONTOH-PAK-001", kategori_paket: "Contoh kategori", produk: "Contoh produk", jumlah: 2, harga_paket: 50000, harga_beli_paket: 30000, catatan_paket: "Ganti atau hapus baris contoh sebelum import paket." });
+  sheet.addRow({ nama_paket: EXAMPLE_PACKAGE, sku_paket: "CONTOH-PAK-001", kategori_paket: "Contoh kategori", produk: "CONTOH-PROD-001", jumlah: 2, harga_paket: 50000, harga_beli_paket: 30000, catatan_paket: "Ganti atau hapus baris contoh sebelum import paket." });
   sheet.getRow(2).getCell("nama_paket").note = "Ganti nama dan data contoh atau hapus baris ini sebelum import.";
   sheet.getColumn("sku_paket").numFmt = "@";
   for (const header of ["harga_paket", "harga_beli_paket"]) sheet.getColumn(header).numFmt = '#,##0';
