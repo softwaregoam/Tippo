@@ -974,6 +974,8 @@ input:disabled, textarea:disabled, input[readonly], textarea[readonly], .select-
 .product-card-actions .delete-item { color:var(--danger); }
 .btn-danger { background:var(--danger); color:var(--paper); border:1px solid var(--danger); }
 .management-table-wrap { overflow:auto; }
+.table-sort-button { border:0; padding:0; background:transparent; color:inherit; font:inherit; font-weight:inherit; cursor:pointer; text-align:inherit; }
+.table-sort-button:hover { color:var(--primary); }
 .management-table { width:100%; border-collapse:collapse; font-size:14px; }
 .management-table th { padding:14px 16px; background:var(--tone-surface-f6f1e7); color:var(--muted); font-weight:600; text-align:left; white-space:nowrap; }
 .management-table td { padding:16px; border-top:1px solid var(--border); vertical-align:middle; overflow-wrap:anywhere; }
