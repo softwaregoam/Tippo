@@ -319,8 +319,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
       if (hasInvalidShipment) nextErrors.shipments = "Lengkapi alamat dan minimal satu produk atau paket pada setiap alamat.";
       else if (packageOverAllocated || productOverAllocated) nextErrors.shipments = "Jumlah dikirim tidak boleh melebihi jumlah paket atau produk yang dipesan.";
       else if (packageMismatch || productMismatch) nextErrors.shipments = "Jumlah produk dan paket per alamat harus sama dengan total pesanan.";
-    } else if (multipleShipping && shipments.length === 0) {
-      nextErrors.shipments = "Tambahkan minimal satu alamat atau hapus paket jika pesanan tidak membutuhkan pengiriman.";
+
     }
     const parsedDate = new Date(`${fields.date}T00:00:00Z`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.date) || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== fields.date) nextErrors.date = "Pilih tanggal yang valid.";
