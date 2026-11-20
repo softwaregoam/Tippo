@@ -753,9 +753,10 @@ export async function previewPackageImport(buffer: ArrayBuffer, data: AppData): 
 
 export function buildPackageImport(preview: PackageImportPreview, data: AppData): ProductPackage[] {
   if (!isAppData(data) || preview.errors.length || !preview.rows.length || preview.rows.length > MAX_ROWS || preview.rows.some((row) => row.errors.length)) throw new Error("Perbaiki seluruh data sebelum import paket.");
-  const checked = validatePackageRows(preview.rows, data);
-  if (checked.errors.length || checked.validCount !== checked.rows.length) throw new Error(checked.errors[0] ?? "Katalog paket berubah atau ada paket duplikat. Periksa file dan unggah ulang.");
-  const packages = checked.rows.map((row) => ({ ...row.normalized!, id: crypto.randomUUID(), active: true }));
+  // Preview sudah memvalidasi seluruh baris anggota dan menggabungkannya berdasarkan SKU.
+  // Jangan validasi ulang preview.rows: isinya satu baris ringkasan per paket, bukan semua baris Excel.
+  if (preview.rows.some((row) => !row.normalized || row.errors.length)) throw new Error("Perbaiki seluruh data sebelum import paket.");
+  const packages = preview.rows.map((row) => ({ ...row.normalized!, id: crypto.randomUUID(), active: true }));
   if (!isAppData({ ...data, packages: [...(data.packages ?? []), ...packages] })) throw new Error("Gabungan paket tidak valid.");
   return packages;
 }
