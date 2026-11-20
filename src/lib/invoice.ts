@@ -66,7 +66,6 @@ export function invoiceShipmentLines(order: Order, catalog?: InvoiceProductCatal
   return order.shipments.flatMap((shipment, index) => {
     const recipient = [shipment.recipientName.trim(), shipment.phone.trim()].filter(Boolean).join(" ");
     const heading = `Pengiriman ${index + 1}${recipient ? ` — ${recipient}` : ""}`;
-    const address = shipment.address.trim() ? `Alamat: ${textLine(shipment.address)}` : "";
     const productById = new Map(products.map((product) => [product.id, product]));
     const productEntries = (shipment.products ?? []).flatMap((entry) => {
       const product = productById.get(entry.productId);
@@ -78,7 +77,7 @@ export function invoiceShipmentLines(order: Order, catalog?: InvoiceProductCatal
       return [`${entry.quantity}x ${textLine(pack.name)}`, ...packageMemberLabels(pack, products, entry.quantity).map((label) => `  ${textLine(label)}`)];
     })];
     const shippingCharge = shipment.shippingCharge > 0 ? `Ongkir: ${formatCurrency(shipment.shippingCharge)}` : "";
-    return [heading, ...(address ? [address] : []), ...(shippingCharge ? [shippingCharge] : []), ...entries];
+    return [heading, ...(shippingCharge ? [shippingCharge] : []), ...entries];
   });
 }
 
