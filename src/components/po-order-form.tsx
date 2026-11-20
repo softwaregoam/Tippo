@@ -295,10 +295,10 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     }
     Object.assign(nextErrors,shippingFieldErrors(fields));
     if (multipleShipping && shipments.length > 0) {
-      const hasInvalidShipment = shipments.some((shipment) => !shipment.recipientName.trim() || !shipment.address.trim() || (shipment.packages.length === 0 && (shipment.products?.length ?? 0) === 0));
+      const hasInvalidShipment = shipments.some((shipment) => !shipment.address.trim() || (shipment.packages.length === 0 && (shipment.products?.length ?? 0) === 0));
       const packageMismatch = selectedPackageEntries.some((entry) => (shipmentPackageTotals.get(entry.packageId) ?? 0) !== entry.quantity);
       const productMismatch = selectedProductEntries.some((entry) => (shipmentProductTotals.get(entry.productId) ?? 0) !== entry.quantity);
-      if (hasInvalidShipment) nextErrors.shipments = "Lengkapi penerima, alamat, dan minimal satu produk atau paket pada setiap alamat.";
+      if (hasInvalidShipment) nextErrors.shipments = "Lengkapi alamat dan minimal satu produk atau paket pada setiap alamat.";
       else if (packageMismatch || productMismatch) nextErrors.shipments = "Jumlah produk dan paket per alamat harus sama dengan total pesanan.";
     } else if (multipleShipping && shipments.length === 0) {
       nextErrors.shipments = "Tambahkan minimal satu alamat atau hapus paket jika pesanan tidak membutuhkan pengiriman.";
