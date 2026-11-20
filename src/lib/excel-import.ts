@@ -577,7 +577,7 @@ export async function previewProductImport(buffer: ArrayBuffer, data: AppData, p
     if (preview.errors.length) return preview;
     const rows: ProductImportRow[] = [];
     sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-      if (rowNumber === 1) return;
+      if (rowNumber <= 2) return;
       const source: SourceRow = {}; const errors: string[] = []; let hasValue = false;
       row.eachCell({ includeEmpty: false }, (cell, column) => {
         if (blank(cell.value)) return;
@@ -610,7 +610,6 @@ export async function createProductTemplate(): Promise<Uint8Array> {
   const sheet = workbook.addWorksheet("Produk");
   sheet.columns = PRODUCT_HEADERS.map((header) => ({ header, key: header, width: header === "produk" ? 35 : 22 }));
   const requiredProduct = new Set(["produk", "harga_jual"]);
-  sheet.addRow(PRODUCT_HEADERS.reduce((obj, h) => { obj[h as keyof typeof obj] = h; return obj; }, {} as Record<string, string>));
   const ketRow = sheet.addRow({});
   for (const header of PRODUCT_HEADERS) {
     const cell = ketRow.getCell(header);
@@ -728,7 +727,7 @@ export async function previewPackageImport(buffer: ArrayBuffer, data: AppData): 
     if (preview.errors.length) return preview;
     const rows: PackageImportRow[] = [];
     sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-      if (rowNumber === 1) return;
+      if (rowNumber <= 2) return;
       const source: SourceRow = {}; const errors: string[] = []; let hasValue = false;
       row.eachCell({ includeEmpty: false }, (cell, column) => {
         if (blank(cell.value)) return;
@@ -761,7 +760,6 @@ export async function createPackageTemplate(): Promise<Uint8Array> {
   const sheet = workbook.addWorksheet("Paket");
   sheet.columns = PACKAGE_HEADERS.map((header) => ({ header, key: header, width: header === "nama_paket" || header === "nama_produk" ? 35 : 22 }));
   const requiredPackage = new Set(["nama_paket", "nama_produk", "jumlah", "harga_paket"]);
-  sheet.addRow(PACKAGE_HEADERS.reduce((obj, h) => { obj[h as keyof typeof obj] = h; return obj; }, {} as Record<string, string>));
   const ketRow = sheet.addRow({});
   for (const header of PACKAGE_HEADERS) {
     const cell = ketRow.getCell(header);
