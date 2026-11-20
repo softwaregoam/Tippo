@@ -102,18 +102,34 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
   });
   const totalSelectedPackages = selectedPackageEntries.reduce((sum, entry) => sum + entry.quantity, 0); 
   function addShipment() {
+    const packagesComplete = selectedPackageEntries.every((entry) => (shipmentPackageTotals.get(entry.packageId) ?? 0) >= entry.quantity);
+    const productsComplete = selectedProductEntries.every((entry) => (shipmentProductTotals.get(entry.productId) ?? 0) >= entry.quantity);
+    if (packagesComplete && productsComplete) {
+      setErrors((current) => ({ ...current, shipments: "Semua produk dan paket sudah dibagikan ke alamat sebelumnya." }));
+      return;
+    }
     setShipments((current) => [...current, { id: crypto.randomUUID(), recipientName: "", phone: "", address: "", packages: selectedPackageEntries.map(({ packageId }) => ({ packageId, quantity: 0 })), products: [], shippingCharge: 0 }]);
   }
   function updateShipment(id: string, field: "recipientName" | "phone" | "address", value: string) {
     setShipments((current) => current.map((shipment) => shipment.id === id ? { ...shipment, [field]: value } : shipment));
   }
   function updateShipmentPackage(id: string, packageId: string, value: string) {
-    const quantity = Number(value);
-    setShipments((current) => current.map((shipment) => shipment.id === id ? { ...shipment, packages: shipment.packages.map((entry) => entry.packageId === packageId ? { ...entry, quantity: Number.isSafeInteger(quantity) && quantity >= 0 ? quantity : 0 } : entry) } : shipment));
+    const requested = Number(value);
+    const limit = selectedPackageEntries.find((entry) => entry.packageId === packageId)?.quantity ?? 0;
+    setShipments((current) => {
+      const usedElsewhere = current.reduce((sum, shipment) => sum + (shipment.id === id ? 0 : shipment.packages.find((entry) => entry.packageId === packageId)?.quantity ?? 0), 0);
+      const quantity = Number.isSafeInteger(requested) && requested >= 0 ? Math.min(requested, Math.max(0, limit - usedElsewhere)) : 0;
+      return current.map((shipment) => shipment.id === id ? { ...shipment, packages: shipment.packages.map((entry) => entry.packageId === packageId ? { ...entry, quantity } : entry) } : shipment);
+    });
   }
   function updateShipmentProduct(id: string, productId: string, value: string) {
-    const quantity = Number(value);
-    setShipments((current) => current.map((shipment) => shipment.id === id ? { ...shipment, products: [...(shipment.products ?? []).filter((entry) => entry.productId !== productId), { productId, quantity: Number.isSafeInteger(quantity) && quantity >= 0 ? quantity : 0 }] } : shipment));
+    const requested = Number(value);
+    const limit = selectedProductEntries.find((entry) => entry.productId === productId)?.quantity ?? 0;
+    setShipments((current) => {
+      const usedElsewhere = current.reduce((sum, shipment) => sum + (shipment.id === id ? 0 : shipment.products?.find((entry) => entry.productId === productId)?.quantity ?? 0), 0);
+      const quantity = Number.isSafeInteger(requested) && requested >= 0 ? Math.min(requested, Math.max(0, limit - usedElsewhere)) : 0;
+      return current.map((shipment) => shipment.id === id ? { ...shipment, products: [...(shipment.products ?? []).filter((entry) => entry.productId !== productId), { productId, quantity }] } : shipment);
+    });
   }
   const [errors, setErrors] = useState<FieldErrors>({});
   const [itemErrors, setItemErrors] = useState<ItemErrors>({});
@@ -298,7 +314,10 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
       const hasInvalidShipment = shipments.some((shipment) => !shipment.address.trim() || (shipment.packages.length === 0 && (shipment.products?.length ?? 0) === 0));
       const packageMismatch = selectedPackageEntries.some((entry) => (shipmentPackageTotals.get(entry.packageId) ?? 0) !== entry.quantity);
       const productMismatch = selectedProductEntries.some((entry) => (shipmentProductTotals.get(entry.productId) ?? 0) !== entry.quantity);
+      const packageOverAllocated = selectedPackageEntries.some((entry) => (shipmentPackageTotals.get(entry.packageId) ?? 0) > entry.quantity);
+      const productOverAllocated = selectedProductEntries.some((entry) => (shipmentProductTotals.get(entry.productId) ?? 0) > entry.quantity);
       if (hasInvalidShipment) nextErrors.shipments = "Lengkapi alamat dan minimal satu produk atau paket pada setiap alamat.";
+      else if (packageOverAllocated || productOverAllocated) nextErrors.shipments = "Jumlah dikirim tidak boleh melebihi jumlah paket atau produk yang dipesan.";
       else if (packageMismatch || productMismatch) nextErrors.shipments = "Jumlah produk dan paket per alamat harus sama dengan total pesanan.";
     } else if (multipleShipping && shipments.length === 0) {
       nextErrors.shipments = "Tambahkan minimal satu alamat atau hapus paket jika pesanan tidak membutuhkan pengiriman.";
