@@ -128,6 +128,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
       `Tanggal pesanan: ${invoiceDate(order.date)}`,
       `Nama: ${name}`,
       ...(customer?.phone ? [`WhatsApp: ${textLine(customer.phone)}`] : []),
+      ...(customer?.address?.trim() ? [`Alamat pelanggan: ${textLine(customer.address)}`] : []),
     ],
     [
       "*PESANAN*",
