@@ -233,7 +233,7 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
         quantity: previewAmount(item.quantity), unitPrice: applyGlobalDiscount(product?.unitPrice ?? 0, "products", data.discounts, fields.date), unitCost: personal&&item.unitCost!==undefined?(item.unitCost.trim()===""?null:previewAmount(item.unitCost)):product?.unitCost ?? null,
       };
     }),
-    serviceFee: previewAmount(fields.serviceFee), shippingCharge: multipleShipping ? shipments.reduce((sum, shipment) => sum + (shipment.shippingCharge ?? 0), 0) : previewAmount(fields.shippingCharge), paid: previewAmount(fields.paid),
+    serviceFee: previewAmount(fields.serviceFee), shippingCharge: multipleShipping && shipments.length > 0 ? shipments.reduce((sum, shipment) => sum + (shipment.shippingCharge ?? 0), 0) : previewAmount(fields.shippingCharge), paid: previewAmount(fields.paid),
     discount: { type: fields.discountType, value: previewAmount(fields.discountValue) }, refunds: order?.refunds,
     date: fields.date, createdAt, status: order?.status ?? "new", notes: fields.notes.trim(),
     shippingDate:fields.shippingDate||undefined,shippingTime:fields.shippingTime||undefined,shippingMethod:fields.shippingMethod.trim()||undefined,
