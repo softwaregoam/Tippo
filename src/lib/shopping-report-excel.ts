@@ -64,12 +64,14 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
     const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,6,7].includes(column)};
     cell.alignment={vertical:"middle",horizontal:[1,3,5].includes(column)?"center":[4,6,7].includes(column)?"right":"left",wrapText:true};
     cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};
-    cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===4?"FFD9EEE2":column===5?"FFFFF3B0":fill}};
+    cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===3||column===7?"FFFFFFFF":column===4?"FFD9EEE2":column===5?"FFFFF3B0":fill}};
    }
   }
   const end=products.rowCount;if(end>start)for(const column of [1,6,7])products.mergeCells(start,column,end,column);
  }
- const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:report.totals.quantity,groupValue:report.totals.cost??missing},true);
+ const productItems=report.products.filter(item=>!item.packageName);
+ const productTotalCost=productItems.some(item=>item.cost===null)?null:productItems.reduce((sum,item)=>sum+item.knownCost,0);
+ const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:productItems.reduce((sum,item)=>sum+item.quantity,0),groupValue:productTotalCost??missing},true);
  products.mergeCells(total.number,1,total.number,5);total.height=30;total.alignment={vertical:"middle",horizontal:"right"};total.getCell(6).alignment={vertical:"middle",horizontal:"center"};
  }
  if(kind==="orders"){
