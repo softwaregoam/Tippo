@@ -4,7 +4,7 @@ import type { Worksheet } from "exceljs";
 import type { ShoppingReport } from "./shopping-report.ts";
 
 const missing="Belum lengkap";
-export async function createShoppingReportExcel(report:ShoppingReport,kind:"products"|"packages"|"orders"):Promise<Uint8Array> {
+export async function createShoppingReportExcel(report:ShoppingReport,kind:"products"|"orders"):Promise<Uint8Array> {
  const ExcelJS=(await import("exceljs")).default;
  const book=new ExcelJS.Workbook();book.creator="Tippo";
  const po=report.batch.type==="po",color=po?"FF94501F":"FF245C4E";
