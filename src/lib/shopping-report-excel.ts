@@ -27,13 +27,15 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  if(kind==="packages"){
  const packages=prepare("Per paket",[
   {header:po?"Kategori":"Toko / brand",key:"group",width:25},{header:"Paket",key:"packageName",width:30},{header:"Produk",key:"product",width:48},quantity,
-  {header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Total qty grup",key:"groupQuantity",width:18},{header:"Total beli grup",key:"groupValue",width:25,money:true}
+  {header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"cost",width:22,money:true},{header:"Total qty grup",key:"groupQuantity",width:18},{header:"Total beli grup",key:"groupValue",width:25,money:true}
  ]);
  packages.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}}; packages.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
- const rows=report.products.filter(item=>Boolean(item.packageName));
- rows.forEach((item,index)=>packages.addRow({group:item.category??"Tanpa kategori",packageName:item.packageName??"",product:item.product,quantity:item.quantity,unitCost:item.unitCost??missing,groupQuantity:undefined,groupValue:undefined}));
- for(const index of [5,7])packages.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
- for(let row=4;row<=packages.rowCount;row++)for(let column=1;column<=7;column++){const cell=packages.getCell(row,column);cell.alignment={vertical:"middle",horizontal:[1,4,6].includes(column)?"center":[5,7].includes(column)?"right":"left",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===5?"FFD9EEE2":column===6?"FFFFF3B0":"FFFFFFFF"}};}
+ const packageGroups=new Map<string,ShoppingReport["products"]>();
+ for(const item of report.products.filter(item=>Boolean(item.packageName))){const key=`${item.category}|${item.packageName}`;const group=packageGroups.get(key)??[];group.push(item);packageGroups.set(key,group);}
+ for(const group of packageGroups.values()){const groupQuantity=group.reduce((sum,item)=>sum+item.quantity,0);const groupValue=group.some(item=>item.cost===null)?null:group.reduce((sum,item)=>sum+item.knownCost,0);for(const [line,item] of group.entries()){const label=[item.product,item.variant,item.color,item.size].filter(Boolean).join(" · ");packages.addRow({group:line===0?item.category:undefined,packageName:line===0?item.packageName:undefined,product:label,quantity:item.quantity,unitCost:item.unitCost??missing,cost:item.cost??missing,groupQuantity:line===0?groupQuantity:undefined,groupValue:line===0?(groupValue??missing):undefined});}}
+ for(const index of [5,6,8])packages.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
+ packages.views=[{state:"frozen",ySplit:3,xSplit:3,activeCell:"D4",showGridLines:false}];
+ for(let row=4;row<=packages.rowCount;row++)for(let column=1;column<=8;column++){const cell=packages.getCell(row,column);cell.alignment={vertical:"middle",horizontal:[1,4,7].includes(column)?"center":[5,6,8].includes(column)?"right":"left",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===5?"FFD9EEE2":column===7?"FFFFF3B0":"FFFFFFFF"}};}
  }
  if(kind==="products"){
  const products=prepare("Per produk",[
