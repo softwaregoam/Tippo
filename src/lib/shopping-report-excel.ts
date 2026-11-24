@@ -26,11 +26,14 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  const palette=["FFFFF2CC","FFD9E2F3","FFF4CCCC","FFD9EAD3","FFD9EAF0"];
  if(kind==="packages"){
  const packages=prepare("Per paket",[
-  {header:po?"Kategori":"Toko / brand",key:"group",width:25},{header:"Paket",key:"product",width:48},quantity,
+  {header:po?"Kategori":"Toko / brand",key:"group",width:25},{header:"Paket",key:"packageName",width:30},{header:"Produk",key:"product",width:48},quantity,
   {header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Total qty grup",key:"groupQuantity",width:18},{header:"Total beli grup",key:"groupValue",width:25,money:true}
  ]);
+ packages.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}}; packages.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
  const rows=report.products.filter(item=>Boolean(item.packageName));
- rows.forEach((item,index)=>packages.addRow({group:item.category??"Tanpa kategori",product:item.product,quantity:item.quantity,unitCost:item.unitCost??missing,cost:item.unitCost===null?missing:item.quantity*item.unitCost}));
+ rows.forEach((item,index)=>packages.addRow({group:item.category??"Tanpa kategori",packageName:item.packageName??"",product:item.product,quantity:item.quantity,unitCost:item.unitCost??missing,groupQuantity:undefined,groupValue:undefined}));
+ for(const index of [5,7])packages.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
+ for(let row=4;row<=packages.rowCount;row++)for(let column=1;column<=7;column++){const cell=packages.getCell(row,column);cell.alignment={vertical:"middle",horizontal:[1,4,6].includes(column)?"center":[5,7].includes(column)?"right":"left",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===5?"FFD9EEE2":column===6?"FFFFF3B0":"FFFFFFFF"}};}
  }
  if(kind==="products"){
  const products=prepare("Per produk",[
