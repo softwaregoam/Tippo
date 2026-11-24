@@ -26,14 +26,14 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  const palette=["FFFFF2CC","FFD9E2F3","FFF4CCCC","FFD9EAD3","FFD9EAF0"];
  if(kind==="products"){
  const products=prepare("Per produk",[
-  {header:po?"Kategori":"Toko / brand",key:"group",width:25},{header:"Paket",key:"packageName",width:30},{header:"Produk",key:"product",width:48},quantity,
+  {header:po?"Kategori":"Toko / brand",key:"group",width:25},{header:"Produk",key:"product",width:48},quantity,
   {header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"cost",width:22,money:true},
   {header:"Total qty grup",key:"groupQuantity",width:18},{header:"Total beli grup",key:"groupValue",width:25,money:true},
  ]);
  products.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}};
  products.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
  products.views=[{state:"frozen",ySplit:3,xSplit:2,activeCell:"C4",showGridLines:false}];
- for(const index of [5,6,8])products.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
+ for(const index of [4,5,7])products.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
  const storeGroups=new Map<string,{name:string;items:ShoppingReport["products"]}>();
  if(!po)for(const product of report.products){const key=product.store.normalize("NFKC").toLocaleLowerCase("id-ID");let group=storeGroups.get(key);if(!group){group={name:product.store,items:[]};storeGroups.set(key,group);}group.items.push(product);}
  const groups=po?report.categories:[...storeGroups.values()];
@@ -42,9 +42,9 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
   const groupQuantity=group.items.reduce((sum,product)=>sum+product.quantity,0),groupValue=group.items.some(product=>product.cost===null)?null:group.items.reduce((sum,product)=>sum+product.knownCost,0);
   for(const [line,product] of group.items.entries()){
    const label=[[product.product,product.variant].filter(Boolean).join(" "),product.color,product.size,...(po&&product.store!=="Tanpa toko / brand"?[`Toko: ${product.store}`]:[])].filter(Boolean).join(" · ");
-   const row=products.addRow({group:line===0?group.name:undefined,packageName:product.packageName??"",product:label,quantity:product.quantity,unitCost:product.unitCost??missing,cost:product.cost??missing,groupQuantity:line===0?groupQuantity:undefined,groupValue:line===0?(groupValue??missing):undefined});
+   const row=products.addRow({group:line===0?group.name:undefined,product:label,quantity:product.quantity,unitCost:product.unitCost??missing,cost:product.cost??missing,groupQuantity:line===0?groupQuantity:undefined,groupValue:line===0?(groupValue??missing):undefined});
    row.height=Math.max(28,Math.ceil(label.length/48)*16+8,Math.ceil((Math.ceil(group.name.length/22)*16+8)/group.items.length));
-   for(let column=1;column<=8;column++){
+   for(let column=1;column<=7;column++){
     const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,6,7].includes(column)};
     cell.alignment={vertical:"middle",horizontal:[1,3,6].includes(column)?"center":[4,5,7].includes(column)?"right":"left",wrapText:true};
     cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};
