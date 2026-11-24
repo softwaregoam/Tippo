@@ -89,6 +89,13 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
      cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===3?"FFFFF3B0":[4,5,7,8,9,10].includes(column)?"FFFFFFFF":fill}};
     }
    }
+  for (const [shipmentIndex, shipment] of (order.shipments ?? []).entries()) {
+   const key=`${shipment.address}|${shipment.shippingCharge}`;
+   if (!renderedShipmentIds.has(key)) {
+    const row=orders.addRow({product:`Alamat ${shipmentIndex+1}`,shippingCharge:shipment.shippingCharge,address:shipment.address});
+    for(let column=1;column<=12;column++){const cell=row.getCell(column);cell.alignment={vertical:"middle",horizontal:[4,5,6,7,9,10,11,12].includes(column)?"right":"left",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};}
+   }
+  }
   const end=orders.rowCount;if(end>start)for(const column of [1,6,11,12])orders.mergeCells(start,column,end,column);
  }
  if(report.orders.some(order=>order.personal))subtotal(orders,{customer:"BELANJA SENDIRI",itemCost:report.orders.filter(order=>order.personal).reduce((sum,order)=>sum+order.totals.knownCost,0)});
