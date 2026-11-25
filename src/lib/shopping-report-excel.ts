@@ -4,7 +4,7 @@ import type { Worksheet } from "exceljs";
 import type { ShoppingReport } from "./shopping-report.ts";
 
 const missing="Belum lengkap";
-export async function createShoppingReportExcel(report:ShoppingReport,kind:"products"|"packages"|"orders"):Promise<Uint8Array> {
+export async function createShoppingReportExcel(report:ShoppingReport,kind:"products"|"orders"):Promise<Uint8Array> {
  const ExcelJS=(await import("exceljs")).default;
  const book=new ExcelJS.Workbook();book.creator="Tippo";
  const po=report.batch.type==="po",color=po?"FF94501F":"FF245C4E";
@@ -24,119 +24,68 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  }
  const estimated=report.orders.some(order=>hasEstimatedCost(order));
  const palette=["FFFFF2CC","FFD9E2F3","FFF4CCCC","FFD9EAD3","FFD9EAF0"];
- if(kind==="packages"){
- const packages=prepare("Per paket",[
-  {header:po?"Kategori":"Toko / brand",key:"group",width:25},{header:"Paket",key:"packageName",width:30},{header:"Produk",key:"product",width:48},quantity,
-  {header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Total qty grup",key:"groupQuantity",width:18},{header:"Total beli grup",key:"groupValue",width:25,money:true}
- ]);
- packages.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}}; packages.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};packages.getRow(3).font={name:"Arial",size:11,color:{argb:"FFFFFFFF"},bold:true};
- const packageGroups=new Map<string,ShoppingReport["products"]>();
- let paletteIndex=0;
- for(const item of report.products.filter(item=>Boolean(item.packageName))){const key=`${item.category}|${item.packageName}`;const group=packageGroups.get(key)??[];group.push(item);packageGroups.set(key,group);}
- for(const group of packageGroups.values()){const groupQuantity=group.reduce((sum,item)=>sum+item.quantity,0);const groupValue=group.some(item=>item.cost===null)?null:group.reduce((sum,item)=>sum+item.knownCost,0);const start=packages.rowCount+1;for(const [line,item] of group.entries()){const label=[item.product,item.variant,item.color,item.size].filter(Boolean).join(" · ");const row=packages.addRow({group:line===0?item.category:undefined,packageName:line===0?item.packageName:undefined,product:label,quantity:item.quantity,unitCost:item.unitCost??missing,cost:item.cost??missing,groupQuantity:line===0?groupQuantity:undefined,groupValue:line===0?(groupValue??missing):undefined});for(let column=1;column<=7;column++){const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,6,7].includes(column)};cell.alignment={vertical:"middle",horizontal:[1,4,7].includes(column)?"center":[5,6,7].includes(column)?"right":"left",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};const fill=palette[paletteIndex%palette.length];cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===3?"FFFFF3B0":column===5?"FFD9EEE2":column===6?"FFFFF3B0":column===4?"FFFFFFFF":fill}};}paletteIndex++;}const end=packages.rowCount;if(end>start)for(const column of [1,2,6,7])packages.mergeCells(start,column,end,column);}
- for(const index of [5,7])packages.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
- packages.views=[{state:"frozen",ySplit:3,xSplit:3,activeCell:"D4",showGridLines:false}];
- const packageTotalCost=report.products.filter(item=>Boolean(item.packageName)&&item.cost!==null).reduce((sum,item)=>sum+item.knownCost,0);
- const total=subtotal(packages,{group:"TOTAL KESELURUHAN",groupQuantity:report.products.filter(item=>Boolean(item.packageName)).reduce((sum,item)=>sum+item.quantity,0),groupValue:packageTotalCost},true);
- packages.mergeCells(total.number,1,total.number,6); total.height=30; total.alignment={vertical:"middle",horizontal:"right"}; total.getCell(7).alignment={vertical:"middle",horizontal:"center"};
- }
  if(kind==="products"){
  const products=prepare("Per produk",[
   {header:po?"Kategori":"Toko / brand",key:"group",width:25},{header:"Produk",key:"product",width:48},quantity,
-  {header:"Harga beli / unit",key:"unitCost",width:22,money:true},
+  {header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"cost",width:22,money:true},
   {header:"Total qty grup",key:"groupQuantity",width:18},{header:"Total beli grup",key:"groupValue",width:25,money:true},
  ]);
  products.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}};
  products.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
  products.views=[{state:"frozen",ySplit:3,xSplit:2,activeCell:"C4",showGridLines:false}];
- for(const index of [4,6,7])products.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
+ for(const index of [4,5,7])products.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
  const storeGroups=new Map<string,{name:string;items:ShoppingReport["products"]}>();
  if(!po)for(const product of report.products){const key=product.store.normalize("NFKC").toLocaleLowerCase("id-ID");let group=storeGroups.get(key);if(!group){group={name:product.store,items:[]};storeGroups.set(key,group);}group.items.push(product);}
- const groups=po?report.categories.map(group=>({...group,items:group.items.filter(item=>!item.packageName)})).filter(group=>group.items.length):[...storeGroups.values()].map(group=>({...group,items:group.items.filter(item=>!item.packageName)})).filter(group=>group.items.length);
+ const groups=po?report.categories:[...storeGroups.values()];
  for(const [index,group] of groups.entries()){
   const start=products.rowCount+1,fill=palette[index%palette.length];
   const groupQuantity=group.items.reduce((sum,product)=>sum+product.quantity,0),groupValue=group.items.some(product=>product.cost===null)?null:group.items.reduce((sum,product)=>sum+product.knownCost,0);
   for(const [line,product] of group.items.entries()){
    const label=[[product.product,product.variant].filter(Boolean).join(" "),product.color,product.size,...(po&&product.store!=="Tanpa toko / brand"?[`Toko: ${product.store}`]:[])].filter(Boolean).join(" · ");
-   const row=products.addRow({group:line===0?group.name:undefined,product:label,quantity:product.quantity,unitCost:product.unitCost??missing,groupQuantity:line===0?groupQuantity:undefined,groupValue:line===0?(groupValue??missing):undefined});
+   const row=products.addRow({group:line===0?group.name:undefined,product:label,quantity:product.quantity,unitCost:product.unitCost??missing,cost:product.cost??missing,groupQuantity:line===0?groupQuantity:undefined,groupValue:line===0?(groupValue??missing):undefined});
    row.height=Math.max(28,Math.ceil(label.length/48)*16+8,Math.ceil((Math.ceil(group.name.length/22)*16+8)/group.items.length));
    for(let column=1;column<=7;column++){
     const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,6,7].includes(column)};
-    cell.alignment={vertical:"middle",horizontal:[1,3,5].includes(column)?"center":[4,6,7].includes(column)?"right":"left",wrapText:true};
+    cell.alignment={vertical:"middle",horizontal:[1,3,6].includes(column)?"center":[4,5,7].includes(column)?"right":"left",wrapText:true};
     cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};
-    cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===3||column===7?"FFFFFFFF":column===4?"FFD9EEE2":column===5?"FFFFF3B0":fill}};
+    cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===3?"FFFFF3B0":column===5?"FFD9EEE2":column===4?"FFFFFFFF":fill}};
    }
   }
   const end=products.rowCount;if(end>start)for(const column of [1,6,7])products.mergeCells(start,column,end,column);
  }
- const productItems=report.products.filter(item=>!item.packageName);
- const productTotalCost=productItems.some(item=>item.cost===null)?null:productItems.reduce((sum,item)=>sum+item.knownCost,0);
- const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:productItems.reduce((sum,item)=>sum+item.quantity,0),groupValue:productTotalCost??missing},true);
+ const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:report.totals.quantity,groupValue:report.totals.cost??missing},true);
  products.mergeCells(total.number,1,total.number,5);total.height=30;total.alignment={vertical:"middle",horizontal:"right"};total.getCell(6).alignment={vertical:"middle",horizontal:"center"};
  }
  if(kind==="orders"){
  const orders=prepare("Per pesanan",[
-  {header:"Pemesan",key:"customer",width:30},
-  {header:"Penerima",key:"recipient",width:20},
-  {header:"Tlp Penerima",key:"phone",width:18},
-  {header:"Alamat Kirim",key:"address",width:34},
-  {header:"Paket",key:"packageName",width:26},
-  {header:"Produk",key:"product",width:46},
-  quantity,
+  {header:"Pemesan",key:"customer",width:30},{header:"Produk",key:"product",width:48},quantity,
   {header:"Harga jual / unit",key:"unitPrice",width:22,money:true},{header:"Subtotal jual produk",key:"value",width:22,money:true},{header:"Total pesanan",key:"orderValue",width:24,money:true},{header:"Ongkir",key:"shippingCharge",width:18,money:true},
-  {header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"itemCost",width:22,money:true},{header:"HPP pelanggan",key:"cost",width:22,money:true},{header:"Margin akhir",key:"margin",width:22,money:true},
+  {header:"Alamat kirim",key:"address",width:38},{header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"itemCost",width:22,money:true},{header:"HPP pelanggan",key:"cost",width:22,money:true},{header:"Margin usaha",key:"margin",width:22,money:true},
  ]);
  orders.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}};orders.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
- orders.views=[{state:"frozen",ySplit:3,xSplit:2,activeCell:"C4",showGridLines:false}];
-  for(const index of [8,9,10,11,12,13,14,15])orders.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
- for(const index of [8,9,10,11,12,13,14,15])orders.getColumn(index).alignment={vertical:"middle",wrapText:true,horizontal:"right"};
+ orders.views=[{state:"frozen",ySplit:3,xSplit:3,activeCell:"D4",showGridLines:false}];
+  for(const index of [4,5,6,7,9,10,11,12])orders.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
  for(const [index,order] of report.orders.entries()){
   const start=orders.rowCount+1,fill=palette[index%palette.length];
-  const expandedRows: any[] = [];
-  for (const item of order.items) { const sourceItemId=item.id.split("-")[0]; const matches=order.shipments?.filter(candidate=>candidate.itemIds.includes(item.productId??"")||candidate.itemIds.includes(item.packageId?`pkg:${item.packageId}`:sourceItemId)) ?? []; if (matches.length) for (const shipment of matches) expandedRows.push({item,shipment}); else expandedRows.push({item,shipment:undefined}); }
-  const renderedShipmentIds = new Set<string>();const rowKeys:{row:number;key:string}[]=[];let lastRangeKey:string|null=null;
-  for(const [line,entry] of expandedRows.entries()){
-   const item=entry.item;
-   const shipment=entry.shipment;
+  for(const [line,item] of order.items.entries()){
    const options=[item.color,item.size,...(po&&item.category!=="Tanpa kategori"?[`Kategori: ${item.category}`]:[]),...(item.store?[`Toko: ${item.store}`]:[]),...(item.purchaseFx?[`Harga beli: ${item.purchaseFx.amount??"?"} ${item.purchaseFx.currency}; 1 ${item.purchaseFx.currency} = Rp${item.purchaseFx.rate??"?"} (${item.purchaseFx.status==="estimate"?"estimasi":"final"})`]:[])].filter(Boolean).join(" · ");
    const label=[item.product,item.variant].filter(Boolean).join(" ")+(options?`\n${options}`:"");
-   const shipmentKey=shipment ? `${shipment.address}|${shipment.shippingCharge}` : "no-shipment";
-   const firstOfRange=lastRangeKey!==shipmentKey;lastRangeKey=shipmentKey;
-   if(firstOfRange&&shipmentKey!=="no-shipment")renderedShipmentIds.add(shipmentKey);
-    const row=orders.addRow({customer:line===0?{richText:[{text:order.customer,font:{bold:true,size:11}},{text:`\n${formatCalendarDate(order.date)}`,font:{bold:false,size:10,color:{argb:"FF626862"}}}]}:undefined,recipient:shipment?(firstOfRange?shipment.recipientName:undefined):undefined,phone:shipment?(firstOfRange?shipment.phone:undefined):undefined,address:shipment?(firstOfRange?shipment.address:undefined):(line===0?order.address:undefined),packageName:item.packageName??"",product:label,quantity:item.quantity,unitPrice:item.unitPrice,value:item.quantity*item.unitPrice,orderValue:line===0?order.totals.value:undefined,shippingCharge:shipment ? (firstOfRange ? shipment.shippingCharge : undefined) : (line===0?order.shippingCharge:undefined),unitCost:item.unitCost??missing,itemCost:item.unitCost===null?missing:item.quantity*item.unitCost,cost:line===0?(order.personal?"—":order.totals.cost??missing):undefined,margin:line===0?(order.personal?"—":order.totals.cost===null?missing:order.totals.value-order.totals.cost):undefined});
-   rowKeys.push({row:row.number,key:shipmentKey});
+    const row=orders.addRow({customer:line===0?{richText:[{text:order.customer,font:{bold:true,size:11}},{text:`\n${formatCalendarDate(order.date)}`,font:{bold:false,size:10,color:{argb:"FF626862"}}}]}:undefined,product:label,quantity:item.quantity,unitPrice:item.unitPrice,value:item.quantity*item.unitPrice,orderValue:line===0?order.totals.value:undefined,shippingCharge:line===0?order.shippingCharge:undefined,address:line===0?order.address:undefined,unitCost:item.unitCost??missing,itemCost:item.unitCost===null?missing:item.quantity*item.unitCost,cost:line===0?(order.personal?"—":order.totals.cost??missing):undefined,margin:line===0?(order.personal?"—":order.totals.cost===null?missing:order.totals.value-order.totals.cost):undefined});
    const identityHeight=(Math.ceil(order.customer.length/28)+1)*16+8;
    const addressHeight=order.address.split("\n").reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/36)),0)*16+8;
    row.height=Math.max(30,label.split("\n").reduce((sum,line)=>sum+Math.ceil(line.length/48),0)*16+8,Math.ceil(Math.max(identityHeight,addressHeight)/order.items.length));
-    for(let column=1;column<=15;column++){
-     const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,10,14,15].includes(column)};
-     cell.alignment={vertical:"middle",horizontal:column===7?"center":[8,9,10,11,12,13,14,15].includes(column)?"right":"left",wrapText:true};
+    for(let column=1;column<=12;column++){
+     const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,6,11,12].includes(column)};
+     cell.alignment={vertical:"middle",horizontal:column===3?"center":[4,5,6,7,9,10,11,12].includes(column)?"right":"left",wrapText:true};
      cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};
-     cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===7?"FFFFF3B0":[8,9,11,12,13].includes(column)?"FFFFFFFF":fill}};
+     cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===3?"FFFFF3B0":[4,5,7,8,9,10].includes(column)?"FFFFFFFF":fill}};
     }
    }
-  for (const [shipmentIndex, shipment] of (order.shipments ?? []).entries()) {
-   const key=`${shipment.address}|${shipment.shippingCharge}`;
-   if (!renderedShipmentIds.has(key)) {
-    const row=orders.addRow({recipient:shipment.recipientName,phone:shipment.phone,product:`Alamat ${shipmentIndex+1}`,shippingCharge:shipment.shippingCharge,address:shipment.address});
-    rowKeys.push({row:row.number,key:`extra:${shipmentIndex}`});
-    for(let column=1;column<=15;column++){const cell=row.getCell(column);cell.alignment={vertical:"middle",horizontal:[8,9,10,11,12,13,14,15].includes(column)?"right":"left",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};}
-    }
-    }
-    // Penerima/Tlp/Alamat/Ongkir digabung per blok alamat (rentetan baris berurutan).
-    for(const column of [2,3,4,11]){
-    let blockStart=-1,blockKey="";
-    for(const entry of [...rowKeys,{row:orders.rowCount+1,key:"__end__"}]){
-    if(entry.key===blockKey)continue;
-    if(blockStart>-1&&blockKey&&entry.row-1>blockStart)orders.mergeCells(blockStart,column,entry.row-1,column);
-    blockKey=entry.key;blockStart=entry.row;
-    }
-    }
-    const end=orders.rowCount;if(end>start)for(const column of [1,10,14,15])orders.mergeCells(start,column,end,column);
+  const end=orders.rowCount;if(end>start)for(const column of [1,6,7,11,12])orders.mergeCells(start,column,end,column);
  }
  if(report.orders.some(order=>order.personal))subtotal(orders,{customer:"BELANJA SENDIRI",itemCost:report.orders.filter(order=>order.personal).reduce((sum,order)=>sum+order.totals.knownCost,0)});
   const orderTotal=subtotal(orders,{customer:estimated?"TOTAL KESELURUHAN · ESTIMASI":"TOTAL KESELURUHAN",quantity:report.totals.quantity,itemCost:report.totals.cost??missing,orderValue:report.totals.value,shippingCharge:report.totals.shippingCharge,cost:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+(order.totals.cost??0),0),margin:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+order.totals.value-(order.totals.cost??0),0)},true);
- orders.mergeCells(orderTotal.number,1,orderTotal.number,6);orderTotal.height=30;orderTotal.alignment={vertical:"middle",horizontal:"right"};orderTotal.getCell(7).alignment={vertical:"middle",horizontal:"center"};
+ orders.mergeCells(orderTotal.number,1,orderTotal.number,2);orderTotal.height=30;orderTotal.alignment={vertical:"middle",horizontal:"right"};orderTotal.getCell(3).alignment={vertical:"middle",horizontal:"center"};
  }
  return new Uint8Array(await book.xlsx.writeBuffer());
 }
