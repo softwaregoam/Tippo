@@ -116,8 +116,8 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
      cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===8?"FFFFF3B0":[9,10,11,12,13,14,15].includes(column)?"FFFFFFFF":fill}};
     }
    }
-  const end=orders.rowCount;if(end>start)for(const column of [1,11,16,17])orders.mergeCells(start,column,end,column);
-  for(let shipmentStart=0;shipmentStart<shipmentRows.length;){const shipmentIndex=shipmentRows[shipmentStart].shipmentIndex;let shipmentEnd=shipmentStart+1;while(shipmentEnd<shipmentRows.length&&shipmentRows[shipmentEnd].shipmentIndex===shipmentIndex)shipmentEnd++;if(shipmentEnd-shipmentStart>1)for(const column of [2,3,4,13])orders.mergeCells(start+shipmentStart,column,start+shipmentEnd-1,column);shipmentStart=shipmentEnd;}
+  const end=orders.rowCount;if(end>start)for(const column of [1,11,13,16,17])orders.mergeCells(start,column,end,column);
+  for(let shipmentStart=0;shipmentStart<shipmentRows.length;){const shipmentIndex=shipmentRows[shipmentStart].shipmentIndex;let shipmentEnd=shipmentStart+1;while(shipmentEnd<shipmentRows.length&&shipmentRows[shipmentEnd].shipmentIndex===shipmentIndex)shipmentEnd++;if(shipmentEnd-shipmentStart>1)for(const column of [2,3,4,12])orders.mergeCells(start+shipmentStart,column,start+shipmentEnd-1,column);shipmentStart=shipmentEnd;}
   for(const range of packageCells.values())if(range.end>range.start){orders.mergeCells(range.start,9,range.end,9);orders.mergeCells(range.start,10,range.end,10);}
  }
  if(report.orders.some(order=>order.personal))subtotal(orders,{customer:"BELANJA SENDIRI",itemCost:report.orders.filter(order=>order.personal).reduce((sum,order)=>sum+order.totals.knownCost,0)});
