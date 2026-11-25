@@ -4,7 +4,7 @@ import type { Worksheet } from "exceljs";
 import type { ShoppingReport } from "./shopping-report.ts";
 
 const missing="Belum lengkap";
-export async function createShoppingReportExcel(report:ShoppingReport,kind:"products"|"orders"):Promise<Uint8Array> {
+export async function createShoppingReportExcel(report:ShoppingReport,kind:"products"|"packages"|"orders"):Promise<Uint8Array> {
  const ExcelJS=(await import("exceljs")).default;
  const book=new ExcelJS.Workbook();book.creator="Tippo";
  const po=report.batch.type==="po",color=po?"FF94501F":"FF245C4E";
@@ -57,8 +57,31 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
  const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:productTotals.quantity,groupValue:productTotals.cost??missing},true);
  products.mergeCells(total.number,1,total.number,5);total.height=30;total.alignment={vertical:"middle",horizontal:"right"};total.getCell(6).alignment={vertical:"middle",horizontal:"center"};
  }
+ if(kind==="packages"){
+  const packages=prepare("Per paket",[
+   {header:"Kategori",key:"category",width:25},{header:"Paket",key:"packageName",width:32},{header:"Produk",key:"product",width:48},quantity,
+   {header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Total qty grup",key:"groupQuantity",width:18},{header:"Total beli grup",key:"groupValue",width:25,money:true},
+  ]);
+  packages.getRow(3).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF202622"}};packages.getRow(3).alignment={vertical:"middle",horizontal:"center",wrapText:true};
+  packages.views=[{state:"frozen",ySplit:3,xSplit:3,activeCell:"D4",showGridLines:false}];
+  for(const index of [5,7])packages.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
+  const groups=new Map<string,ShoppingReport["packageProducts"]>();
+  for(const product of report.packageProducts){const key=`${product.category}\u0000${product.packageName}`;const group=groups.get(key)??[];group.push(product);groups.set(key,group);}
+  for(const [index,group] of [...groups.values()].entries()){
+   const start=packages.rowCount+1,fill=palette[index%palette.length],groupQuantity=group.reduce((sum,product)=>sum+product.quantity,0),groupValue=group.some(product=>product.cost===null)?null:group.reduce((sum,product)=>sum+product.knownCost,0);
+   for(const [line,product] of group.entries()){
+    const label=[product.product,product.variant,product.color,product.size].filter(Boolean).join(" · ");
+    const row=packages.addRow({category:line===0?product.category:undefined,packageName:line===0?product.packageName:undefined,product:label,quantity:product.quantity,unitCost:product.unitCost??missing,groupQuantity:line===0?groupQuantity:undefined,groupValue:line===0?(groupValue??missing):undefined});
+    row.height=Math.max(28,Math.ceil(label.length/48)*16+8);
+    for(let column=1;column<=7;column++){const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,2,6,7].includes(column)};cell.alignment={vertical:"middle",horizontal:[1,2,4,6].includes(column)?"center":column===5||column===7?"right":"left",wrapText:true};cell.border={top:{style:"thin",color:{argb:"FFAAB3AD"}},bottom:{style:"thin",color:{argb:"FFAAB3AD"}},left:{style:"thin",color:{argb:"FFAAB3AD"}},right:{style:"thin",color:{argb:"FFAAB3AD"}}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===4?"FFFFFFFF":column===5?"FFD9EEE2":column===6?"FFFFF3B0":column===3?"FFFFF3B0":fill}};}
+   }
+   const end=packages.rowCount;if(end>start)for(const column of [1,2,6,7])packages.mergeCells(start,column,end,column);
+  }
+  const packageTotals=report.packageProducts.reduce((totals,product)=>({quantity:totals.quantity+product.quantity,cost:totals.cost===null||product.cost===null?null:totals.cost+product.knownCost}),{quantity:0,cost:0 as number|null});
+  const total=subtotal(packages,{category:"TOTAL KESELURUHAN",groupQuantity:packageTotals.quantity,groupValue:packageTotals.cost??missing},true);packages.mergeCells(total.number,1,total.number,5);total.height=30;total.alignment={vertical:"middle",horizontal:"right"};total.getCell(6).alignment={vertical:"middle",horizontal:"center"};
+ }
  if(kind==="orders"){
- const orders=prepare("Per pesanan",[
+  const orders=prepare("Per pesanan",[
   {header:"Pemesan",key:"customer",width:30},{header:"Produk",key:"product",width:48},quantity,
   {header:"Harga jual / unit",key:"unitPrice",width:22,money:true},{header:"Subtotal jual produk",key:"value",width:22,money:true},{header:"Total pesanan",key:"orderValue",width:24,money:true},{header:"Ongkir",key:"shippingCharge",width:18,money:true},
   {header:"Alamat kirim",key:"address",width:38},{header:"Harga beli / unit",key:"unitCost",width:22,money:true},{header:"Subtotal beli",key:"itemCost",width:22,money:true},{header:"HPP pelanggan",key:"cost",width:22,money:true},{header:"Margin usaha",key:"margin",width:22,money:true},
