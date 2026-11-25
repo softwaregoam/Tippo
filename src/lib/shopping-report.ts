@@ -46,6 +46,6 @@ export function buildShoppingReport(data:AppData,batchId:string) {
  const categoryGroups=new Map<string,{name:string;items:PurchaseProduct[]}>();
  for(const product of products){const key=normalize(product.category);let group=categoryGroups.get(key);if(!group){group={name:product.category,items:[]};categoryGroups.set(key,group);}group.items.push(product);}
  const subtotals=(items:PurchaseProduct[]):PurchaseTotals=>{const quantity=items.reduce((s,p)=>s+p.quantity,0),value=items.reduce((s,p)=>s+p.value,0),knownCost=items.reduce((s,p)=>s+p.knownCost,0),missingQuantity=items.reduce((s,p)=>s+p.missingQuantity,0);return {quantity,value,knownCost,missingQuantity,cost:missingQuantity?null:knownCost};};
-  return {batch,orders,products,packageProducts,categories:[...categoryGroups.values()].map(group=>({...group,totals:subtotals(group.items)})),totals:{...purchaseTotals(orders.flatMap(order=>order.items)),shippingCharge:orders.reduce((sum,order)=>sum+order.shippingCharge,0)}};
+  return {batch,orders,products,packageProducts,catalogProducts:[...catalogProducts.values()],packageCatalog,categories:[...categoryGroups.values()].map(group=>({...group,totals:subtotals(group.items)})),totals:{...purchaseTotals(orders.flatMap(order=>order.items)),shippingCharge:orders.reduce((sum,order)=>sum+order.shippingCharge,0)}};
 }
 export type ShoppingReport=ReturnType<typeof buildShoppingReport>;
