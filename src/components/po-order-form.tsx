@@ -252,6 +252,29 @@ export function PoOrderForm({ data, order, onSave, onClose, saveError, saving }:
     const product = data.products.find((entry) => entry.id === item.productId);
     return product ? [{ productId: product.id, quantity: Number(item.quantity) || 0, name: product.name }] : [];
   });
+  // Keep shipment rows in sync when an existing order receives a new item.
+  // Preserve allocations already entered; new products/packages start at 0.
+  useEffect(() => {
+    if (!shipments.length) return;
+    setShipments((current) => {
+      let changed = false;
+      const next = current.map((shipment) => {
+        const packages = selectedPackageEntries.map(({ packageId }) => {
+          const existing = shipment.packages.find((entry) => entry.packageId === packageId);
+          if (!existing) changed = true;
+          return existing ?? { packageId, quantity: 0 };
+        });
+        const products = selectedProductEntries.map(({ productId }) => {
+          const existing = shipment.products?.find((entry) => entry.productId === productId);
+          if (!existing) changed = true;
+          return existing ?? { productId, quantity: 0 };
+        });
+        if (packages.length !== shipment.packages.length || products.length !== (shipment.products?.length ?? 0)) changed = true;
+        return changed ? { ...shipment, packages, products } : shipment;
+      });
+      return changed ? next : current;
+    });
+  }, [items, selectedPackageEntries.map((entry) => `${entry.packageId}:${entry.quantity}`).join(","), selectedProductEntries.map((entry) => `${entry.productId}:${entry.quantity}`).join(",")]);
   const revenue = orderRevenue(draft);
   const previewOrders = [...data.orders.filter((entry) => entry.id !== draft.id), draft];
   const hpp = orderHpp(draft, previewOrders, data.batches);
