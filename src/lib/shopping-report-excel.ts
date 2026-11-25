@@ -108,7 +108,8 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
      cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:column===7?"FFFFF3B0":[8,9,10,11,12,13].includes(column)?"FFFFFFFF":fill}};
     }
    }
-  const end=orders.rowCount;if(end>start)for(const column of [1,2,3,4,5,10,14,15])orders.mergeCells(start,column,end,column);
+  const end=orders.rowCount;if(end>start)for(const column of [1,10,14,15])orders.mergeCells(start,column,end,column);
+  for(let shipmentStart=0;shipmentStart<shipmentRows.length;){const shipmentIndex=shipmentRows[shipmentStart].shipmentIndex;let shipmentEnd=shipmentStart+1;while(shipmentEnd<shipmentRows.length&&shipmentRows[shipmentEnd].shipmentIndex===shipmentIndex)shipmentEnd++;if(shipmentEnd-shipmentStart>1)for(const column of [2,3,4,11])orders.mergeCells(start+shipmentStart,column,start+shipmentEnd-1,column);shipmentStart=shipmentEnd;}
  }
  if(report.orders.some(order=>order.personal))subtotal(orders,{customer:"BELANJA SENDIRI",itemCost:report.orders.filter(order=>order.personal).reduce((sum,order)=>sum+order.totals.knownCost,0)});
   const orderTotal=subtotal(orders,{customer:estimated?"TOTAL KESELURUHAN · ESTIMASI":"TOTAL KESELURUHAN",quantity:report.totals.quantity,itemCost:report.totals.cost??missing,orderValue:report.totals.value,shippingCharge:report.totals.shippingCharge,cost:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+(order.totals.cost??0),0),margin:report.orders.some(order=>!order.personal&&order.totals.cost===null)?missing:report.orders.filter(order=>!order.personal).reduce((sum,order)=>sum+order.totals.value-(order.totals.cost??0),0)},true);
