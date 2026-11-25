@@ -4,6 +4,7 @@ import type { Worksheet } from "exceljs";
 import type { ShoppingReport } from "./shopping-report.ts";
 
 const missing="Belum lengkap";
+function shipmentQuantity(shipment:{packages:{packageId:string;quantity:number}[];products:{productId:string;quantity:number}[]},id:string,kind:"package"|"product") { const entries=kind==="package"?shipment.packages:shipment.products; return entries.find(entry=>kind==="package"?"packageId" in entry&&entry.packageId===id:"productId" in entry&&entry.productId===id)?.quantity??0; }
 export async function createShoppingReportExcel(report:ShoppingReport,kind:"products"|"packages"|"orders"):Promise<Uint8Array> {
  const ExcelJS=(await import("exceljs")).default;
  const book=new ExcelJS.Workbook();book.creator="Tippo";
@@ -91,13 +92,15 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
   for(const index of [8,9,10,11,12,13,14,15])orders.getColumn(index).numFmt='"Rp" #,##0;[Red]-"Rp" #,##0';
  for(const [index,order] of report.orders.entries()){
   const start=orders.rowCount+1,fill=palette[index%palette.length];
-  for(const [line,item] of order.items.entries()){
+  const shipmentRows=order.shipments.length?order.shipments.flatMap((shipment,shipmentIndex)=>order.items.flatMap(item=>{const quantity=item.packageId?(order.shipments[shipmentIndex].id===shipment.id?shipmentQuantity(shipment,item.packageId,"package"):0):(order.shipments[shipmentIndex].id===shipment.id?shipmentQuantity(shipment,item.productId??"product","product"):0);return quantity?[{item:{...item,quantity},shipment,shipmentIndex}]:[];})):order.items.map(item=>({item,shipment:{id:"",recipient:order.recipient,phone:order.phone,address:order.address,shippingCharge:order.shippingCharge,packages:[],products:[]},shipmentIndex:0}));
+  for(const [line,rowData] of shipmentRows.entries()){
+   const {item,shipment,shipmentIndex}=rowData;const firstOrderRow=line===0;const firstShipmentRow=line===0||shipmentRows[line-1].shipmentIndex!==shipmentIndex;
    const options=[item.color,item.size,...(po&&item.category!=="Tanpa kategori"?[`Kategori: ${item.category}`]:[]),...(item.store?[`Toko: ${item.store}`]:[]),...(item.purchaseFx?[`Harga beli: ${item.purchaseFx.amount??"?"} ${item.purchaseFx.currency}; 1 ${item.purchaseFx.currency} = Rp${item.purchaseFx.rate??"?"} (${item.purchaseFx.status==="estimate"?"estimasi":"final"})`]:[])].filter(Boolean).join(" · ");
    const label=[item.product,item.variant].filter(Boolean).join(" ")+(options?`\n${options}`:"");
-    const row=orders.addRow({customer:line===0?{richText:[{text:order.customer,font:{bold:true,size:11}},{text:`\n${formatCalendarDate(order.date)}`,font:{bold:false,size:10,color:{argb:"FF626862"}}}]}:undefined,recipient:line===0?order.recipient:undefined,phone:line===0?order.phone:undefined,address:line===0?order.address:undefined,packageName:item.packageName||undefined,product:label,quantity:item.quantity,unitPrice:item.unitPrice,value:item.quantity*item.unitPrice,orderValue:line===0?order.totals.value:undefined,shippingCharge:line===0?order.shippingCharge:undefined,unitCost:item.unitCost??missing,itemCost:item.unitCost===null?missing:item.quantity*item.unitCost,cost:line===0?(order.personal?"—":order.totals.cost??missing):undefined,margin:line===0?(order.personal?"—":order.totals.cost===null?missing:order.totals.value-order.totals.cost):undefined});
+    const row=orders.addRow({customer:firstOrderRow?{richText:[{text:order.customer,font:{bold:true,size:11}},{text:`\n${formatCalendarDate(order.date)}`,font:{bold:false,size:10,color:{argb:"FF626862"}}}]}:undefined,recipient:firstShipmentRow?shipment.recipient:undefined,phone:firstShipmentRow?shipment.phone:undefined,address:firstShipmentRow?shipment.address:undefined,packageName:item.packageName||undefined,product:label,quantity:item.quantity,unitPrice:item.unitPrice,value:item.quantity*item.unitPrice,orderValue:firstOrderRow?order.totals.value:undefined,shippingCharge:firstShipmentRow?shipment.shippingCharge:undefined,unitCost:item.unitCost??missing,itemCost:item.unitCost===null?missing:item.quantity*item.unitCost,cost:firstOrderRow?(order.personal?"—":order.totals.cost??missing):undefined,margin:firstOrderRow?(order.personal?"—":order.totals.cost===null?missing:order.totals.value-order.totals.cost):undefined});
    const identityHeight=(Math.ceil(order.customer.length/28)+1)*16+8;
-   const addressHeight=order.address.split("\n").reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/36)),0)*16+8;
-   row.height=Math.max(30,label.split("\n").reduce((sum,line)=>sum+Math.ceil(line.length/48),0)*16+8,Math.ceil(Math.max(identityHeight,addressHeight)/order.items.length));
+   const addressHeight=shipment.address.split("\n").reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/36)),0)*16+8;
+   row.height=Math.max(30,label.split("\n").reduce((sum,line)=>sum+Math.ceil(line.length/48),0)*16+8,Math.ceil(Math.max(identityHeight,addressHeight)/shipmentRows.length));
     for(let column=1;column<=15;column++){
      const cell=row.getCell(column);cell.font={name:"Arial",size:11,color:{argb:cell.value===missing?"FFA75B1E":"FF25312E"},bold:[1,2,3,5,10,14,15].includes(column)};
      cell.alignment={vertical:"middle",horizontal:column===7?"center":[8,9,10,11,12,13,14,15].includes(column)?"right":"left",wrapText:true};
