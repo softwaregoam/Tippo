@@ -18,7 +18,10 @@ export function buildShoppingReport(data:AppData,batchId:string) {
  const customers=new Map(data.customers.map(customer=>[customer.id,customer]));
   const orders:PurchaseOrder[]=data.orders.filter(order=>order.batchId===batchId&&order.status!=="cancelled").sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).map(order=>({id:order.id,personal:order.purpose==="personal",customer:order.purpose==="personal"?"Untuk sendiri":customers.get(order.customerId)?.name||"Pelanggan",address:customers.get(order.customerId)?.address?.trim()||"",date:order.date,items:order.items.map(item=>({...item,category:batch.type==="po"?(categories.get(item.productId??"")||"Tanpa kategori"):"Tanpa kategori"})),totals:purchaseTotals(order.items),shippingCharge:order.shippingCharge??0}));
  const groups=new Map<string,{labels:string[];items:OrderItem[]}>();
+ // Per produk is reserved for ordinary product items. Package items are kept
+ // in orders/totals so they can be classified separately in a package recap.
  for(const order of orders)for(const item of order.items){
+  if(item.packageId)continue;
   const labels=[item.category,clean(item.store)||"Tanpa toko / brand",clean(item.product),clean(item.variant),clean(item.color),clean(item.size)];
   const key=JSON.stringify([...labels.map(normalize),item.unitCost]);let group=groups.get(key);if(!group){group={labels,items:[]};groups.set(key,group);}group.items.push(item);
  }

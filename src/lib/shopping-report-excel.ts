@@ -53,7 +53,8 @@ export async function createShoppingReportExcel(report:ShoppingReport,kind:"prod
   }
   const end=products.rowCount;if(end>start)for(const column of [1,6,7])products.mergeCells(start,column,end,column);
  }
- const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:report.totals.quantity,groupValue:report.totals.cost??missing},true);
+ const productTotals=report.products.reduce((totals,product)=>({quantity:totals.quantity+product.quantity,cost:totals.cost===null||product.cost===null?null:totals.cost+product.knownCost}),{quantity:0,cost:0 as number|null});
+ const total=subtotal(products,{group:"TOTAL KESELURUHAN",groupQuantity:productTotals.quantity,groupValue:productTotals.cost??missing},true);
  products.mergeCells(total.number,1,total.number,5);total.height=30;total.alignment={vertical:"middle",horizontal:"right"};total.getCell(6).alignment={vertical:"middle",horizontal:"center"};
  }
  if(kind==="orders"){
