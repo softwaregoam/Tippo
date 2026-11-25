@@ -3,7 +3,7 @@ import type { AppData, OrderItem } from "./types.ts";
 export interface PurchaseTotals { quantity:number; value:number; knownCost:number; missingQuantity:number; cost:number|null; shippingCharge?:number; }
 export interface PurchaseProduct extends PurchaseTotals { category:string;store:string;product:string;variant:string;color:string;size:string;unitCost:number|null; }
 export interface PurchasePackageProduct extends PurchaseTotals { category:string;packageName:string;product:string;variant:string;color:string;size:string;unitCost:number|null; }
-export interface PurchaseOrder { id:string;personal:boolean;customer:string;address:string;date:string;items:(OrderItem & {category:string})[];totals:PurchaseTotals; shippingCharge:number; }
+export interface PurchaseOrder { id:string;personal:boolean;customer:string;recipient:string;phone:string;address:string;date:string;items:(OrderItem & {category:string;packageName:string;recipient:string;phone:string;shipmentAddress:string})[];totals:PurchaseTotals; shippingCharge:number; }
 const clean=(value:string|undefined)=>(value??"").trim().replace(/\s+/g," ");
 const normalize=(value:string)=>value.normalize("NFKC").toLocaleLowerCase("id-ID");
 export function purchaseTotals(items:Pick<OrderItem,"quantity"|"unitPrice"|"unitCost">[]):PurchaseTotals {
@@ -19,7 +19,7 @@ export function buildShoppingReport(data:AppData,batchId:string) {
  const catalogProducts=new Map(data.products.map(product=>[product.id,product]));
  const packageCatalog=data.packages??[];
  const customers=new Map(data.customers.map(customer=>[customer.id,customer]));
-  const orders:PurchaseOrder[]=data.orders.filter(order=>order.batchId===batchId&&order.status!=="cancelled").sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).map(order=>({id:order.id,personal:order.purpose==="personal",customer:order.purpose==="personal"?"Untuk sendiri":customers.get(order.customerId)?.name||"Pelanggan",address:customers.get(order.customerId)?.address?.trim()||"",date:order.date,items:order.items.map(item=>({...item,category:batch.type==="po"?(categories.get(item.productId??"")||"Tanpa kategori"):"Tanpa kategori"})),totals:purchaseTotals(order.items),shippingCharge:order.shippingCharge??0}));
+  const orders:PurchaseOrder[]=data.orders.filter(order=>order.batchId===batchId&&order.status!=="cancelled").sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).map(order=>{const customer=customers.get(order.customerId);const shipment=order.shipments?.[0];const customerName=order.purpose==="personal"?"Untuk sendiri":customer?.name||"Pelanggan";const recipient=shipment?.recipientName?.trim()||customerName;const phone=shipment?.phone?.trim()||customer?.phone?.trim()||"";const address=shipment?.address?.trim()||customer?.address?.trim()||"";return {id:order.id,personal:order.purpose==="personal",customer:customerName,recipient,phone,address,date:order.date,items:order.items.map(item=>({...item,category:batch.type==="po"?(categories.get(item.productId??"")||"Tanpa kategori"):"Tanpa kategori",packageName:item.packageId?packageCatalog.find(pack=>pack.id===item.packageId)?.name||"Paket tidak tersedia":"",recipient,phone,shipmentAddress:address})),totals:purchaseTotals(order.items),shippingCharge:order.shippingCharge??0};});
  const groups=new Map<string,{labels:string[];items:OrderItem[]}>();
  // Per produk is reserved for ordinary product items. Package items are kept
  // in orders/totals so they can be classified separately in a package recap.
