@@ -36,7 +36,7 @@ export function buildShoppingReport(data:AppData,batchId:string) {
   for(const member of pack.products){
    const product=catalogProducts.get(member.id);if(!product)continue;
    const expanded={...item,product:product.name,variant:product.variant??"",color:product.color??"",size:product.size??"",productId:product.id,quantity:item.quantity*member.quantity,unitCost:product.unitCost};
-   const labels=[clean(pack.category)||clean(product.category)||"Tanpa kategori",clean(pack.name),clean(product.name),clean(product.variant),clean(product.color),clean(product.size)];
+   const labels=[clean(pack.category)||"Tanpa kategori",clean(pack.name),clean(product.name),clean(product.variant),clean(product.color),clean(product.size)];
    const key=JSON.stringify([...labels.map(normalize),expanded.unitCost]);let group=packageGroups.get(key);
    if(!group){group={category:labels[0],packageName:labels[1],product:labels[2],variant:labels[3],color:labels[4],size:labels[5],unitCost:expanded.unitCost,items:[]};packageGroups.set(key,group);}group.items.push(expanded);
   }
