@@ -136,7 +136,7 @@ export function buildInvoice(order: Order, batch?: Batch, customer?: Customer, s
       "",
       `Subtotal produk: ${formatCurrency(order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
       ...(batch?.type === "po" ? order.serviceFee > 0 ? [`Biaya tambahan: ${formatCurrency(order.serviceFee)}`] : [] : order.serviceFee>0?[`Fee jastip: ${formatCurrency(order.serviceFee)}`]:[]),
-      ...((orderDiscount(order) + (order.globalDiscount?.amount ?? 0)) > 0 ? [`Diskon: -${formatCurrency(orderDiscount(order) + (order.globalDiscount?.amount ?? 0))}`] : []),
+      ...(orderDiscount(order) > 0 ? [`Diskon: -${formatCurrency(orderDiscount(order))}`] : []),
       ...(order.shippingCharge > 0 ? [`Ongkir: ${formatCurrency(order.shippingCharge)}`] : []),
       `${cancelled ? "Total sebelum pembatalan" : "*Total tagihan*"}: ${formatCurrency(total)}`,
       ...(outstanding(order) > 0 ? [`*Sisa tagihan*: ${formatCurrency(outstanding(order))}`] : []),
